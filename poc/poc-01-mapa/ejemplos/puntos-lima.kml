@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>Ejemplo con 10 Puntos en Lima</name>
+    <description>Archivo KML de demostración con 10 placemarks (puntos).</description>
+
+    <!-- Punto 1 -->
+    <Placemark>
+      <name>Punto 01</name>
+      <description>Plaza Mayor de Lima</description>
+      <Point>
+        <coordinates>-77.028240,-12.046374,0</coordinates>
+      </Point>
+    </Placemark>
+
+    <!-- Punto 2 -->
+    <Placemark>
+      <name>Punto 02</name>
+      <description>Catedral de Lima</description>
+      <Point>
+        <coordinates>-77.029250,-12.045831,0</coordinates>
+      </Point>
+    </Placemark>
+
+    <!-- Punto 3 -->
+    <Placemark>
+      <name>Punto 03</name>
+      <description>Palacio de Gobierno</description>
+      <Point>
+        <coordinates>-77.029810,-12.044950,0</coordinates>
+      </Point>
+    </Placemark>
+
+    <!-- Punto 4 -->
+    <Placemark>
+      <name>Punto 04</name>
+      <description>Parque de la Muralla</description>
+      <Point>
+        <coordinates>-77.025250,-12.044150,0</coordinates>
+      </Point>
+    </Placemark>
+
+    <!-- Punto 5 -->
+    <Placemark>
+      <name>Punto 05</name>
+      <description>Estación Desamparados</description>
+      <Point>
+        <coordinates>-77.024100,-12.045300,0</coordinates>
+      </Point>
+    </Placemark>
+
+    <!-- Punto 6 -->
+    <Placemark>
+      <name>Punto 06</name>
+      <description>Plaza San Martín</description>
+      <Point>
+        <coordinates>-77.034500,-12.052800,0</coordinates>
+      </Point>
+    </Placemark>
+
+    <!-- Punto 7 -->
+    <Placemark>
+      <name>Punto 07</name>
+      <description>Parque de la Exposición</description>
+      <Point>
+        <coordinates>-77.036600,-12.062100,0</coordinates>
+      </Point>
+    </Placemark>
+
+    <!-- Punto 8 -->
+    <Placemark>
+      <name>Punto 08</name>
+      <description>Museo de Arte de Lima (MALI)</description>
+      <Point>
+        <coordinates>-77.036800,-12.063900,0</coordinates>
+      </Point>
+    </Placemark>
+
+    <!-- Punto 9 -->
+    <Placemark>
+      <name>Punto 09</name>
+      <description>Circuito Mágico del Agua</description>
+      <Point>
+        <coordinates>-77.031500,-12.067200,0</coordinates>
+      </Point>
+    </Placemark>
+
+    <!-- Punto 10 -->
+    <Placemark>
+      <name>Punto 10</name>
+      <description>Estadio Nacional del Perú</description>
+      <Point>
+        <coordinates>-77.032200,-12.074400,0</coordinates>
+      </Point>
+    </Placemark>
+
+  </Document>
+</kml>

@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "PoC Cercanía",
+    "slug": "poc-02-cercania",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "pe.genia.poc.cercania"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "pe.genia.poc.cercania"
+    },
+    "plugins": [
+      "expo-notifications",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "La app le avisa cuando se acerca a una tarea pendiente, también con la app cerrada. Su posición no se guarda.",
+          "locationWhenInUsePermission": "La app le avisa cuando se acerca a una tarea pendiente. Su posición no se guarda.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isIosBackgroundLocationEnabled": true
+        }
+      ]
+    ]
+  }
+}

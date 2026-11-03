@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "PoC Subida",
+    "slug": "poc-05-06-subida",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "pe.genia.poc.subida",
+      "infoPlist": {
+        "NSAppTransportSecurity": { "NSAllowsArbitraryLoads": true },
+        "NSLocalNetworkUsageDescription": "La prueba sube archivos al servidor de su red local."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "pe.genia.poc.subida"
+    },
+    "plugins": ["react-native-quick-crypto", "./plugins/permitir-http.js"]
+  }
+}

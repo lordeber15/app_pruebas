@@ -1,0 +1,30 @@
+{
+  "name": "@plataforma-campo/poc-01-mapa",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "dependencies": {
+    "@maplibre/maplibre-react-native": "^11.5.1",
+    "expo": "~58.0.21",
+    "expo-asset": "~58.0.19",
+    "expo-file-system": "~58.0.13",
+    "expo-location": "~58.0.20",
+    "expo-status-bar": "~58.0.4",
+    "react": "19.3.0",
+    "react-native": "0.88.1"
+  },
+  "devDependencies": {
+    "@protomaps/basemaps": "^5.7.2",
+    "@types/react": "~19.3.0",
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web",
+    "estilo": "node scripts/generar-estilo.mjs",
+    "typecheck": "tsc --noEmit",
+    "apk": "expo prebuild --platform android && cd android && ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a,armeabi-v7a"
+  },
+  "private": true
+}

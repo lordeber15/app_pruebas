@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "PoC Transecto",
+    "slug": "poc-03-04-transecto",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "pe.genia.poc.transecto"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "pe.genia.poc.transecto"
+    },
+    "plugins": [
+      "expo-notifications",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "La app registra su recorrido durante un transecto y le avisa cuando se acerca a una tarea, también con la pantalla apagada.",
+          "locationWhenInUsePermission": "La app registra su recorrido durante un transecto y le avisa cuando se acerca a una tarea.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true,
+          "isIosBackgroundLocationEnabled": true
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "La app toma las fotos de la prueba de batería.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "barcodeScannerEnabled": false
+        }
+      ],
+      ["expo-audio", { "microphonePermission": "La app graba los audios de la prueba de batería." }]
+    ]
+  }
+}
