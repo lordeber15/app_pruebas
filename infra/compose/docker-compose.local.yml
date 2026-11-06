@@ -1,0 +1,93 @@
+# Entorno local de desarrollo (doc. 03 §5). Solo datos sintéticos.
+# Antes del primer arranque: infra/compose/generar-env-local.sh (crea infra/compose/.env, fuera del repo).
+# Si los puertos 5432 o 3000 están ocupados, cámbielos con CAMPO_PG_PORT y CAMPO_API_PORT en ese .env.
+#
+# api, worker y web corren en el host con pnpm mientras se desarrollan; se agregarán aquí
+# cuando tengan imagen.
+name: campo-local
+
+services:
+  postgres:
+    # La imagen oficial de PostGIS solo existe para amd64; en Mac con Apple Silicon corre emulada.
+    image: postgis/postgis:17-3.7@sha256:ca211960fbe54834dcb6ff16aae6d70f72f66f4a789820aed3d5691025c9d698
+    platform: linux/amd64
+    environment:
+      TZ: UTC
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?ejecute infra/compose/generar-env-local.sh}
+      APP_MIGRATOR_PASSWORD: ${APP_MIGRATOR_PASSWORD:?}
+      APP_RW_PASSWORD: ${APP_RW_PASSWORD:?}
+      WORKER_RW_PASSWORD: ${WORKER_RW_PASSWORD:?}
+      APP_RO_PASSWORD: ${APP_RO_PASSWORD:?}
+    command: ['postgres', '-c', 'shared_preload_libraries=pg_stat_statements', '-c', 'timezone=UTC']
+    volumes:
+      - ./postgres/init.sh:/docker-entrypoint-initdb.d/10-init.sh:ro
+      - postgres:/var/lib/postgresql/data
+    ports:
+      - '127.0.0.1:${CAMPO_PG_PORT:-5432}:5432'
+    shm_size: 256m
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d campo']
+      interval: 5s
+      retries: 20
+
+  minio:
+    # La imagen oficial de MinIO ya no se publica; esta es la que se validó en PoC-05.
+    image: cgr.dev/chainguard/minio@sha256:3b6e40c30ecd5cea627e382ff0b82ca841f58c52294578787043ee80c8ef7c82
+    command: ['server', '/data', '--console-address', ':9001']
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY_APP:?}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY_APP:?}
+    volumes:
+      - minio:/data
+    ports:
+      - '127.0.0.1:9000:9000'
+      - '127.0.0.1:9001:9001'
+
+  crear-bucket:
+    image: amazon/aws-cli@sha256:d557b3524475d70dd3104cf44d96568ee3188897b73a6ece2b37aa50e1af362f
+    depends_on:
+      minio:
+        condition: service_started
+    environment:
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY_APP}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY_APP}
+      AWS_DEFAULT_REGION: us-east-1
+    entrypoint:
+      - sh
+      - -c
+      - until aws --endpoint-url http://minio:9000 s3 ls s3://archivos || aws --endpoint-url http://minio:9000 s3 mb s3://archivos; do sleep 1; done
+    restart: 'no'
+
+  tusd:
+    image: tusproject/tusd@sha256:7b1c552a8b42f4b36cb01f2a3bd49f82ab078b2eefd191459e716141dd50376c
+    depends_on:
+      crear-bucket:
+        condition: service_completed_successfully
+    environment:
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY_APP}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY_APP}
+      AWS_REGION: us-east-1
+    # Doc. 03 §10: trozos de 5 MB, máximo 25 MB. Los hooks van a la API que corre en el host;
+    # sin la API levantada, tusd rechaza las subidas (pre-create falla).
+    command:
+      - -s3-bucket=archivos
+      - -s3-endpoint=http://minio:9000
+      - -s3-part-size=5242880
+      - -max-size=26214400
+      - -base-path=/files/
+      - -hooks-http=http://host.docker.internal:${CAMPO_API_PORT:-3000}/internal/tus-hooks
+      - -hooks-http-forward-headers=Authorization
+      - -hooks-enabled-events=pre-create,post-finish
+    # Expuesto en la red local para probar desde un celular en la misma WiFi.
+    ports:
+      - '1080:8080'
+
+  mailpit:
+    image: axllent/mailpit@sha256:9b3a463be15354c0f0eba91697d80e3e0d8a5623ef0e627cacc836bc17fd5231
+    ports:
+      - '127.0.0.1:1025:1025'
+      - '127.0.0.1:8025:8025'
+
+volumes:
+  postgres:
+  minio:

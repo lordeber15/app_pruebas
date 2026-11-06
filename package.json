@@ -13,7 +13,9 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "test:integration": "turbo run test:integration",
-    "test:authz": "turbo run test:authz"
+    "test:authz": "turbo run test:authz",
+    "db:migrate": "pnpm --filter @campo/db db:migrate",
+    "db:codegen": "pnpm --filter @campo/db db:codegen"
   },
   "devDependencies": {
     "@campo/config": "workspace:*",

@@ -2,3 +2,10 @@
 packages:
   - apps/*
   - packages/*
+
+# Scripts de instalación: bloqueados salvo que se aprueben aquí.
+# ssh2 y cpu-features (aceleración nativa opcional) y protobufjs (solo verifica versiones) vienen de Testcontainers y no hacen falta.
+allowBuilds:
+  cpu-features: false
+  protobufjs: false
+  ssh2: false
