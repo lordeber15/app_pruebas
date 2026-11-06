@@ -17,6 +17,8 @@ export default tseslint.config(
       // Falsos positivos con claves tipadas (uniones de literales). Las entradas externas se
       // validan con Zod antes de usarse como clave.
       'security/detect-object-injection': 'off',
+      // `onChange={(e) => setX(e.target.value)}` es el patrón habitual de React.
+      '@typescript-eslint/no-confusing-void-expression': ['error', { ignoreArrowShorthand: true }],
     },
   },
   {
