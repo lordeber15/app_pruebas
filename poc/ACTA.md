@@ -1,6 +1,6 @@
 # Acta de PoC (Fase 0)
 
-Estado al 2026-10-31. **Decisión go/no-go: pendiente.** Faltan las pruebas en dispositivos reales, y el emulador no sirve para aprobar lo que depende del dispositivo.
+Estado al 2026-11-05. **Decisión go/no-go: go con condiciones** (decisión del usuario, 2026-11-05). Las pruebas en Android salieron bien y se empieza la Fase 1. Las pruebas pendientes (iPhone y otras 2 marcas Android) se harán cuando lleguen los equipos y sus resultados se agregarán a esta acta. Son condición para salir a campo, no para seguir desarrollando.
 
 | PoC | Criterio | Resultado hasta ahora | Estado | Falta |
 |---|---|---|---|---|
@@ -13,14 +13,14 @@ Estado al 2026-10-31. **Decisión go/no-go: pendiente.** Faltan las pruebas en d
 
 ## Decisiones que dependen de este resultado
 
-- **Compra de Transistor (ADR-011, ~US$ 399):** sin decidir. Depende de PoC-03 y, si el aviso falla en Android, también de PoC-02.
-- **Inicio de Fase 1:** queda sujeto a la decisión go/no-go.
+- **Compra de Transistor (ADR-011, ~US$ 399):** no se compra (decisión del usuario, 2026-11-05). Se usa expo-location. Si las pruebas pendientes de PoC-02 o PoC-03 fallan, se vuelve a consultar.
+- **Inicio de Fase 1:** aprobado el 2026-11-05, con las pruebas pendientes como condición antes de salir a campo.
 
 ## Riesgos abiertos
 
 1. **Aviso de cercanía en Android sin otra app usando GPS:** puede superar los 60 s.
 2. **Subida en segundo plano:** no se probó y no está definido cómo debe comportarse.
-3. **Imagen de MinIO:** la oficial ya no se puede descargar, y el documento 3 usa MinIO en el entorno local.
+3. **Imagen de MinIO:** la oficial ya no se puede descargar. PoC-05 usó `cgr.dev/chainguard/minio`, fijada por digest; el entorno local de la Fase 1 usa la misma.
 
 ## Dónde está cada prueba
 

@@ -1,0 +1,4 @@
+# Las PoC de poc/ tienen su propio lockfile y no son parte del monorepo.
+packages:
+  - apps/*
+  - packages/*

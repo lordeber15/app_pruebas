@@ -1,0 +1,9 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "tasks": {
+    "typecheck": { "dependsOn": ["^typecheck"], "outputs": [] },
+    "test": { "outputs": ["coverage/**"] },
+    "test:integration": { "cache": false },
+    "test:authz": { "outputs": [] }
+  }
+}
