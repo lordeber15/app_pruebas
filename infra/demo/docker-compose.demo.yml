@@ -1,0 +1,183 @@
+# Demo en un VPS (staging, doc. 03 §5). Solo datos sintéticos o de prueba.
+# Antes del primer arranque: infra/demo/preparar.sh <dominio>  (crea infra/demo/.env, fuera de git)
+# Arranque:  docker compose -f infra/demo/docker-compose.demo.yml up -d --build
+#
+# Un solo puerto publicado: el del contenedor web (PUERTO_WEB, por defecto 8080). El proxy del VPS
+# (Nginx Proxy Manager) lo expone con HTTPS en el dominio. Todo lo demás vive en redes internas.
+name: campo-demo
+
+x-servidor: &servidor
+  build:
+    context: ../..
+    dockerfile: infra/docker/Dockerfile
+    target: servidor
+  image: campo-servidor:demo
+  restart: unless-stopped
+  read_only: true
+  tmpfs: ['/tmp:size=64m']
+  cap_drop: [ALL]
+  security_opt: ['no-new-privileges:true']
+  environment: &entorno
+    NODE_ENV: staging
+    TZ: UTC
+    S3_ENDPOINT: http://minio:9000
+    S3_PUBLIC_ENDPOINT: https://${DOMINIO:?ejecute infra/demo/preparar.sh}
+    S3_REGION: us-east-1
+    S3_BUCKET_ARCHIVOS: archivos
+    S3_ACCESS_KEY_APP: ${S3_ACCESS_KEY_APP:?}
+    S3_SECRET_KEY_APP: ${S3_SECRET_KEY_APP:?}
+
+services:
+  postgres:
+    image: postgis/postgis:17-3.7@sha256:ca211960fbe54834dcb6ff16aae6d70f72f66f4a789820aed3d5691025c9d698
+    restart: unless-stopped
+    environment:
+      TZ: UTC
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+      APP_MIGRATOR_PASSWORD: ${APP_MIGRATOR_PASSWORD:?}
+      APP_RW_PASSWORD: ${APP_RW_PASSWORD:?}
+      WORKER_RW_PASSWORD: ${WORKER_RW_PASSWORD:?}
+      APP_RO_PASSWORD: ${APP_RO_PASSWORD:?}
+    command: ['postgres', '-c', 'shared_preload_libraries=pg_stat_statements', '-c', 'timezone=UTC']
+    volumes:
+      - ../compose/postgres/init.sh:/docker-entrypoint-initdb.d/10-init.sh:ro
+      - postgres:/var/lib/postgresql/data
+    shm_size: 512m
+    networks: [datos]
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d campo']
+      interval: 5s
+      retries: 30
+
+  minio:
+    image: cgr.dev/chainguard/minio@sha256:3b6e40c30ecd5cea627e382ff0b82ca841f58c52294578787043ee80c8ef7c82
+    restart: unless-stopped
+    command: ['server', '/data']
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY_APP:?}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY_APP:?}
+    volumes:
+      - minio:/data
+    networks: [datos]
+
+  crear-bucket:
+    image: amazon/aws-cli@sha256:d557b3524475d70dd3104cf44d96568ee3188897b73a6ece2b37aa50e1af362f
+    depends_on:
+      minio:
+        condition: service_started
+    environment:
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY_APP}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY_APP}
+      AWS_DEFAULT_REGION: us-east-1
+    entrypoint:
+      - sh
+      - -c
+      - until aws --endpoint-url http://minio:9000 s3 ls s3://archivos || aws --endpoint-url http://minio:9000 s3 mb s3://archivos; do sleep 2; done
+    networks: [datos]
+    restart: 'no'
+
+  migraciones:
+    <<: *servidor
+    restart: 'no'
+    command: ['node', 'packages/db/src/migrar.ts']
+    environment:
+      DATABASE_URL_MIGRATIONS: postgres://app_migrator:${APP_MIGRATOR_PASSWORD}@postgres:5432/campo
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [datos]
+
+  api:
+    <<: *servidor
+    working_dir: /app/apps/api
+    command: ['node', 'src/servidor.ts']
+    environment:
+      <<: *entorno
+      PORT: '3000'
+      DATABASE_URL: postgres://app_rw:${APP_RW_PASSWORD}@postgres:5432/campo
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?}
+      BETTER_AUTH_URL: https://${DOMINIO}
+      WEB_ORIGIN: https://${DOMINIO}
+      TUSD_HOOK_SECRET: ${TUSD_HOOK_SECRET:?}
+    depends_on:
+      migraciones:
+        condition: service_completed_successfully
+    networks: [datos, borde]
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/ready').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  worker:
+    <<: *servidor
+    working_dir: /app/apps/worker
+    command: ['node', 'src/main.ts']
+    environment:
+      <<: *entorno
+      DATABASE_URL_WORKER: postgres://worker_rw:${WORKER_RW_PASSWORD}@postgres:5432/campo
+    depends_on:
+      migraciones:
+        condition: service_completed_successfully
+      crear-bucket:
+        condition: service_completed_successfully
+    networks: [datos]
+
+  tusd:
+    image: tusproject/tusd@sha256:7b1c552a8b42f4b36cb01f2a3bd49f82ab078b2eefd191459e716141dd50376c
+    restart: unless-stopped
+    depends_on:
+      crear-bucket:
+        condition: service_completed_successfully
+      api:
+        condition: service_healthy
+    environment:
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY_APP}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY_APP}
+      AWS_REGION: us-east-1
+    # Doc. 03 §10: trozos de 5 MB y máximo 25 MB. El secreto va en la URL del hook porque tusd no
+    # firma sus llamadas; la red es interna y la API no registra la query en sus logs.
+    command:
+      - -s3-bucket=archivos
+      - -s3-endpoint=http://minio:9000
+      - -s3-part-size=5242880
+      - -max-size=26214400
+      - -base-path=/files/
+      - -behind-proxy
+      - -hooks-http=http://api:3000/internal/tus-hooks?secreto=${TUSD_HOOK_SECRET}
+      - -hooks-http-forward-headers=Authorization
+      - -hooks-enabled-events=pre-create,post-finish
+    networks: [datos, borde]
+
+  web:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile
+      target: web
+    image: campo-web:demo
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - '${PUERTO_WEB:-8080}:80'
+    volumes:
+      # Opcional: copie aquí base.pmtiles para ver el mapa base (vea README).
+      - ./mapa:/srv/mapa:ro
+    networks: [borde, datos]
+
+networks:
+  # La base de datos y el almacenamiento no tienen salida a Internet ni puertos publicados.
+  datos:
+    internal: true
+  borde: {}
+
+volumes:
+  postgres:
+  minio:
