@@ -8,6 +8,9 @@ import { leerConfig } from '../src/config.ts';
 import { crearUsuario } from '../src/modulos/usuarios/servicio.ts';
 import { generarId } from '../src/plataforma/ids.ts';
 
+/** Secreto de los hooks de tusd en las pruebas. */
+export const SECRETO_HOOKS = randomBytes(24).toString('hex');
+
 export interface Entorno extends Aplicacion {
   readonly base: BaseDePrueba;
   readonly pool: pg.Pool;
@@ -24,6 +27,7 @@ export const iniciarEntorno = async (): Promise<Entorno> => {
     BETTER_AUTH_SECRET: randomBytes(32).toString('hex'),
     BETTER_AUTH_URL: 'http://localhost',
     WEB_ORIGIN: 'http://localhost:5173',
+    TUSD_HOOK_SECRET: SECRETO_HOOKS,
     // Todas las solicitudes de prueba salen de la misma IP.
     RATE_LIMIT_LOGIN_IP: '1000',
   });

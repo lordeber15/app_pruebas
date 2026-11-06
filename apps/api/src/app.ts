@@ -11,6 +11,7 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { sql } from 'kysely';
 import type pg from 'pg';
 import type { Config } from './config.ts';
+import { rutasArchivos } from './modulos/archivos/rutas.ts';
 import { rutasDispositivos } from './modulos/dispositivos/rutas.ts';
 import { rutasPaquete } from './modulos/paquete/rutas.ts';
 import { rutasSync } from './modulos/sync/rutas.ts';
@@ -38,7 +39,18 @@ export const crearApp = async (config: Config, pool: pg.Pool): Promise<Aplicacio
     logger:
       config.NODE_ENV === 'test'
         ? false
-        : { level: produccion ? 'info' : 'debug', redact: { paths: REDACTAR, censor: '[oculto]' } },
+        : {
+            level: produccion ? 'info' : 'debug',
+            redact: { paths: REDACTAR, censor: '[oculto]' },
+            // Sin query string en los logs: lleva el secreto de los hooks de tusd y cursores.
+            serializers: {
+              req: (req: { method: string; url: string; id: string }) => ({
+                id: req.id,
+                method: req.method,
+                url: req.url.split('?')[0],
+              }),
+            },
+          },
     bodyLimit: 1024 * 1024,
     trustProxy: produccion,
     genReqId: () => crypto.randomUUID(),
@@ -72,6 +84,7 @@ export const crearApp = async (config: Config, pool: pg.Pool): Promise<Aplicacio
   await app.register(rutasDispositivos, { prefix: '/api/v1', auth, db });
   await app.register(rutasPaquete, { prefix: '/api/v1', auth, db, config });
   await app.register(rutasSync, { prefix: '/api/v1', auth, db, config });
+  await app.register(rutasArchivos, { auth, db, config });
 
   return { app, db, auth };
 };

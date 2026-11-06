@@ -32,7 +32,7 @@ export const leerCursor = (cursor: string | undefined): Date => {
 };
 
 export interface Cambio {
-  readonly entidad: 'tarea' | 'comentario' | 'dispositivo';
+  readonly entidad: 'tarea' | 'comentario' | 'dispositivo' | 'archivo';
   readonly id: string;
   readonly operacion: 'disponible' | 'revocada' | 'estado' | 'creado' | 'baja';
   readonly datos: Record<string, unknown>;
@@ -122,6 +122,23 @@ export const cambiosDesde = async (
       id: c.id,
       operacion: 'creado',
       datos: { tarea_id: c.tarea_id, texto: c.texto, creado_en: c.creado_en.toISOString() },
+    });
+  }
+
+  // Estado de sus archivos: el celular libera cada variante cuando está verificada (RN-17).
+  const archivos = await db
+    .selectFrom('archivo')
+    .select(['id', 'estado'])
+    .where('usuario_id', '=', actor.usuarioId)
+    .where('actualizado_en', '>', desde)
+    .limit(LIMITE)
+    .execute();
+  for (const a of archivos) {
+    cambios.push({
+      entidad: 'archivo',
+      id: a.id,
+      operacion: 'estado',
+      datos: { estado: a.estado },
     });
   }
 

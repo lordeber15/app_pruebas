@@ -10,6 +10,8 @@ const esquema = z.object({
   BETTER_AUTH_URL: z.url(),
   WEB_ORIGIN: z.url(),
   /** Intentos de login por cuenta cada 15 minutos (SEG-04). */
+  /** Secreto compartido con tusd para sus hooks (doc. 03 §6). */
+  TUSD_HOOK_SECRET: z.string().min(32, 'TUSD_HOOK_SECRET debe tener al menos 32 caracteres'),
   RATE_LIMIT_LOGIN: z.coerce.number().int().positive().default(5),
   /** Intentos de login por IP por minuto. Holgado: muchos celulares comparten IP (NAT del operador). */
   RATE_LIMIT_LOGIN_IP: z.coerce.number().int().positive().default(30),

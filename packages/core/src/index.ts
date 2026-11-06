@@ -7,3 +7,4 @@ export * from './tarea/maquina.ts';
 export * from './asignacion/maquina.ts';
 export * from './eventos/esquemas.ts';
 export * from './uuid.ts';
+export * from './archivo/maquina.ts';

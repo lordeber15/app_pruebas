@@ -1,6 +1,7 @@
 import type { Db } from '@campo/db';
 import { fromNodeHeaders } from 'better-auth/node';
 import type { FastifyRequest } from 'fastify';
+import type { IncomingHttpHeaders } from 'node:http';
 import type { Auth } from './auth.ts';
 import { noAutenticado, ProblemaHttp } from './errores.ts';
 
@@ -33,9 +34,9 @@ const comoEstadoDispositivo = (e: string | null): Actor['estadoDispositivo'] =>
 export const resolverActor = async (
   auth: Auth,
   db: Db,
-  request: FastifyRequest,
+  cabeceras: IncomingHttpHeaders,
 ): Promise<Actor | null> => {
-  const sesion = await auth.api.getSession({ headers: fromNodeHeaders(request.headers) });
+  const sesion = await auth.api.getSession({ headers: fromNodeHeaders(cabeceras) });
   if (sesion === null) return null;
 
   const fila = await db
@@ -73,7 +74,7 @@ export const resolverActor = async (
 export const requiereSesion =
   (auth: Auth, db: Db) =>
   async (request: FastifyRequest): Promise<void> => {
-    request.actor = await resolverActor(auth, db, request);
+    request.actor = await resolverActor(auth, db, request.headers);
     if (request.actor === null) throw noAutenticado();
   };
 

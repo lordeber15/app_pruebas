@@ -75,7 +75,8 @@ services:
       - -s3-part-size=5242880
       - -max-size=26214400
       - -base-path=/files/
-      - -hooks-http=http://host.docker.internal:${CAMPO_API_PORT:-3000}/internal/tus-hooks
+      # El secreto va en la URL porque tusd no firma sus llamadas; la API no lo registra en logs.
+      - -hooks-http=http://host.docker.internal:${CAMPO_API_PORT:-3000}/internal/tus-hooks?secreto=${TUSD_HOOK_SECRET:?}
       - -hooks-http-forward-headers=Authorization
       - -hooks-enabled-events=pre-create,post-finish
     # Expuesto en la red local para probar desde un celular en la misma WiFi.

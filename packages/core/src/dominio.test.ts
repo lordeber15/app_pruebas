@@ -5,7 +5,7 @@ import {
   totalEsfuerzo,
   type RegistroEsfuerzo,
 } from './esfuerzo.ts';
-import { esEstadoAsignacion, esEstadoTarea } from './estados.ts';
+import { esEstadoArchivo, esEstadoAsignacion, esEstadoTarea } from './estados.ts';
 import { tieneTexto } from './resultado.ts';
 import { validacionEfectiva } from './validacion.ts';
 
@@ -70,5 +70,7 @@ describe('guardas de estado', () => {
     expect(esEstadoTarea('en_revision')).toBe(false);
     expect(esEstadoAsignacion('vigente')).toBe(true);
     expect(esEstadoAsignacion('descargada')).toBe(false);
+    expect(esEstadoArchivo('preview_verificada')).toBe(true);
+    expect(esEstadoArchivo('verificado')).toBe(false);
   });
 });

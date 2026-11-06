@@ -55,3 +55,4 @@ const incluye =
 /** Guardas para valores que llegan de la base de datos como texto. */
 export const esEstadoTarea = incluye(ESTADOS_TAREA);
 export const esEstadoAsignacion = incluye(ESTADOS_ASIGNACION);
+export const esEstadoArchivo = incluye(ESTADOS_ARCHIVO);
