@@ -1,0 +1,35 @@
+{
+  "name": "@campo/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch --env-file-if-exists=../../.env src/servidor.ts",
+    "start": "node src/servidor.ts",
+    "semilla": "node --env-file-if-exists=../../.env src/semilla.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "test:integration": "vitest run --config vitest.integration.config.ts"
+  },
+  "dependencies": {
+    "@campo/core": "workspace:*",
+    "@campo/db": "workspace:*",
+    "@fastify/cors": "11.4.1",
+    "@fastify/helmet": "13.2.0",
+    "@fastify/rate-limit": "11.2.2",
+    "@fastify/type-provider-zod": "1.0.3",
+    "better-auth": "1.7.18",
+    "fastify": "5.12.8",
+    "kysely": "0.29.8",
+    "pg": "8.23.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@campo/config": "workspace:*",
+    "@testcontainers/postgresql": "12.2.1",
+    "@types/node": "24.19.2",
+    "@types/pg": "8.23.1",
+    "testcontainers": "12.2.1",
+    "typescript": "6.0.3",
+    "vitest": "5.1.0"
+  }
+}

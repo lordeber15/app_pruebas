@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { TIPOS_ARCHIVO, type EstadoEvento } from '../estados';
+import { TIPOS_ARCHIVO, type EstadoEvento } from '../estados.ts';
 
 /**
  * Contrato de sincronización v1 (doc. 03 §9). Lo usan la app al generar eventos y la API al

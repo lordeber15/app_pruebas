@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./pruebas": "./src/pruebas.ts",
+    "./migraciones": "./src/migraciones.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",

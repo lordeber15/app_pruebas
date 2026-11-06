@@ -1,5 +1,5 @@
-import type { EstadoAsignacion } from '../estados';
-import { exito, fallo, tieneTexto, type Resultado } from '../resultado';
+import type { EstadoAsignacion } from '../estados.ts';
+import { exito, fallo, tieneTexto, type Resultado } from '../resultado.ts';
 
 /**
  * Máquina de estados de la asignación (doc. 02 §7.2). Solo la asignación vigente cambia de

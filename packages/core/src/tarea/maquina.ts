@@ -1,5 +1,5 @@
-import type { EstadoTarea, OrigenTarea } from '../estados';
-import { exito, fallo, tieneTexto, type Resultado } from '../resultado';
+import type { EstadoTarea, OrigenTarea } from '../estados.ts';
+import { exito, fallo, tieneTexto, type Resultado } from '../resultado.ts';
 
 /**
  * Máquina de estados de la tarea (doc. 02 §7.1). Es la única implementación: la API,

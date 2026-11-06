@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { eventoSchema, loteEventosSchema, respuestaLoteSchema } from './esquemas';
+import { eventoSchema, loteEventosSchema, respuestaLoteSchema } from './esquemas.ts';
 
 const UUID_V7 = '0192f0c8-7a1e-7b2c-9d10-3f5e8a2b4c61';
 const UUID_V4 = '3b241101-e2bb-4255-8caf-4136c566a962';

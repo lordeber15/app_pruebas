@@ -68,6 +68,55 @@ export interface Asignacion {
   usuario_id: string;
 }
 
+export interface AuthAccount {
+  access_token: string | null;
+  access_token_expires_at: Timestamp | null;
+  account_id: string;
+  created_at: Generated<Timestamp>;
+  id: string;
+  id_token: string | null;
+  password: string | null;
+  provider_id: string;
+  refresh_token: string | null;
+  refresh_token_expires_at: Timestamp | null;
+  scope: string | null;
+  updated_at: Generated<Timestamp>;
+  user_id: string;
+}
+
+export interface AuthSession {
+  created_at: Generated<Timestamp>;
+  dispositivo_id: string | null;
+  expires_at: Timestamp;
+  id: string;
+  ip_address: string | null;
+  token: string;
+  updated_at: Generated<Timestamp>;
+  user_agent: string | null;
+  user_id: string;
+}
+
+export interface AuthUser {
+  created_at: Generated<Timestamp>;
+  display_username: string | null;
+  email: string;
+  email_verified: Generated<boolean>;
+  id: string;
+  image: string | null;
+  name: string;
+  updated_at: Generated<Timestamp>;
+  username: string;
+}
+
+export interface AuthVerification {
+  created_at: Generated<Timestamp>;
+  expires_at: Timestamp;
+  id: string;
+  identifier: string;
+  updated_at: Generated<Timestamp>;
+  value: string;
+}
+
 export interface CatalogoMetodologia {
   actualizado_en: Generated<Timestamp>;
   actualizado_por: string | null;
@@ -141,6 +190,12 @@ export interface Dispositivo {
   ultimo_sync_en: Timestamp | null;
   usuario_id: string;
   version_app: string;
+}
+
+export interface DispositivoNonce {
+  dispositivo_id: string;
+  nonce: string;
+  usado_en: Generated<Timestamp>;
 }
 
 export interface Estacion {
@@ -304,12 +359,17 @@ export interface Usuario {
 export interface DB {
   archivo: Archivo;
   asignacion: Asignacion;
+  auth_account: AuthAccount;
+  auth_session: AuthSession;
+  auth_user: AuthUser;
+  auth_verification: AuthVerification;
   catalogo_metodologia: CatalogoMetodologia;
   categoria_foto: CategoriaFoto;
   comentario: Comentario;
   cuaderno: Cuaderno;
   cuadrilla: Cuadrilla;
   dispositivo: Dispositivo;
+  dispositivo_nonce: DispositivoNonce;
   estacion: Estacion;
   estacion_metodologia: EstacionMetodologia;
   evento: Evento;

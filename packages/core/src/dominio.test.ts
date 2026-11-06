@@ -4,9 +4,9 @@ import {
   esfuerzoPorUsuario,
   totalEsfuerzo,
   type RegistroEsfuerzo,
-} from './esfuerzo';
-import { tieneTexto } from './resultado';
-import { validacionEfectiva } from './validacion';
+} from './esfuerzo.ts';
+import { tieneTexto } from './resultado.ts';
+import { validacionEfectiva } from './validacion.ts';
 
 describe('validación efectiva', () => {
   it('CP-036 el cuaderno con validación prevalece sobre un proyecto sin validación', () => {

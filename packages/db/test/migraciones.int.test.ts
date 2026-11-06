@@ -1,30 +1,20 @@
-import path from 'node:path';
-import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { ESTADOS_ARCHIVO, ESTADOS_ASIGNACION, ESTADOS_EVENTO, ESTADOS_TAREA } from '@campo/core';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { aplicarMigraciones } from '../src/migraciones.ts';
+import { CARPETA_MIGRACIONES, iniciarBaseDePrueba, type BaseDePrueba } from '../src/pruebas.ts';
 
-// Misma imagen e inicialización que el entorno local (infra/compose).
-const IMAGEN =
-  'postgis/postgis:17-3.7@sha256:ca211960fbe54834dcb6ff16aae6d70f72f66f4a789820aed3d5691025c9d698';
-const RAIZ = path.join(import.meta.dirname, '..', '..', '..');
-const CLAVE = 'solo-pruebas';
-
-let contenedor: StartedPostgreSqlContainer;
+let base: BaseDePrueba;
 let migrador: pg.Client;
 let appRw: pg.Client;
 
-const url = (rol: string): string =>
-  `postgres://${rol}:${CLAVE}@${contenedor.getHost()}:${String(contenedor.getPort())}/campo`;
+const url = (rol: 'app_migrator' | 'app_rw'): string => base.url(rol);
 
-const conectar = async (rol: string): Promise<pg.Client> => {
+const conectar = async (rol: 'app_migrator' | 'app_rw'): Promise<pg.Client> => {
   const c = new pg.Client({ connectionString: url(rol) });
   await c.connect();
   return c;
 };
-
-const silencioso = { log: () => undefined, error: () => undefined };
 
 // Ids fijos (UUID v7 sintéticos) para los datos de prueba.
 const id = (n: number): string => `0192f0c8-0000-7000-8000-${n.toString().padStart(12, '0')}`;
@@ -36,29 +26,7 @@ const DISP = id(40);
 const DISP_OTRO = id(41);
 
 beforeAll(async () => {
-  contenedor = await new PostgreSqlContainer(IMAGEN)
-    .withPlatform('linux/amd64')
-    .withEnvironment({
-      APP_MIGRATOR_PASSWORD: CLAVE,
-      APP_RW_PASSWORD: CLAVE,
-      WORKER_RW_PASSWORD: CLAVE,
-      APP_RO_PASSWORD: CLAVE,
-    })
-    .withCopyFilesToContainer([
-      {
-        source: path.join(RAIZ, 'infra/compose/postgres/init.sh'),
-        target: '/docker-entrypoint-initdb.d/10-init.sh',
-      },
-    ])
-    .start();
-
-  const ok = await aplicarMigraciones(
-    url('app_migrator'),
-    path.join(RAIZ, 'packages/db/migrations'),
-    silencioso,
-  );
-  expect(ok).toBe(true);
-
+  base = await iniciarBaseDePrueba();
   migrador = await conectar('app_migrator');
   appRw = await conectar('app_rw');
 
@@ -93,7 +61,7 @@ beforeAll(async () => {
 afterAll(async () => {
   await appRw.end();
   await migrador.end();
-  await contenedor.stop();
+  await base.detener();
 });
 
 let secuencia = 1000;
@@ -152,11 +120,10 @@ const codigoError = async (p: Promise<unknown>): Promise<string | undefined> => 
 describe('migraciones', () => {
   it('volver a migrar no aplica nada (solo hacia adelante, idempotente)', async () => {
     const mensajes: string[] = [];
-    const ok = await aplicarMigraciones(
-      url('app_migrator'),
-      path.join(RAIZ, 'packages/db/migrations'),
-      { log: (m) => mensajes.push(m), error: () => undefined },
-    );
+    const ok = await aplicarMigraciones(url('app_migrator'), CARPETA_MIGRACIONES, {
+      log: (m) => mensajes.push(m),
+      error: () => undefined,
+    });
     expect(ok).toBe(true);
     expect(mensajes).toEqual(['Sin migraciones pendientes.']);
   });

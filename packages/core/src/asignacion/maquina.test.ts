@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { ESTADOS_ASIGNACION } from '../estados';
-import { transicionarAsignacion, type AccionAsignacion } from './maquina';
+import { ESTADOS_ASIGNACION } from '../estados.ts';
+import { transicionarAsignacion, type AccionAsignacion } from './maquina.ts';
 
 const acciones: readonly AccionAsignacion[] = [
   { tipo: 'finalizar' },

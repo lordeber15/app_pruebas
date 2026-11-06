@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ROLES, type Rol } from './estados';
+import { ROLES, type Rol } from './estados.ts';
 import {
   ACCIONES,
   MATRIZ_PERMISOS,
@@ -7,7 +7,7 @@ import {
   puedeIntentar,
   puedeModificar,
   type Accion,
-} from './permisos';
+} from './permisos.ts';
 
 /**
  * Matriz de doc. 01 §2.3 transcrita tal cual: ✔ = total, ◐ = alcance, ver, ✖ = no.

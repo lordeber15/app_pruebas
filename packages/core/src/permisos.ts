@@ -1,4 +1,4 @@
-import type { Rol } from './estados';
+import type { Rol } from './estados.ts';
 
 /**
  * Matriz de permisos del doc. 01 §2.3 (⚑ C2: puede cambiar). Es la fuente de la prueba de

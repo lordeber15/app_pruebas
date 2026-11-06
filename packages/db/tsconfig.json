@@ -1,9 +1,7 @@
 {
   "extends": "@campo/config/tsconfig.base.json",
   "compilerOptions": {
-    "types": ["node"],
-    "erasableSyntaxOnly": true,
-    "allowImportingTsExtensions": true
+    "types": ["node"]
   },
   "include": ["src", "migrations", "test", "vitest.integration.config.ts"]
 }

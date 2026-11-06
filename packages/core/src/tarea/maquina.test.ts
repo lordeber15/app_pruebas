@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { ESTADOS_TAREA, type EstadoTarea } from '../estados';
-import { transicionarTarea, type AccionTarea, type TipoAccionTarea } from './maquina';
+import { ESTADOS_TAREA, type EstadoTarea } from '../estados.ts';
+import { transicionarTarea, type AccionTarea, type TipoAccionTarea } from './maquina.ts';
 
 /** Acción con todas sus condiciones cumplidas, para probar solo la transición. */
 const accionValida: Readonly<Record<TipoAccionTarea, AccionTarea>> = {
