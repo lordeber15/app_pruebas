@@ -13,7 +13,8 @@
       "passThroughEnv": ["DOCKER_*", "TESTCONTAINERS_*", "TMPDIR", "USER"]
     },
     "test:authz": {
-      "outputs": []
+      "cache": false,
+      "passThroughEnv": ["DOCKER_*", "TESTCONTAINERS_*", "TMPDIR", "USER"]
     }
   }
 }

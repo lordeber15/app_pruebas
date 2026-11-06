@@ -181,3 +181,44 @@ export const estadoArchivos = (db: Db, actor: ActorDispositivo, ids: readonly st
     .where('id', 'in', ids)
     .where('usuario_id', '=', actor.usuarioId)
     .execute();
+
+// ── URLs firmadas para la web ──────────────────────────────────────────────
+
+export type VarianteDescarga = 'miniatura' | 'preview' | 'original';
+
+/**
+ * Ruta del objeto de la variante pedida si el archivo es visible para el actor y la variante está
+ * verificada. El especialista solo ve sus propios archivos (RN-21, SEG-03).
+ */
+export const rutaParaDescarga = async (
+  db: Db,
+  actor: { usuarioId: string },
+  rolEnTarea: (cuadrillaId: string) => Promise<string | null>,
+  archivoId: string,
+  variante: VarianteDescarga,
+): Promise<string | null> => {
+  const a = await db
+    .selectFrom('archivo')
+    .innerJoin('tarea', 'tarea.id', 'archivo.tarea_id')
+    .innerJoin('cuaderno', 'cuaderno.id', 'tarea.cuaderno_id')
+    .select([
+      'archivo.usuario_id',
+      'archivo.estado',
+      'archivo.ruta_miniatura',
+      'archivo.ruta_preview',
+      'archivo.ruta_original',
+      'cuaderno.cuadrilla_id',
+    ])
+    .where('archivo.id', '=', archivoId)
+    .executeTakeFirst();
+  if (a === undefined) return null;
+  const rol = await rolEnTarea(a.cuadrilla_id);
+  if (rol === null) return null;
+  if ((rol === 'especialista' || rol === 'logistico') && a.usuario_id !== actor.usuarioId)
+    return null;
+
+  const previewLista = a.estado === 'preview_verificada' || a.estado === 'original_verificado';
+  if (variante === 'miniatura') return previewLista ? a.ruta_miniatura : null;
+  if (variante === 'preview') return previewLista ? a.ruta_preview : null;
+  return a.estado === 'original_verificado' ? a.ruta_original : null;
+};

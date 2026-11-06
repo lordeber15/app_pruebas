@@ -28,6 +28,13 @@ export const iniciarEntorno = async (): Promise<Entorno> => {
     BETTER_AUTH_URL: 'http://localhost',
     WEB_ORIGIN: 'http://localhost:5173',
     TUSD_HOOK_SECRET: SECRETO_HOOKS,
+    // Las pruebas de la API no leen objetos: solo firman URLs.
+    S3_ENDPOINT: 'http://127.0.0.1:9',
+    S3_PUBLIC_ENDPOINT: 'http://almacen.prueba',
+    S3_REGION: 'us-east-1',
+    S3_BUCKET_ARCHIVOS: 'archivos',
+    S3_ACCESS_KEY_APP: 'prueba',
+    S3_SECRET_KEY_APP: 'prueba-secreta',
     // Todas las solicitudes de prueba salen de la misma IP.
     RATE_LIMIT_LOGIN_IP: '1000',
   });
@@ -253,3 +260,131 @@ export const enviarLote = (e: Entorno, token: string, eventos: unknown[]) =>
     headers: conToken(token),
     payload: { eventos },
   });
+
+// ── Roles para pruebas web ─────────────────────────────────────────────────
+
+export interface Persona {
+  readonly id: string;
+  readonly token: string;
+  readonly username: string;
+  readonly contrasena: string;
+}
+
+export const persona = async (
+  e: Entorno,
+  rolGlobal: 'supervisor' | 'admin' | 'ninguno' = 'ninguno',
+): Promise<Persona> => {
+  const u = await nuevoUsuario(e, rolGlobal);
+  return { ...u, token: await tokenDe(e, u.username, u.contrasena) };
+};
+
+/**
+ * Proyecto con dos cuadrillas (A y B). En A: jefe, especialista con cuaderno propio y logístico.
+ * En B: otro jefe y otro especialista. Sirve para las pruebas horizontales y verticales.
+ */
+export const organizacion = async (e: Entorno) => {
+  const esc = await nuevoEscenario(e);
+  const cuadrillaB = generarId();
+  await e.admin
+    .insertInto('cuadrilla')
+    .values({ id: cuadrillaB, proyecto_id: esc.proyectoId, nombre: 'Cuadrilla B' })
+    .execute();
+  const [supervisor, admin, jefeA, jefeB, especialista, especialistaB, logistico] =
+    await Promise.all([
+      persona(e, 'supervisor'),
+      persona(e, 'admin'),
+      persona(e),
+      persona(e),
+      persona(e),
+      persona(e),
+      persona(e),
+    ]);
+  await e.admin
+    .updateTable('cuadrilla')
+    .set({ jefe_id: jefeA.id })
+    .where('id', '=', esc.cuadrillaId)
+    .execute();
+  await e.admin
+    .updateTable('cuadrilla')
+    .set({ jefe_id: jefeB.id })
+    .where('id', '=', cuadrillaB)
+    .execute();
+  await agregarMiembro(e, esc, especialista.id);
+  await agregarMiembro(e, esc, logistico.id, 'logistico');
+  await agregarMiembro(e, { ...esc, cuadrillaId: cuadrillaB }, especialistaB.id);
+  const cuadernoA = await nuevoCuaderno(e, esc, especialista.id);
+  const cuadernoB = await nuevoCuaderno(e, { ...esc, cuadrillaId: cuadrillaB }, especialistaB.id);
+  return {
+    esc,
+    cuadrillaB,
+    supervisor,
+    admin,
+    jefeA,
+    jefeB,
+    especialista,
+    especialistaB,
+    logistico,
+    cuadernoA,
+    cuadernoB,
+  };
+};
+
+export type Organizacion = Awaited<ReturnType<typeof organizacion>>;
+
+export const pedir = (
+  e: Entorno,
+  token: string,
+  method: 'GET' | 'POST' | 'PATCH',
+  url: string,
+  payload?: object,
+) =>
+  e.app.inject({
+    method,
+    url: `/api/v1${url}`,
+    headers: conToken(token),
+    ...(payload === undefined ? {} : { payload }),
+  });
+
+/** Lleva una tarea a un estado directamente en la BD (preparación de pruebas). */
+export const forzarEstado = (e: Entorno, tareaId: string, estado: string) =>
+  e.admin.updateTable('tarea').set({ estado }).where('id', '=', tareaId).execute();
+
+/** Simula una tarea descargada en un celular del usuario: dispositivo + asignación vigente. */
+export const retener = async (e: Entorno, tareaId: string, usuarioId: string) => {
+  const dispositivoId = generarId();
+  const asignacionId = generarId();
+  await e.admin
+    .insertInto('dispositivo')
+    .values({
+      id: dispositivoId,
+      usuario_id: usuarioId,
+      plataforma: 'android',
+      llave_publica: nuevaLlave().publicaSpki,
+      version_app: '0.1.0',
+    })
+    .execute();
+  await e.admin
+    .insertInto('asignacion')
+    .values({
+      id: asignacionId,
+      tarea_id: tareaId,
+      usuario_id: usuarioId,
+      dispositivo_id: dispositivoId,
+      descargada_en: new Date(),
+    })
+    .execute();
+  await forzarEstado(e, tareaId, 'descargada');
+  return { dispositivoId, asignacionId };
+};
+
+/** Tarea completada por el usuario (asignación finalizada), lista para validar. */
+export const completada = async (e: Entorno, tareaId: string, usuarioId: string) => {
+  const r = await retener(e, tareaId, usuarioId);
+  await e.admin
+    .updateTable('asignacion')
+    .set({ estado: 'finalizada', finalizada_en: new Date() })
+    .where('id', '=', r.asignacionId)
+    .execute();
+  await forzarEstado(e, tareaId, 'completada');
+  return r;
+};

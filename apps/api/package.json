@@ -8,9 +8,12 @@
     "start": "node src/servidor.ts",
     "semilla": "node --env-file-if-exists=../../.env src/semilla.ts",
     "typecheck": "tsc -p tsconfig.json",
-    "test:integration": "vitest run --config vitest.integration.config.ts"
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:authz": "vitest run --config vitest.integration.config.ts test/autorizacion.int.test.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "3.1163.0",
+    "@aws-sdk/s3-request-presigner": "3.1163.0",
     "@campo/core": "workspace:*",
     "@campo/db": "workspace:*",
     "@fastify/cors": "11.4.1",

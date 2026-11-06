@@ -12,6 +12,15 @@ const esquema = z.object({
   /** Intentos de login por cuenta cada 15 minutos (SEG-04). */
   /** Secreto compartido con tusd para sus hooks (doc. 03 §6). */
   TUSD_HOOK_SECRET: z.string().min(32, 'TUSD_HOOK_SECRET debe tener al menos 32 caracteres'),
+  /** Object Storage: endpoint interno (API → S3) y público (el navegador abre las URLs firmadas). */
+  S3_ENDPOINT: z.url(),
+  S3_PUBLIC_ENDPOINT: z.url(),
+  S3_REGION: z.string().min(1),
+  S3_BUCKET_ARCHIVOS: z.string().min(1),
+  S3_ACCESS_KEY_APP: z.string().min(1),
+  S3_SECRET_KEY_APP: z.string().min(1),
+  /** Duración de las URLs firmadas: máximo 15 minutos (CLAUDE.md, Seguridad). */
+  S3_PRESIGN_TTL_SECONDS: z.coerce.number().int().positive().max(900).default(900),
   RATE_LIMIT_LOGIN: z.coerce.number().int().positive().default(5),
   /** Intentos de login por IP por minuto. Holgado: muchos celulares comparten IP (NAT del operador). */
   RATE_LIMIT_LOGIN_IP: z.coerce.number().int().positive().default(30),

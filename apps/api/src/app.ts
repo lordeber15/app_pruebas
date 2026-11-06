@@ -15,6 +15,8 @@ import { rutasArchivos } from './modulos/archivos/rutas.ts';
 import { rutasDispositivos } from './modulos/dispositivos/rutas.ts';
 import { rutasPaquete } from './modulos/paquete/rutas.ts';
 import { rutasSync } from './modulos/sync/rutas.ts';
+import { rutasWeb } from './modulos/web/rutas.ts';
+import { crearFirmador } from './plataforma/almacenamiento.ts';
 import { crearAuth, type Auth } from './plataforma/auth.ts';
 import { registrarManejoDeErrores } from './plataforma/errores.ts';
 import { registrarRutasAuth } from './plataforma/rutas-auth.ts';
@@ -85,6 +87,7 @@ export const crearApp = async (config: Config, pool: pg.Pool): Promise<Aplicacio
   await app.register(rutasPaquete, { prefix: '/api/v1', auth, db, config });
   await app.register(rutasSync, { prefix: '/api/v1', auth, db, config });
   await app.register(rutasArchivos, { auth, db, config });
+  await app.register(rutasWeb, { prefix: '/api/v1', auth, db, firmador: crearFirmador(config) });
 
   return { app, db, auth };
 };
