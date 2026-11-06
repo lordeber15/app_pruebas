@@ -12,6 +12,8 @@ import { sql } from 'kysely';
 import type pg from 'pg';
 import type { Config } from './config.ts';
 import { rutasDispositivos } from './modulos/dispositivos/rutas.ts';
+import { rutasPaquete } from './modulos/paquete/rutas.ts';
+import { rutasSync } from './modulos/sync/rutas.ts';
 import { crearAuth, type Auth } from './plataforma/auth.ts';
 import { registrarManejoDeErrores } from './plataforma/errores.ts';
 import { registrarRutasAuth } from './plataforma/rutas-auth.ts';
@@ -68,6 +70,8 @@ export const crearApp = async (config: Config, pool: pg.Pool): Promise<Aplicacio
 
   registrarRutasAuth(app, auth, config);
   await app.register(rutasDispositivos, { prefix: '/api/v1', auth, db });
+  await app.register(rutasPaquete, { prefix: '/api/v1', auth, db, config });
+  await app.register(rutasSync, { prefix: '/api/v1', auth, db, config });
 
   return { app, db, auth };
 };

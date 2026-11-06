@@ -5,6 +5,7 @@ import {
   totalEsfuerzo,
   type RegistroEsfuerzo,
 } from './esfuerzo.ts';
+import { esEstadoAsignacion, esEstadoTarea } from './estados.ts';
 import { tieneTexto } from './resultado.ts';
 import { validacionEfectiva } from './validacion.ts';
 
@@ -60,5 +61,14 @@ describe('textos obligatorios', () => {
     ['motivo', true],
   ] as const)('tieneTexto(%j) = %s', (texto, esperado) => {
     expect(tieneTexto(texto)).toBe(esperado);
+  });
+});
+
+describe('guardas de estado', () => {
+  it('reconoce los estados de tarea y asignación válidos', () => {
+    expect(esEstadoTarea('descargada')).toBe(true);
+    expect(esEstadoTarea('en_revision')).toBe(false);
+    expect(esEstadoAsignacion('vigente')).toBe(true);
+    expect(esEstadoAsignacion('descargada')).toBe(false);
   });
 });

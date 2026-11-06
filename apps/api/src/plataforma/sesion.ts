@@ -100,3 +100,12 @@ export const requiereDispositivo =
       throw new ProblemaHttp(403, 'DISPOSITIVO_DADO_DE_BAJA', 'Este dispositivo fue dado de baja.');
     }
   };
+
+export type ActorDispositivo = Actor & { readonly dispositivoId: string };
+
+/** Actor de una ruta protegida con requiereDispositivo. */
+export const actorDispositivo = (request: FastifyRequest): ActorDispositivo => {
+  const actor = request.actor;
+  if (actor?.dispositivoId == null) throw noAutenticado();
+  return { ...actor, dispositivoId: actor.dispositivoId };
+};

@@ -236,6 +236,7 @@ export interface Evento {
   resuelto_en: Timestamp | null;
   resuelto_por: string | null;
   tipo: string;
+  ubicacion: Json | null;
   usuario_id: string;
   version_esquema: number;
 }

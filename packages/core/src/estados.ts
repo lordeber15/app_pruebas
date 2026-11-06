@@ -46,3 +46,12 @@ export type TipoArchivo = (typeof TIPOS_ARCHIVO)[number];
 
 export const ROLES = ['supervisor', 'jefe', 'especialista', 'logistico', 'admin'] as const;
 export type Rol = (typeof ROLES)[number];
+
+const incluye =
+  <T extends string>(valores: readonly T[]) =>
+  (x: string): x is T =>
+    (valores as readonly string[]).includes(x);
+
+/** Guardas para valores que llegan de la base de datos como texto. */
+export const esEstadoTarea = incluye(ESTADOS_TAREA);
+export const esEstadoAsignacion = incluye(ESTADOS_ASIGNACION);

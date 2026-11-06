@@ -1,10 +1,12 @@
 import { crearDb, crearPool, type Db } from '@campo/db';
 import { iniciarBaseDePrueba, type BaseDePrueba } from '@campo/db/pruebas';
 import { generateKeyPairSync, randomBytes, sign, type KeyObject } from 'node:crypto';
+import { sql } from 'kysely';
 import type pg from 'pg';
 import { crearApp, type Aplicacion } from '../src/app.ts';
 import { leerConfig } from '../src/config.ts';
 import { crearUsuario } from '../src/modulos/usuarios/servicio.ts';
+import { generarId } from '../src/plataforma/ids.ts';
 
 export interface Entorno extends Aplicacion {
   readonly base: BaseDePrueba;
@@ -119,3 +121,131 @@ export const usuarioConDispositivo = async (e: Entorno) => {
   const { dispositivo_id: dispositivoId } = r.json<{ dispositivo_id: string }>();
   return { usuario: u, token, llave, dispositivoId };
 };
+
+// ── Escenario de campo sintético ────────────────────────────────────────────────
+
+export interface Escenario {
+  readonly proyectoId: string;
+  readonly cuadrillaId: string;
+  readonly estacionId: string;
+  readonly metodologiaId: string;
+  readonly estacionMetodologiaId: string;
+}
+
+let secuenciaEscenario = 0;
+
+export const nuevoEscenario = async (e: Entorno): Promise<Escenario> => {
+  const n = String(secuenciaEscenario++);
+  const proyectoId = generarId();
+  const cuadrillaId = generarId();
+  const estacionId = generarId();
+  const metodologiaId = generarId();
+  const estacionMetodologiaId = generarId();
+  await e.admin
+    .insertInto('proyecto')
+    .values({ id: proyectoId, nombre: `Proyecto sintético ${n}`, validacion_activa: false })
+    .execute();
+  await e.admin
+    .insertInto('cuadrilla')
+    .values({ id: cuadrillaId, proyecto_id: proyectoId, nombre: `Cuadrilla ${n}` })
+    .execute();
+  await e.admin
+    .insertInto('estacion')
+    .values({
+      id: estacionId,
+      proyecto_id: proyectoId,
+      codigo: `EST-${n}`,
+      geom: sql<string>`ST_SetSRID(ST_MakePoint(-77.03, -12.04), 4326)`,
+    })
+    .execute();
+  await e.admin
+    .insertInto('catalogo_metodologia')
+    .values({ id: metodologiaId, nombre: `Trampas Sherman ${n}`, unidad: 'trampas-noche' })
+    .execute();
+  await e.admin
+    .insertInto('estacion_metodologia')
+    .values({
+      id: estacionMetodologiaId,
+      estacion_id: estacionId,
+      metodologia_id: metodologiaId,
+      meta_esfuerzo: '40',
+    })
+    .execute();
+  return { proyectoId, cuadrillaId, estacionId, metodologiaId, estacionMetodologiaId };
+};
+
+export const agregarMiembro = (
+  e: Entorno,
+  esc: Escenario,
+  usuarioId: string,
+  rol: 'especialista' | 'logistico' = 'especialista',
+) =>
+  e.admin
+    .insertInto('miembro_cuadrilla')
+    .values({ id: generarId(), cuadrilla_id: esc.cuadrillaId, usuario_id: usuarioId, rol })
+    .execute();
+
+export const nuevoCuaderno = async (e: Entorno, esc: Escenario, responsableId: string) => {
+  const id = generarId();
+  await e.admin
+    .insertInto('cuaderno')
+    .values({
+      id,
+      proyecto_id: esc.proyectoId,
+      cuadrilla_id: esc.cuadrillaId,
+      responsable_id: responsableId,
+      titulo: 'Cuaderno sintético',
+    })
+    .execute();
+  return id;
+};
+
+/** Tarea ya asignada (cuaderno con responsable), lista para descargar. */
+export const nuevaTarea = async (
+  e: Entorno,
+  esc: Escenario,
+  cuadernoId: string,
+  tipo: 'tecnica' | 'logistica' = 'tecnica',
+) => {
+  const id = generarId();
+  await e.admin
+    .insertInto('tarea')
+    .values({
+      id,
+      proyecto_id: esc.proyectoId,
+      cuaderno_id: cuadernoId,
+      origen: 'manual',
+      tipo,
+      estacion_id: esc.estacionId,
+      metodologia_id: esc.metodologiaId,
+      geom: sql<string>`ST_SetSRID(ST_MakePoint(-77.03, -12.04), 4326)`,
+      titulo: 'Evaluación sintética',
+      estado: 'asignada',
+    })
+    .execute();
+  return id;
+};
+
+/** Especialista de la cuadrilla con dispositivo activado y un cuaderno propio. */
+export const especialistaEnCampo = async (e: Entorno, esc: Escenario) => {
+  const d = await usuarioConDispositivo(e);
+  await agregarMiembro(e, esc, d.usuario.id);
+  const cuadernoId = await nuevoCuaderno(e, esc, d.usuario.id);
+  return { ...d, cuadernoId };
+};
+
+export const descargar = (e: Entorno, token: string, tareaIds: string[]) =>
+  e.app.inject({
+    method: 'POST',
+    url: '/api/v1/paquete/descargas',
+    headers: conToken(token),
+    payload: { tarea_ids: tareaIds },
+  });
+
+export const enviarLote = (e: Entorno, token: string, eventos: unknown[]) =>
+  e.app.inject({
+    method: 'POST',
+    url: '/api/v1/sync/eventos',
+    headers: conToken(token),
+    payload: { eventos },
+  });
