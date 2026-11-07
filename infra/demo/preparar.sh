@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Prepara la demo: genera claves aleatorias en infra/demo/.env (fuera de git, permisos 600).
+# Prepara la demo: genera infra/demo/.env con claves aleatorias (fuera de git, permisos 600).
+# Alternativa manual: cp infra/demo/.env.example infra/demo/.env y llenarlo.
 # Uso: infra/demo/preparar.sh demo.suempresa.pe [puerto]
 # No sobrescribe un .env existente: las claves de PostgreSQL quedan fijadas en su volumen.
 set -euo pipefail
@@ -21,6 +22,9 @@ umask 077
 cat > .env <<ENV
 DOMINIO=${DOMINIO}
 PUERTO_WEB=${PUERTO}
+DB_HOST=postgres
+DB_PORT=5432
+DB_NAME=campo
 POSTGRES_PASSWORD=$(clave)
 APP_MIGRATOR_PASSWORD=$(clave)
 APP_RW_PASSWORD=$(clave)

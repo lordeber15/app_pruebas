@@ -1,5 +1,6 @@
 # Demo en un VPS (staging, doc. 03 §5). Solo datos sintéticos o de prueba.
-# Antes del primer arranque: infra/demo/preparar.sh <dominio>  (crea infra/demo/.env, fuera de git)
+# Antes del primer arranque: cp infra/demo/.env.example infra/demo/.env y llene los valores
+# (o infra/demo/preparar.sh <dominio>, que lo llena con claves aleatorias). .env queda fuera de git.
 # Arranque:  docker compose -f infra/demo/docker-compose.demo.yml up -d --build
 #
 # Un solo puerto publicado: el del contenedor web (PUERTO_WEB, por defecto 8080). El proxy del VPS
@@ -21,7 +22,7 @@ x-servidor: &servidor
     NODE_ENV: staging
     TZ: UTC
     S3_ENDPOINT: http://minio:9000
-    S3_PUBLIC_ENDPOINT: https://${DOMINIO:?ejecute infra/demo/preparar.sh}
+    S3_PUBLIC_ENDPOINT: https://${DOMINIO:?complete infra/demo/.env}
     S3_REGION: us-east-1
     S3_BUCKET_ARCHIVOS: archivos
     S3_ACCESS_KEY_APP: ${S3_ACCESS_KEY_APP:?}
@@ -33,6 +34,7 @@ services:
     restart: unless-stopped
     environment:
       TZ: UTC
+      DB_NAME: ${DB_NAME:-campo}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
       APP_MIGRATOR_PASSWORD: ${APP_MIGRATOR_PASSWORD:?}
       APP_RW_PASSWORD: ${APP_RW_PASSWORD:?}
@@ -45,7 +47,7 @@ services:
     shm_size: 512m
     networks: [datos]
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres -d campo']
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d "$$DB_NAME"']
       interval: 5s
       retries: 30
 
@@ -81,7 +83,7 @@ services:
     restart: 'no'
     command: ['node', 'packages/db/src/migrar.ts']
     environment:
-      DATABASE_URL_MIGRATIONS: postgres://app_migrator:${APP_MIGRATOR_PASSWORD}@postgres:5432/campo
+      DATABASE_URL_MIGRATIONS: postgres://app_migrator:${APP_MIGRATOR_PASSWORD:?}@${DB_HOST:-postgres}:${DB_PORT:-5432}/${DB_NAME:-campo}
     depends_on:
       postgres:
         condition: service_healthy
@@ -94,7 +96,7 @@ services:
     environment:
       <<: *entorno
       PORT: '3000'
-      DATABASE_URL: postgres://app_rw:${APP_RW_PASSWORD}@postgres:5432/campo
+      DATABASE_URL: postgres://app_rw:${APP_RW_PASSWORD:?}@${DB_HOST:-postgres}:${DB_PORT:-5432}/${DB_NAME:-campo}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?}
       BETTER_AUTH_URL: https://${DOMINIO}
       WEB_ORIGIN: https://${DOMINIO}
@@ -121,7 +123,7 @@ services:
     command: ['node', 'src/main.ts']
     environment:
       <<: *entorno
-      DATABASE_URL_WORKER: postgres://worker_rw:${WORKER_RW_PASSWORD}@postgres:5432/campo
+      DATABASE_URL_WORKER: postgres://worker_rw:${WORKER_RW_PASSWORD:?}@${DB_HOST:-postgres}:${DB_PORT:-5432}/${DB_NAME:-campo}
     depends_on:
       migraciones:
         condition: service_completed_successfully

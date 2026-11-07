@@ -12,3 +12,6 @@ poc
 infra/demo/datos
 infra/demo/.env
 *.pmtiles
+
+# La app móvil se compila aparte (APK); no va en las imágenes del servidor.
+apps/mobile

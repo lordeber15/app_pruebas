@@ -12,14 +12,38 @@ Es un ambiente de **demo o staging**: use datos de prueba, no datos reales de ca
 
 ## Instalar
 
-En el VPS, dentro de la carpeta del repositorio:
+En el VPS:
 
 ```
-infra/demo/preparar.sh demo.suempresa.pe 8080
+git clone https://github.com/lordeber15/app_pruebas.git
+cd app_pruebas
+cp infra/demo/.env.example infra/demo/.env
+chmod 600 infra/demo/.env
+nano infra/demo/.env          # llene los valores (vea la tabla)
 docker compose -f infra/demo/docker-compose.demo.yml up -d --build
 ```
 
-- `preparar.sh` genera claves aleatorias en `infra/demo/.env` (permisos 600, fuera de git). El segundo valor es el puerto interno que usará el proxy; por defecto, 8080.
+Variables de `infra/demo/.env`:
+
+| Variable | Qué poner |
+|---|---|
+| `DOMINIO` | Su dominio sin `https://`, por ejemplo `demo.suempresa.pe` |
+| `PUERTO_WEB` | Puerto del VPS que usará el proxy (por defecto `8080`) |
+| `DB_HOST` | `postgres` (la base corre en Docker; no lo cambie) |
+| `DB_PORT` | `5432` (no lo cambie) |
+| `DB_NAME` | Nombre de la base (por defecto `campo`) |
+| `POSTGRES_PASSWORD` | Clave del superusuario `postgres` |
+| `APP_MIGRATOR_PASSWORD` | Clave del usuario `app_migrator` (migraciones) |
+| `APP_RW_PASSWORD` | Clave del usuario `app_rw` (API) |
+| `WORKER_RW_PASSWORD` | Clave del usuario `worker_rw` (worker) |
+| `APP_RO_PASSWORD` | Clave del usuario `app_ro` (solo lectura) |
+| `S3_ACCESS_KEY_APP` / `S3_SECRET_KEY_APP` | Usuario y clave del almacenamiento de fotos (MinIO) |
+| `BETTER_AUTH_SECRET` | Firma de sesiones: `openssl rand -hex 32` |
+| `TUSD_HOOK_SECRET` | Secreto interno de la subida: `openssl rand -hex 24` |
+
+- Las claves llevan solo letras y números (van dentro de una URL). Genérelas con `openssl rand -hex 24`.
+- Los usuarios de la base se crean solos en el primer arranque, con esas claves. No las cambie después: quedan fijadas en el volumen.
+- Atajo: `infra/demo/preparar.sh demo.suempresa.pe 8080` crea el mismo `.env` con claves aleatorias.
 - La primera construcción tarda unos minutos.
 
 Compruebe que todo esté arriba. `migraciones` y `crear-bucket` deben figurar como terminados ("Exited (0)") y el resto en ejecución:
