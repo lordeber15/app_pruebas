@@ -1,0 +1,32 @@
+{
+  "name": "@campo/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./pruebas": "./src/pruebas.ts",
+    "./migraciones": "./src/migraciones.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "db:migrate": "node --env-file-if-exists=../../.env src/migrar.ts",
+    "db:codegen": "kysely-codegen --env-file ../../.env --url 'env(DATABASE_URL_MIGRATIONS)' --default-schema app --include-pattern 'app.*' --exclude-pattern 'app.kysely_*' --out-file src/tipos.generados.ts",
+    "test:integration": "vitest run --config vitest.integration.config.ts"
+  },
+  "dependencies": {
+    "kysely": "0.29.8",
+    "pg": "8.23.1"
+  },
+  "devDependencies": {
+    "@campo/config": "workspace:*",
+    "@campo/core": "workspace:*",
+    "@testcontainers/postgresql": "12.2.1",
+    "@types/node": "24.19.2",
+    "@types/pg": "8.23.1",
+    "kysely-codegen": "0.20.0",
+    "testcontainers": "12.2.1",
+    "typescript": "6.0.3",
+    "vitest": "5.1.0"
+  }
+}

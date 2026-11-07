@@ -1,0 +1,6 @@
+poc/
+pnpm-lock.yaml
+coverage/
+dist/
+*.md
+packages/db/src/tipos.generados.ts

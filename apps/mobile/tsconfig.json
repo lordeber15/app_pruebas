@@ -1,0 +1,10 @@
+{
+  "extends": "@campo/config/tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023"],
+    "jsx": "react-jsx",
+    "types": [],
+    "customConditions": ["react-native"]
+  },
+  "include": ["app", "src"]
+}

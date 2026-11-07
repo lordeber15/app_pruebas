@@ -1,0 +1,20 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "tasks": {
+    "typecheck": {
+      "dependsOn": ["^typecheck"],
+      "outputs": []
+    },
+    "test": {
+      "outputs": ["coverage/**"]
+    },
+    "test:integration": {
+      "cache": false,
+      "passThroughEnv": ["DOCKER_*", "TESTCONTAINERS_*", "TMPDIR", "USER"]
+    },
+    "test:authz": {
+      "cache": false,
+      "passThroughEnv": ["DOCKER_*", "TESTCONTAINERS_*", "TMPDIR", "USER"]
+    }
+  }
+}

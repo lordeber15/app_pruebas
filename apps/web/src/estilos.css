@@ -1,0 +1,59 @@
+@import 'tailwindcss';
+
+/*
+ * Cuaderno de campo: papel frío, tinta verde casi negra, verde liquen como acción y ocre de carta
+ * topográfica para lo que pide atención. Contrastes AA verificados sobre --papel.
+ */
+@theme {
+  --color-papel: #f5f7f4;
+  --color-hoja: #ffffff;
+  --color-tinta: #18231f;
+  --color-tinta-suave: #4a5a54;
+  --color-linea: #d5ddd8;
+  --color-liquen: #2e5e4e;
+  --color-liquen-oscuro: #224639;
+  --color-liquen-claro: #e3ede8;
+  --color-ocre: #a86f1e;
+  --color-ocre-claro: #f6ead6;
+  --color-oxido: #9b2c1f;
+  --color-oxido-claro: #f7e4e1;
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.563rem;
+  --text-2xl: 1.953rem;
+}
+
+html {
+  background: var(--color-papel);
+  color: var(--color-tinta);
+  font-family: var(--font-sans);
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+}
+
+/* Cifras alineadas en tablas y contadores. */
+.cifras {
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-ocre);
+  outline-offset: 2px;
+}
+
+dialog::backdrop {
+  background: rgb(24 35 31 / 0.45);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

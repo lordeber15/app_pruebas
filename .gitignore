@@ -3,3 +3,10 @@ node_modules/
 .env
 .env.*
 !.env.example
+dist/
+coverage/
+.turbo/
+*.tsbuildinfo
+
+# Mapa base: archivo grande, se genera aparte (poc/poc-01-mapa/scripts/generar-datos.sh)
+*.pmtiles

@@ -1,0 +1,27 @@
+{
+  "name": "plataforma-campo",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.18.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:integration": "turbo run test:integration",
+    "test:authz": "turbo run test:authz",
+    "db:migrate": "pnpm --filter @campo/db db:migrate",
+    "db:codegen": "pnpm --filter @campo/db db:codegen"
+  },
+  "devDependencies": {
+    "@campo/config": "workspace:*",
+    "eslint": "10.14.0",
+    "prettier": "3.9.10",
+    "turbo": "2.11.10",
+    "typescript": "6.0.3"
+  }
+}
