@@ -1,0 +1,52 @@
+{
+  "expo": {
+    "name": "Campo",
+    "slug": "campo",
+    "version": "0.1.0",
+    "scheme": "campo",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "android": {
+      "package": "pe.genia.campo",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#2E5E4E",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION"
+      ],
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.ACCESS_BACKGROUND_LOCATION"
+      ],
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "La app usa la cámara para tomar las fotos de evidencia de sus tareas.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "La app guarda la ubicación de cada foto de evidencia."
+        }
+      ],
+      "react-native-quick-crypto"
+    ],
+    "experiments": { "typedRoutes": false }
+  }
+}

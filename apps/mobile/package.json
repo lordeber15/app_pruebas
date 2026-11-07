@@ -1,0 +1,42 @@
+{
+  "name": "@campo/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start --dev-client",
+    "android": "expo run:android",
+    "typecheck": "tsc --noEmit",
+    "apk": "expo prebuild --platform android --clean && cd android && ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a,armeabi-v7a"
+  },
+  "dependencies": {
+    "@campo/core": "workspace:*",
+    "@op-engineering/op-sqlite": "19.0.5",
+    "@react-native-community/netinfo": "12.0.1",
+    "expo": "~58.0.21",
+    "expo-camera": "~58.0.14",
+    "expo-constants": "~58.0.15",
+    "expo-file-system": "~58.0.13",
+    "expo-image-manipulator": "~58.0.16",
+    "expo-linking": "~58.0.16",
+    "expo-location": "~58.0.20",
+    "expo-router": "~58.0.30",
+    "expo-secure-store": "~58.0.2",
+    "expo-status-bar": "~58.0.4",
+    "react": "19.3.0",
+    "react-native": "0.88.1",
+    "react-native-nitro-modules": "0.37.1",
+    "react-native-quick-base64": "3.0.1",
+    "react-native-quick-crypto": "1.1.9",
+    "react-native-safe-area-context": "~5.11.1",
+    "react-native-screens": "~4.30.1",
+    "tus-js-client": "4.3.1",
+    "zod": "4.6.7",
+    "zustand": "5.0.16"
+  },
+  "devDependencies": {
+    "@campo/config": "workspace:*",
+    "@types/react": "~19.3.0",
+    "typescript": "6.0.3"
+  }
+}
