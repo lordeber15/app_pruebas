@@ -2,24 +2,54 @@
   "fuente": "D01_TOCE_FINAL.xlsx, hoja 01_Config_Metodos y 02_Reglas_Globales (requerimientos/cliente)",
   "version": "v0.6 QA, 2026-11-07; curado por GENIA el 2026-11-07 sin agregar reglas: cada validación conserva el texto de D01 y su tipo de control",
   "especialidades": [
-    { "codigo": "flora_vegetacion", "nombre": "FLORA Y VEGETACIÓN", "es_fauna": false, "orden": 1 },
-    { "codigo": "epifitas", "nombre": "EPÍFITAS", "es_fauna": false, "orden": 2 },
+    {
+      "codigo": "flora_vegetacion",
+      "nombre": "FLORA Y VEGETACIÓN",
+      "es_fauna": false,
+      "orden": 1
+    },
+    {
+      "codigo": "epifitas",
+      "nombre": "EPÍFITAS",
+      "es_fauna": false,
+      "orden": 2
+    },
     {
       "codigo": "recursos_forestales",
       "nombre": "RECURSOS FORESTALES",
       "es_fauna": false,
       "orden": 3
     },
-    { "codigo": "bofedales", "nombre": "BOFEDALES", "es_fauna": false, "orden": 4 },
-    { "codigo": "agrostologia", "nombre": "AGROSTOLOGÍA", "es_fauna": false, "orden": 5 },
-    { "codigo": "aves", "nombre": "AVES", "es_fauna": true, "orden": 6 },
+    {
+      "codigo": "bofedales",
+      "nombre": "BOFEDALES",
+      "es_fauna": false,
+      "orden": 4
+    },
+    {
+      "codigo": "agrostologia",
+      "nombre": "AGROSTOLOGÍA",
+      "es_fauna": false,
+      "orden": 5
+    },
+    {
+      "codigo": "aves",
+      "nombre": "AVES",
+      "es_fauna": true,
+      "orden": 6
+    },
     {
       "codigo": "anfibios_reptiles",
       "nombre": "ANFIBIOS Y REPTILES",
       "es_fauna": true,
       "orden": 7
     },
-    { "codigo": "artropodos", "nombre": "ARTRÓPODOS", "es_fauna": true, "orden": 8 },
+    {
+      "codigo": "artropodos",
+      "nombre": "ARTRÓPODOS",
+      "es_fauna": true,
+      "orden": 8
+    },
     {
       "codigo": "mamiferos_menores_terrestres",
       "nombre": "MAMÍFEROS MENORES TERRESTRES",
@@ -32,7 +62,12 @@
       "es_fauna": true,
       "orden": 10
     },
-    { "codigo": "mamiferos_mayores", "nombre": "MAMÍFEROS MAYORES", "es_fauna": true, "orden": 11 },
+    {
+      "codigo": "mamiferos_mayores",
+      "nombre": "MAMÍFEROS MAYORES",
+      "es_fauna": true,
+      "orden": 11
+    },
     {
       "codigo": "fauna_transversal",
       "nombre": "FAUNA – TRANSVERSAL",
@@ -61,7 +96,10 @@
           "unidad": "transectos",
           "texto": "3 transectos, con separación mínima de 100 m."
         },
-        "za_ef": { "cantidad": 6, "texto": "6 transectos." }
+        "za_ef": {
+          "cantidad": 6,
+          "texto": "6 transectos."
+        }
       },
       "horario": null,
       "geometria": {
@@ -135,7 +173,11 @@
           "tipo_control": "obligatorio",
           "texto": "Validar separación mínima de 100 m."
         },
-        { "tipo": "geometria", "tipo_control": "obligatorio", "texto": "Validar inicio/fin." },
+        {
+          "tipo": "geometria",
+          "tipo_control": "obligatorio",
+          "texto": "Validar inicio/fin."
+        },
         {
           "tipo": "cantidad_registros",
           "minimo": 100,
@@ -235,7 +277,12 @@
       "registros": {
         "etiqueta": "Especies registradas",
         "campos": [
-          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "especie",
+            "etiqueta": "Especie",
+            "tipo": "texto",
+            "requerido": true
+          },
           {
             "clave": "n_individuos",
             "etiqueta": "Número de individuos",
@@ -305,23 +352,34 @@
       "clase": "condicional",
       "aplicacion": {
         "texto": "Evaluación del estrato arbustivo en las estaciones de muestreo, incluidas las coberturas abiertas y boscosas que lo presenten. Aplicar solo en estaciones donde esté presente el estrato arbustivo.",
-        "condicion": { "tipo": "manual" }
+        "condicion": {
+          "tipo": "manual"
+        }
       },
-      "unidad": { "tipo": "parcela", "tipos_adicionales": [], "texto": "Parcela de 5 × 5 m." },
+      "unidad": {
+        "tipo": "parcela",
+        "tipos_adicionales": [],
+        "texto": "Parcela de 5 × 5 m."
+      },
       "esfuerzo": {
         "estandar": {
           "cantidad": 9,
           "unidad": "parcelas",
           "texto": "9 parcelas, distribuidas dentro del ámbito de evaluación definido para la estación."
         },
-        "za_ef": { "cantidad": 18, "texto": "18 parcelas." }
+        "za_ef": {
+          "cantidad": 18,
+          "texto": "18 parcelas."
+        }
       },
       "horario": null,
       "geometria": {
         "tipo": "vertices",
         "texto": "Vértices georreferenciados en la app de la parcela 5 × 5 m",
         "vinculo_metodo": null,
-        "detalle": { "vertices_minimos": 4 }
+        "detalle": {
+          "vertices_minimos": 4
+        }
       },
       "track": false,
       "fotos": {
@@ -341,7 +399,12 @@
       "registros": {
         "etiqueta": "Especies registradas",
         "campos": [
-          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "especie",
+            "etiqueta": "Especie",
+            "tipo": "texto",
+            "requerido": true
+          },
           {
             "clave": "n_individuos",
             "etiqueta": "Número de individuos",
@@ -381,7 +444,11 @@
           "tipo_control": "obligatorio",
           "texto": "2 panorámicas (centro/interior y lateral)."
         },
-        { "tipo": "campos_obligatorios", "tipo_control": "obligatorio", "texto": "Código único." },
+        {
+          "tipo": "campos_obligatorios",
+          "tipo_control": "obligatorio",
+          "texto": "Código único."
+        },
         {
           "tipo": "fotos_metodologicas",
           "minimo": 2,
@@ -406,23 +473,34 @@
       "clase": "condicional",
       "aplicacion": {
         "texto": "Evaluación del estrato arbóreo en estaciones de muestreo ubicadas en bosques, plantaciones forestales y matorrales con componente arbóreo, así como en coberturas intervenidas que lo presenten. Aplicar solo en estaciones con componente arbóreo.",
-        "condicion": { "tipo": "manual" }
+        "condicion": {
+          "tipo": "manual"
+        }
       },
-      "unidad": { "tipo": "parcela", "tipos_adicionales": [], "texto": "Parcela de 30 × 30 m." },
+      "unidad": {
+        "tipo": "parcela",
+        "tipos_adicionales": [],
+        "texto": "Parcela de 30 × 30 m."
+      },
       "esfuerzo": {
         "estandar": {
           "cantidad": 9,
           "unidad": "parcelas",
           "texto": "9 parcelas, distribuidas dentro del ámbito de evaluación definido para la estación."
         },
-        "za_ef": { "cantidad": 18, "texto": "18 parcelas." }
+        "za_ef": {
+          "cantidad": 18,
+          "texto": "18 parcelas."
+        }
       },
       "horario": null,
       "geometria": {
         "tipo": "vertices",
         "texto": "Vértices georreferenciados en la app de la parcela 30 × 30 m",
         "vinculo_metodo": null,
-        "detalle": { "vertices_minimos": 4 }
+        "detalle": {
+          "vertices_minimos": 4
+        }
       },
       "track": false,
       "fotos": {
@@ -442,7 +520,12 @@
       "registros": {
         "etiqueta": "Especies registradas",
         "campos": [
-          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "especie",
+            "etiqueta": "Especie",
+            "tipo": "texto",
+            "requerido": true
+          },
           {
             "clave": "n_individuos",
             "etiqueta": "Número de individuos",
@@ -471,14 +554,22 @@
           "tipo_control": "obligatorio",
           "texto": "Validar cantidad de parcelas."
         },
-        { "tipo": "geometria", "tipo_control": "obligatorio", "texto": "Vértices exigidos." },
+        {
+          "tipo": "geometria",
+          "tipo_control": "obligatorio",
+          "texto": "Vértices exigidos."
+        },
         {
           "tipo": "fotos_contexto",
           "cantidad_por_unidad": 4,
           "tipo_control": "obligatorio",
           "texto": "4 panorámicas."
         },
-        { "tipo": "campos_obligatorios", "tipo_control": "obligatorio", "texto": "Código único." },
+        {
+          "tipo": "campos_obligatorios",
+          "tipo_control": "obligatorio",
+          "texto": "Código único."
+        },
         {
           "tipo": "fotos_metodologicas",
           "minimo": 2,
@@ -486,7 +577,10 @@
           "texto": "2 por estación/método (F-06)."
         }
       ],
-      "vinculo": { "texto": "Parcela independiente del transecto de intercepción.", "metodos": [] },
+      "vinculo": {
+        "texto": "Parcela independiente del transecto de intercepción.",
+        "metodos": []
+      },
       "fuente": {
         "estado": "CERRADO",
         "origen": "Geometría fuente + regla fotográfica funcional Walsh.",
@@ -507,7 +601,10 @@
         "tipos_adicionales": [],
         "texto": "Recorrido alrededor de la estación (radio aproximado 100 m)."
       },
-      "esfuerzo": { "estandar": null, "za_ef": null },
+      "esfuerzo": {
+        "estandar": null,
+        "za_ef": null
+      },
       "horario": null,
       "geometria": {
         "tipo": "inicio_fin",
@@ -540,7 +637,12 @@
       "registros": {
         "etiqueta": "Especies registradas",
         "campos": [
-          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "especie",
+            "etiqueta": "Especie",
+            "tipo": "texto",
+            "requerido": true
+          },
           {
             "clave": "forma_crecimiento",
             "etiqueta": "Forma de crecimiento",
@@ -561,7 +663,11 @@
           "tipo_control": "obligatorio",
           "texto": "Registrar inicio/fin del recorrido."
         },
-        { "tipo": "track", "tipo_control": "obligatorio", "texto": "Registrar track." },
+        {
+          "tipo": "track",
+          "tipo_control": "obligatorio",
+          "texto": "Registrar track."
+        },
         {
           "tipo": "fotos_metodologicas",
           "minimo": 2,
@@ -588,8 +694,15 @@
         "texto": "Metodologías que contemplen el registro de forma de crecimiento o estado fenológico.",
         "condicion": null
       },
-      "unidad": { "tipo": "atributo", "tipos_adicionales": [], "texto": null },
-      "esfuerzo": { "estandar": null, "za_ef": null },
+      "unidad": {
+        "tipo": "atributo",
+        "tipos_adicionales": [],
+        "texto": null
+      },
+      "esfuerzo": {
+        "estandar": null,
+        "za_ef": null
+      },
       "horario": null,
       "geometria": {
         "tipo": "hereda",
@@ -633,7 +746,10 @@
           "texto": "Validar que los campos científicos se asocien al registro de flora correspondiente."
         }
       ],
-      "vinculo": { "texto": "No tratar como método o esfuerzo independiente.", "metodos": [] },
+      "vinculo": {
+        "texto": "No tratar como método o esfuerzo independiente.",
+        "metodos": []
+      },
       "fuente": {
         "estado": "CERRADO COMO ATRIBUTO",
         "origen": "Apartado científico, no unidad operativa independiente.",
@@ -647,7 +763,9 @@
       "clase": "condicional",
       "aplicacion": {
         "texto": "Estaciones con cobertura arbórea y todas las estaciones ubicadas en zonas de amortiguamiento y/o ecosistemas frágiles, aunque no correspondan a bosques. Si no existen forófitos, registrar esa condición.",
-        "condicion": { "tipo": "za_ef_o_manual" }
+        "condicion": {
+          "tipo": "za_ef_o_manual"
+        }
       },
       "unidad": {
         "tipo": "arbol",
@@ -660,7 +778,10 @@
           "unidad": "árboles hospederos",
           "texto": "10 árboles hospederos."
         },
-        "za_ef": { "cantidad": 20, "texto": "20 árboles hospederos." }
+        "za_ef": {
+          "cantidad": 20,
+          "texto": "20 árboles hospederos."
+        }
       },
       "horario": null,
       "geometria": {
@@ -708,7 +829,12 @@
       "registros": {
         "etiqueta": "Epífitas vasculares",
         "campos": [
-          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "especie",
+            "etiqueta": "Especie",
+            "tipo": "texto",
+            "requerido": true
+          },
           {
             "clave": "seccion",
             "etiqueta": "Sección del árbol",
@@ -743,7 +869,11 @@
           "tipo_control": "obligatorio",
           "texto": "Código de forófito."
         },
-        { "tipo": "geometria", "tipo_control": "obligatorio", "texto": "Coordenada base." },
+        {
+          "tipo": "geometria",
+          "tipo_control": "obligatorio",
+          "texto": "Coordenada base."
+        },
         {
           "tipo": "fotos_contexto",
           "cantidad_por_unidad": 1,
@@ -774,7 +904,9 @@
       "clase": "condicional",
       "aplicacion": {
         "texto": "Estaciones con cobertura arbórea y todas las estaciones ubicadas en zonas de amortiguamiento y/o ecosistemas frágiles, aunque no correspondan a bosques. Aplicar en las mismas estaciones/forófitos definidos para epífitas vasculares.",
-        "condicion": { "tipo": "za_ef_o_manual" }
+        "condicion": {
+          "tipo": "za_ef_o_manual"
+        }
       },
       "unidad": {
         "tipo": "arbol",
@@ -787,7 +919,10 @@
           "unidad": "árboles hospederos",
           "texto": "10 árboles hospederos."
         },
-        "za_ef": { "cantidad": 20, "texto": "20 árboles hospederos." }
+        "za_ef": {
+          "cantidad": 20,
+          "texto": "20 árboles hospederos."
+        }
       },
       "horario": null,
       "geometria": {
@@ -817,12 +952,22 @@
           "tipo": "texto",
           "requerido": true
         },
-        { "clave": "dap_cm", "etiqueta": "DAP (cm)", "tipo": "decimal", "requerido": true }
+        {
+          "clave": "dap_cm",
+          "etiqueta": "DAP (cm)",
+          "tipo": "decimal",
+          "requerido": true
+        }
       ],
       "registros": {
         "etiqueta": "Epífitas no vasculares",
         "campos": [
-          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "especie",
+            "etiqueta": "Especie",
+            "tipo": "texto",
+            "requerido": true
+          },
           {
             "clave": "seccion",
             "etiqueta": "Sección del árbol hospedero",
@@ -882,7 +1027,9 @@
       "clase": "condicional",
       "aplicacion": {
         "texto": "Estaciones con cobertura arbórea, incluidos bosques, plantaciones forestales y matorrales con componente forestal. Aplicar solo en estaciones con cobertura arbórea/componente forestal.",
-        "condicion": { "tipo": "manual" }
+        "condicion": {
+          "tipo": "manual"
+        }
       },
       "unidad": {
         "tipo": "parcela",
@@ -890,7 +1037,11 @@
         "texto": "Parcela de 250 × 20 m (0,5 ha), dividida en 5 subparcelas consecutivas de 50 × 20 m, numeradas del 1 al 5. En cada subdivisión, instalar una subparcela de 10 × 10 m para latizales y una de 5 × 5 m para brinzales (5 por categoría: 500 m² de latizales y 125 m² de brinzales)."
       },
       "esfuerzo": {
-        "estandar": { "cantidad": 1, "unidad": "parcela forestal", "texto": "1 parcela forestal." },
+        "estandar": {
+          "cantidad": 1,
+          "unidad": "parcela forestal",
+          "texto": "1 parcela forestal."
+        },
         "za_ef": {
           "cantidad": 2,
           "texto": "2 parcelas, conservando la distribución de las subparcelas de regeneración en cada parcela."
@@ -904,8 +1055,16 @@
         "detalle": {
           "vertices_minimos": 4,
           "subparcelas": [
-            { "tipo": "latizales", "cantidad": 5, "dimensiones": "10 × 10 m" },
-            { "tipo": "brinzales", "cantidad": 5, "dimensiones": "5 × 5 m" }
+            {
+              "tipo": "latizales",
+              "cantidad": 5,
+              "dimensiones": "10 × 10 m"
+            },
+            {
+              "tipo": "brinzales",
+              "cantidad": 5,
+              "dimensiones": "5 × 5 m"
+            }
           ]
         }
       },
@@ -927,7 +1086,12 @@
       "registros": {
         "etiqueta": "Individuos",
         "campos": [
-          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "especie",
+            "etiqueta": "Especie",
+            "tipo": "texto",
+            "requerido": true
+          },
           {
             "clave": "categoria",
             "etiqueta": "Categoría de desarrollo",
@@ -941,7 +1105,12 @@
             "tipo": "entero",
             "requerido": false
           },
-          { "clave": "dap_cm", "etiqueta": "DAP (cm)", "tipo": "decimal", "requerido": false },
+          {
+            "clave": "dap_cm",
+            "etiqueta": "DAP (cm)",
+            "tipo": "decimal",
+            "requerido": false
+          },
           {
             "clave": "altura_total_m",
             "etiqueta": "Altura total (m)",
@@ -1016,7 +1185,10 @@
       "clase": "condicional",
       "aplicacion": {
         "texto": "Bofedales evaluados. Aplicar solo en estaciones correspondientes a bofedales.",
-        "condicion": { "tipo": "uv_contiene", "fragmentos": ["bofedal"] }
+        "condicion": {
+          "tipo": "uv_contiene",
+          "fragmentos": ["bofedal"]
+        }
       },
       "unidad": {
         "tipo": "transecto",
@@ -1039,14 +1211,18 @@
         "tipo": "inicio_fin",
         "texto": "Transectos: inicio + fin georreferenciados en la app; cuadrantes: punto georreferenciado en la app central",
         "vinculo_metodo": null,
-        "por_tipo": { "cuadrante": "punto" },
+        "por_tipo": {
+          "cuadrante": "punto"
+        },
         "detalle": null
       },
       "track": false,
       "fotos": {
         "contexto": {
           "cantidad_por_unidad": 8,
-          "por_tipo": { "cuadrante": 1 },
+          "por_tipo": {
+            "cuadrante": 1
+          },
           "cardinales": true,
           "reutiliza_metodo": null,
           "texto": "Transectos: 8 panorámicas (4 N-S-E-O inicio + 4 N-S-E-O final). Cuadrantes 1 × 1 m: 1 foto interior por cuadrante."
@@ -1076,7 +1252,12 @@
       "registros": {
         "etiqueta": "Especies / lecturas",
         "campos": [
-          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": false },
+          {
+            "clave": "especie",
+            "etiqueta": "Especie",
+            "tipo": "texto",
+            "requerido": false
+          },
           {
             "clave": "presencia_vegetacion",
             "etiqueta": "Presencia de vegetación",
@@ -1143,7 +1324,10 @@
       "clase": "condicional",
       "aplicacion": {
         "texto": "Bofedales evaluados, utilizando las ubicaciones de los cuadrantes de cobertura vegetal. Aplicar solo en estaciones de bofedal donde se ejecuten los cuadrantes de cobertura asociados.",
-        "condicion": { "tipo": "uv_contiene", "fragmentos": ["bofedal"] }
+        "condicion": {
+          "tipo": "uv_contiene",
+          "fragmentos": ["bofedal"]
+        }
       },
       "unidad": {
         "tipo": "cuadrante",
@@ -1262,7 +1446,10 @@
       "clase": "condicional",
       "aplicacion": {
         "texto": "Bofedales evaluados. Aplicar solo en estaciones correspondientes a bofedales.",
-        "condicion": { "tipo": "uv_contiene", "fragmentos": ["bofedal"] }
+        "condicion": {
+          "tipo": "uv_contiene",
+          "fragmentos": ["bofedal"]
+        }
       },
       "unidad": {
         "tipo": "punto",
@@ -1315,7 +1502,12 @@
           "requerido": true,
           "ayuda": "Nivel de agua: temporada seca"
         },
-        { "clave": "fecha", "etiqueta": "Fecha", "tipo": "fecha", "requerido": true },
+        {
+          "clave": "fecha",
+          "etiqueta": "Fecha",
+          "tipo": "fecha",
+          "requerido": true
+        },
         {
           "clave": "profundidad_turba_cm",
           "etiqueta": "Profundidad de turba (cm)",
@@ -1359,7 +1551,11 @@
           "tipo_control": "obligatorio",
           "texto": "Validar código, parámetro, dato/muestra."
         },
-        { "tipo": "geometria", "tipo_control": "obligatorio", "texto": "Validar coordenada." },
+        {
+          "tipo": "geometria",
+          "tipo_control": "obligatorio",
+          "texto": "Validar coordenada."
+        },
         {
           "tipo": "fotos_contexto",
           "cantidad_por_unidad": 2,
@@ -1390,7 +1586,9 @@
       "clase": "condicional",
       "aplicacion": {
         "texto": "Estaciones de muestreo con pastos naturales que constituyan recursos forrajeros. Aplicar solo en estaciones con pastos naturales que constituyan recurso forrajero.",
-        "condicion": { "tipo": "manual" }
+        "condicion": {
+          "tipo": "manual"
+        }
       },
       "unidad": {
         "tipo": "transecto",
@@ -1398,8 +1596,15 @@
         "texto": "Transecto de 100 m, con 100 registros, utilizando un anillo censador de 2,5 cm de diámetro."
       },
       "esfuerzo": {
-        "estandar": { "cantidad": 1, "unidad": "transecto", "texto": "1 transecto." },
-        "za_ef": { "cantidad": 2, "texto": "2 transectos." }
+        "estandar": {
+          "cantidad": 1,
+          "unidad": "transecto",
+          "texto": "1 transecto."
+        },
+        "za_ef": {
+          "cantidad": 2,
+          "texto": "2 transectos."
+        }
       },
       "horario": null,
       "geometria": {
@@ -1470,7 +1675,12 @@
       "registros": {
         "etiqueta": "Registros (100)",
         "campos": [
-          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": false },
+          {
+            "clave": "especie",
+            "etiqueta": "Especie",
+            "tipo": "texto",
+            "requerido": false
+          },
           {
             "clave": "categoria",
             "etiqueta": "Mantillo / suelo desnudo / roca / erosión",
@@ -1569,9 +1779,20 @@
           "unidad": "puntos de conteo",
           "texto": "10 puntos de conteo."
         },
-        "za_ef": { "cantidad": 20, "texto": "20 puntos de conteo." }
+        "za_ef": {
+          "cantidad": 20,
+          "texto": "20 puntos de conteo."
+        }
       },
-      "horario": { "ventanas": [{ "inicio": "06:00", "fin": "10:00" }], "texto": "06:00–10:00" },
+      "horario": {
+        "ventanas": [
+          {
+            "inicio": "06:00",
+            "fin": "10:00"
+          }
+        ],
+        "texto": "06:00–10:00"
+      },
       "geometria": {
         "tipo": "punto",
         "texto": "Punto georreferenciado en la app individual por punto de conteo",
@@ -1615,7 +1836,12 @@
       "registros": {
         "etiqueta": "Registros",
         "campos": [
-          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "especie",
+            "etiqueta": "Especie",
+            "tipo": "texto",
+            "requerido": true
+          },
           {
             "clave": "n_individuos",
             "etiqueta": "Número de individuos",
@@ -1683,7 +1909,11 @@
           "tipo_control": "obligatorio",
           "texto": "Validar separación de 200 m."
         },
-        { "tipo": "geometria", "tipo_control": "obligatorio", "texto": "Validar coordenada." },
+        {
+          "tipo": "geometria",
+          "tipo_control": "obligatorio",
+          "texto": "Validar coordenada."
+        },
         {
           "tipo": "fotos_contexto",
           "cantidad_por_unidad": 4,
@@ -1697,7 +1927,12 @@
         },
         {
           "tipo": "horario",
-          "ventanas": [{ "inicio": "06:00", "fin": "10:00" }],
+          "ventanas": [
+            {
+              "inicio": "06:00",
+              "fin": "10:00"
+            }
+          ],
           "tipo_control": "obligatorio",
           "texto": "Validar horario. El uso de playback no forma parte de la validación ni condiciona el cierre (T-04)."
         },
@@ -1725,7 +1960,10 @@
       "clase": "condicional",
       "aplicacion": {
         "texto": "Estaciones de muestreo de la región selva.",
-        "condicion": { "tipo": "region", "regiones": ["SELVA"] }
+        "condicion": {
+          "tipo": "region",
+          "regiones": ["SELVA"]
+        }
       },
       "unidad": {
         "tipo": "lista",
@@ -1733,10 +1971,25 @@
         "texto": "Lista de 20 especies distintas. Separación de 250 m entre listas."
       },
       "esfuerzo": {
-        "estandar": { "cantidad": 2, "unidad": "listas", "texto": "2 listas." },
-        "za_ef": { "cantidad": 4, "texto": "4 listas." }
+        "estandar": {
+          "cantidad": 2,
+          "unidad": "listas",
+          "texto": "2 listas."
+        },
+        "za_ef": {
+          "cantidad": 4,
+          "texto": "4 listas."
+        }
       },
-      "horario": { "ventanas": [{ "inicio": "06:00", "fin": "10:00" }], "texto": "06:00–10:00" },
+      "horario": {
+        "ventanas": [
+          {
+            "inicio": "06:00",
+            "fin": "10:00"
+          }
+        ],
+        "texto": "06:00–10:00"
+      },
       "geometria": {
         "tipo": "inicio_fin",
         "texto": "Inicio + fin georreferenciados en la app de cada lista; recorrido con track funcional",
@@ -1780,7 +2033,12 @@
       "registros": {
         "etiqueta": "Especies (20)",
         "campos": [
-          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "especie",
+            "etiqueta": "Especie",
+            "tipo": "texto",
+            "requerido": true
+          },
           {
             "clave": "n_individuos",
             "etiqueta": "Número de individuos",
@@ -1826,7 +2084,11 @@
           "tipo_control": "obligatorio",
           "texto": "Validar inicio/fin y horas."
         },
-        { "tipo": "track", "tipo_control": "obligatorio", "texto": "Validar track." },
+        {
+          "tipo": "track",
+          "tipo_control": "obligatorio",
+          "texto": "Validar track."
+        },
         {
           "tipo": "separacion_minima_m",
           "metros": 250,
@@ -1837,7 +2099,8 @@
           "tipo": "cantidad_registros",
           "minimo": 20,
           "tipo_control": "obligatorio",
-          "texto": "20 especies o motivo de lista incompleta."
+          "texto": "20 especies o motivo de lista incompleta.",
+          "campo_motivo": "motivo_lista_incompleta"
         },
         {
           "tipo": "fotos_contexto",
@@ -1847,7 +2110,12 @@
         },
         {
           "tipo": "horario",
-          "ventanas": [{ "inicio": "06:00", "fin": "10:00" }],
+          "ventanas": [
+            {
+              "inicio": "06:00",
+              "fin": "10:00"
+            }
+          ],
           "tipo_control": "obligatorio",
           "texto": "06:00–10:00."
         },
@@ -1898,9 +2166,20 @@
           "unidad": "conteo total de 30 minutos",
           "texto": "1 conteo total de 30 minutos."
         },
-        "za_ef": { "cantidad": 1, "texto": "1 conteo total de 60 minutos." }
+        "za_ef": {
+          "cantidad": 1,
+          "texto": "1 conteo total de 60 minutos."
+        }
       },
-      "horario": { "ventanas": [{ "inicio": "07:00", "fin": "16:00" }], "texto": "07:00–16:00" },
+      "horario": {
+        "ventanas": [
+          {
+            "inicio": "07:00",
+            "fin": "16:00"
+          }
+        ],
+        "texto": "07:00–16:00"
+      },
       "geometria": {
         "tipo": "punto",
         "texto": "Punto georreferenciado en la app por sector/posición de observación",
@@ -1956,7 +2235,12 @@
       "registros": {
         "etiqueta": "Registros",
         "campos": [
-          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "especie",
+            "etiqueta": "Especie",
+            "tipo": "texto",
+            "requerido": true
+          },
           {
             "clave": "n_individuos",
             "etiqueta": "Número de individuos",
@@ -1997,7 +2281,12 @@
         },
         {
           "tipo": "horario",
-          "ventanas": [{ "inicio": "07:00", "fin": "16:00" }],
+          "ventanas": [
+            {
+              "inicio": "07:00",
+              "fin": "16:00"
+            }
+          ],
           "tipo_control": "obligatorio",
           "texto": "Validar horario."
         },
@@ -2027,8 +2316,15 @@
         "texto": "Durante la permanencia y los desplazamientos en el área de estudio, fuera de la aplicación de métodos cuantitativos.",
         "condicion": null
       },
-      "unidad": { "tipo": "evento", "tipos_adicionales": [], "texto": null },
-      "esfuerzo": { "estandar": null, "za_ef": null },
+      "unidad": {
+        "tipo": "evento",
+        "tipos_adicionales": [],
+        "texto": null
+      },
+      "esfuerzo": {
+        "estandar": null,
+        "za_ef": null
+      },
       "horario": null,
       "geometria": {
         "tipo": "punto_opcional",
@@ -2051,10 +2347,30 @@
       },
       "campos_ejecucion": [],
       "campos": [
-        { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
-        { "clave": "fecha", "etiqueta": "Fecha", "tipo": "fecha", "requerido": true },
-        { "clave": "hora", "etiqueta": "Hora", "tipo": "hora", "requerido": true },
-        { "clave": "habitat", "etiqueta": "Hábitat", "tipo": "texto", "requerido": true },
+        {
+          "clave": "especie",
+          "etiqueta": "Especie",
+          "tipo": "texto",
+          "requerido": true
+        },
+        {
+          "clave": "fecha",
+          "etiqueta": "Fecha",
+          "tipo": "fecha",
+          "requerido": true
+        },
+        {
+          "clave": "hora",
+          "etiqueta": "Hora",
+          "tipo": "hora",
+          "requerido": true
+        },
+        {
+          "clave": "habitat",
+          "etiqueta": "Hábitat",
+          "tipo": "texto",
+          "requerido": true
+        },
         {
           "clave": "deteccion",
           "etiqueta": "Detección",
@@ -2068,7 +2384,12 @@
           "tipo": "texto",
           "requerido": false
         },
-        { "clave": "en_vuelo", "etiqueta": "Ave en vuelo", "tipo": "booleano", "requerido": false },
+        {
+          "clave": "en_vuelo",
+          "etiqueta": "Ave en vuelo",
+          "tipo": "booleano",
+          "requerido": false
+        },
         {
           "clave": "altura_vuelo_m",
           "etiqueta": "Altura de vuelo (m)",
@@ -2081,7 +2402,12 @@
           "tipo": "texto",
           "requerido": false
         },
-        { "clave": "tipo_vuelo", "etiqueta": "Tipo de vuelo", "tipo": "texto", "requerido": false }
+        {
+          "clave": "tipo_vuelo",
+          "etiqueta": "Tipo de vuelo",
+          "tipo": "texto",
+          "requerido": false
+        }
       ],
       "registros": null,
       "validaciones": [
@@ -2128,8 +2454,14 @@
       },
       "horario": {
         "ventanas": [
-          { "inicio": "06:00", "fin": "11:00" },
-          { "inicio": "19:00", "fin": "21:00" }
+          {
+            "inicio": "06:00",
+            "fin": "11:00"
+          },
+          {
+            "inicio": "19:00",
+            "fin": "21:00"
+          }
         ],
         "texto": "06:00–11:00; 19:00–21:00"
       },
@@ -2161,19 +2493,34 @@
           "opciones": ["diurno", "nocturno"],
           "requerido": true
         },
-        { "clave": "sector", "etiqueta": "Sector", "tipo": "texto", "requerido": true },
+        {
+          "clave": "sector",
+          "etiqueta": "Sector",
+          "tipo": "texto",
+          "requerido": true
+        },
         {
           "clave": "habitat_recorrido",
           "etiqueta": "Hábitat del recorrido",
           "tipo": "texto",
           "requerido": true
         },
-        { "clave": "altitud_m", "etiqueta": "Altitud (m)", "tipo": "decimal", "requerido": true }
+        {
+          "clave": "altitud_m",
+          "etiqueta": "Altitud (m)",
+          "tipo": "decimal",
+          "requerido": true
+        }
       ],
       "registros": {
         "etiqueta": "Detecciones",
         "campos": [
-          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "especie",
+            "etiqueta": "Especie",
+            "tipo": "texto",
+            "requerido": true
+          },
           {
             "clave": "n_individuos",
             "etiqueta": "Número de individuos",
@@ -2199,14 +2546,28 @@
         {
           "tipo": "horario",
           "ventanas": [
-            { "inicio": "06:00", "fin": "11:00" },
-            { "inicio": "19:00", "fin": "21:00" }
+            {
+              "inicio": "06:00",
+              "fin": "11:00"
+            },
+            {
+              "inicio": "19:00",
+              "fin": "21:00"
+            }
           ],
           "tipo_control": "obligatorio",
           "texto": "Validar horario."
         },
-        { "tipo": "geometria", "tipo_control": "obligatorio", "texto": "Validar inicio/fin." },
-        { "tipo": "track", "tipo_control": "obligatorio", "texto": "Validar track." },
+        {
+          "tipo": "geometria",
+          "tipo_control": "obligatorio",
+          "texto": "Validar inicio/fin."
+        },
+        {
+          "tipo": "track",
+          "tipo_control": "obligatorio",
+          "texto": "Validar track."
+        },
         {
           "tipo": "campos_obligatorios",
           "tipo_control": "obligatorio",
@@ -2222,8 +2583,16 @@
           "tipo": "cantidad_unidades",
           "minimo": 4,
           "minimo_za_ef": 8,
-          "por_region": { "COSTA": 8, "SIERRA": 8, "SELVA": 4 },
-          "za_ef_por_region": { "COSTA": 16, "SIERRA": 16, "SELVA": 8 },
+          "por_region": {
+            "COSTA": 8,
+            "SIERRA": 8,
+            "SELVA": 4
+          },
+          "za_ef_por_region": {
+            "COSTA": 16,
+            "SIERRA": 16,
+            "SELVA": 8
+          },
           "tipo_control": "obligatorio",
           "texto": "Costa y sierra: 4 diurnos y 4 nocturnos; selva: 2 y 2. En ZA/EF se duplica."
         },
@@ -2257,7 +2626,10 @@
       "clase": "condicional",
       "aplicacion": {
         "texto": "Estaciones de muestreo de anfibios y reptiles de la región selva.",
-        "condicion": { "tipo": "region", "regiones": ["SELVA"] }
+        "condicion": {
+          "tipo": "region",
+          "regiones": ["SELVA"]
+        }
       },
       "unidad": {
         "tipo": "transecto",
@@ -2270,12 +2642,21 @@
           "unidad": "transectos, cada uno evaluado de día y de noche",
           "texto": "4 transectos, cada uno evaluado de día y de noche."
         },
-        "za_ef": { "cantidad": 8, "texto": "8 transectos, cada uno evaluado de día y de noche." }
+        "za_ef": {
+          "cantidad": 8,
+          "texto": "8 transectos, cada uno evaluado de día y de noche."
+        }
       },
       "horario": {
         "ventanas": [
-          { "inicio": "08:00", "fin": "12:00" },
-          { "inicio": "18:00", "fin": "22:00" }
+          {
+            "inicio": "08:00",
+            "fin": "12:00"
+          },
+          {
+            "inicio": "18:00",
+            "fin": "22:00"
+          }
         ],
         "texto": "08:00–12:00; 18:00–22:00"
       },
@@ -2324,7 +2705,12 @@
       "registros": {
         "etiqueta": "Detecciones",
         "campos": [
-          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "especie",
+            "etiqueta": "Especie",
+            "tipo": "texto",
+            "requerido": true
+          },
           {
             "clave": "n_individuos",
             "etiqueta": "Número de individuos",
@@ -2357,7 +2743,11 @@
           "tipo_control": "obligatorio",
           "texto": "Mismo código físico día/noche."
         },
-        { "tipo": "track", "tipo_control": "obligatorio", "texto": "Validar track." },
+        {
+          "tipo": "track",
+          "tipo_control": "obligatorio",
+          "texto": "Validar track."
+        },
         {
           "tipo": "fotos_contexto",
           "cantidad_por_unidad": 6,
@@ -2367,8 +2757,14 @@
         {
           "tipo": "horario",
           "ventanas": [
-            { "inicio": "08:00", "fin": "12:00" },
-            { "inicio": "18:00", "fin": "22:00" }
+            {
+              "inicio": "08:00",
+              "fin": "12:00"
+            },
+            {
+              "inicio": "18:00",
+              "fin": "22:00"
+            }
           ],
           "tipo_control": "obligatorio",
           "texto": "08:00–12:00; 18:00–22:00."
@@ -2412,8 +2808,15 @@
         "texto": "Fuera de las evaluaciones mediante VES y transectos de banda fija TBF.",
         "condicion": null
       },
-      "unidad": { "tipo": "evento", "tipos_adicionales": [], "texto": null },
-      "esfuerzo": { "estandar": null, "za_ef": null },
+      "unidad": {
+        "tipo": "evento",
+        "tipos_adicionales": [],
+        "texto": null
+      },
+      "esfuerzo": {
+        "estandar": null,
+        "za_ef": null
+      },
       "horario": null,
       "geometria": {
         "tipo": "punto_opcional",
@@ -2429,21 +2832,49 @@
           "reutiliza_metodo": null,
           "texto": "Sin panorámicas sistemáticas. Foto del ejemplar/evidencia/microhábitat cuando aporte sustento."
         },
-        "metodologicas": { "minimo": 0, "texto": "No exigir foto metodológica del especialista." }
+        "metodologicas": {
+          "minimo": 0,
+          "texto": "No exigir foto metodológica del especialista."
+        }
       },
       "campos_ejecucion": [],
       "campos": [
-        { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+        {
+          "clave": "especie",
+          "etiqueta": "Especie",
+          "tipo": "texto",
+          "requerido": true
+        },
         {
           "clave": "estacion_o_localidad",
           "etiqueta": "Estación de muestreo o localidad",
           "tipo": "texto",
           "requerido": true
         },
-        { "clave": "habitat", "etiqueta": "Hábitat", "tipo": "texto", "requerido": true },
-        { "clave": "microhabitat", "etiqueta": "Microhábitat", "tipo": "texto", "requerido": true },
-        { "clave": "fecha", "etiqueta": "Fecha", "tipo": "fecha", "requerido": true },
-        { "clave": "hora", "etiqueta": "Hora", "tipo": "hora", "requerido": true },
+        {
+          "clave": "habitat",
+          "etiqueta": "Hábitat",
+          "tipo": "texto",
+          "requerido": true
+        },
+        {
+          "clave": "microhabitat",
+          "etiqueta": "Microhábitat",
+          "tipo": "texto",
+          "requerido": true
+        },
+        {
+          "clave": "fecha",
+          "etiqueta": "Fecha",
+          "tipo": "fecha",
+          "requerido": true
+        },
+        {
+          "clave": "hora",
+          "etiqueta": "Hora",
+          "tipo": "hora",
+          "requerido": true
+        },
         {
           "clave": "deteccion",
           "etiqueta": "Detección",
@@ -2460,7 +2891,10 @@
           "texto": "Registrar especie, estación/localidad, hábitat, microhábitat, fecha/hora, tipo detección, coordenada disponible."
         }
       ],
-      "vinculo": { "texto": "No contabilizar como esfuerzo VES/TBF.", "metodos": [] },
+      "vinculo": {
+        "texto": "No contabilizar como esfuerzo VES/TBF.",
+        "metodos": []
+      },
       "fuente": {
         "estado": "CERRADO COMO EVENTO",
         "origen": "Regla funcional para evento incidental.",
@@ -2497,14 +2931,18 @@
         "tipo": "punto_opcional",
         "texto": "Línea de 120 m; inicio + fin georreferenciados en la app",
         "vinculo_metodo": null,
-        "por_tipo": { "transecto": "inicio_fin" },
+        "por_tipo": {
+          "transecto": "inicio_fin"
+        },
         "detalle": null
       },
       "track": false,
       "fotos": {
         "contexto": {
           "cantidad_por_unidad": null,
-          "por_tipo": { "transecto": 8 },
+          "por_tipo": {
+            "transecto": 8
+          },
           "cardinales": true,
           "reutiliza_metodo": null,
           "texto": "8 panorámicas por transecto: 4 N-S-E-O al inicio + 4 N-S-E-O al final."
@@ -2535,7 +2973,12 @@
           "tipo": "hora",
           "requerido": true
         },
-        { "clave": "hora_retiro", "etiqueta": "Hora de retiro", "tipo": "hora", "requerido": true },
+        {
+          "clave": "hora_retiro",
+          "etiqueta": "Hora de retiro",
+          "tipo": "hora",
+          "requerido": true
+        },
         {
           "clave": "exposicion_h",
           "etiqueta": "Exposición (h)",
@@ -2547,7 +2990,12 @@
       "registros": {
         "etiqueta": "Capturas",
         "campos": [
-          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "especie",
+            "etiqueta": "Especie",
+            "tipo": "texto",
+            "requerido": true
+          },
           {
             "clave": "n_individuos",
             "etiqueta": "Número de individuos capturados",
@@ -2564,7 +3012,11 @@
           "tipo_control": "obligatorio",
           "texto": "Validar 9 trampas, tipos de cebo 3/3/3, exposición."
         },
-        { "tipo": "geometria", "tipo_control": "obligatorio", "texto": "Validar inicio/fin." },
+        {
+          "tipo": "geometria",
+          "tipo_control": "obligatorio",
+          "texto": "Validar inicio/fin."
+        },
         {
           "tipo": "campos_obligatorios",
           "tipo_control": "obligatorio",
@@ -2583,7 +3035,10 @@
           "texto": "2 por estación/método."
         }
       ],
-      "vinculo": { "texto": "Transecto independiente del de pitfall sin cebo.", "metodos": [] },
+      "vinculo": {
+        "texto": "Transecto independiente del de pitfall sin cebo.",
+        "metodos": []
+      },
       "fuente": {
         "estado": "CERRADO",
         "origen": "Geometría fuente + regla fotográfica funcional Walsh.",
@@ -2610,21 +3065,28 @@
           "unidad": "trampas durante 24 horas",
           "texto": "9 trampas durante 24 horas."
         },
-        "za_ef": { "cantidad": 9, "texto": "9 trampas durante 48 horas." }
+        "za_ef": {
+          "cantidad": 9,
+          "texto": "9 trampas durante 48 horas."
+        }
       },
       "horario": null,
       "geometria": {
         "tipo": "punto_opcional",
         "texto": "Línea de 120 m; inicio + fin georreferenciados en la app",
         "vinculo_metodo": null,
-        "por_tipo": { "transecto": "inicio_fin" },
+        "por_tipo": {
+          "transecto": "inicio_fin"
+        },
         "detalle": null
       },
       "track": false,
       "fotos": {
         "contexto": {
           "cantidad_por_unidad": null,
-          "por_tipo": { "transecto": 8 },
+          "por_tipo": {
+            "transecto": 8
+          },
           "cardinales": true,
           "reutiliza_metodo": null,
           "texto": "8 panorámicas por transecto: 4 N-S-E-O al inicio + 4 N-S-E-O al final."
@@ -2648,7 +3110,12 @@
           "tipo": "hora",
           "requerido": true
         },
-        { "clave": "hora_retiro", "etiqueta": "Hora de retiro", "tipo": "hora", "requerido": true },
+        {
+          "clave": "hora_retiro",
+          "etiqueta": "Hora de retiro",
+          "tipo": "hora",
+          "requerido": true
+        },
         {
           "clave": "exposicion_h",
           "etiqueta": "Exposición (h)",
@@ -2660,7 +3127,12 @@
       "registros": {
         "etiqueta": "Capturas",
         "campos": [
-          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "especie",
+            "etiqueta": "Especie",
+            "tipo": "texto",
+            "requerido": true
+          },
           {
             "clave": "n_individuos",
             "etiqueta": "Número de individuos capturados",
@@ -2677,7 +3149,11 @@
           "tipo_control": "obligatorio",
           "texto": "Validar 9 trampas."
         },
-        { "tipo": "geometria", "tipo_control": "obligatorio", "texto": "Validar inicio/fin." },
+        {
+          "tipo": "geometria",
+          "tipo_control": "obligatorio",
+          "texto": "Validar inicio/fin."
+        },
         {
           "tipo": "campos_obligatorios",
           "tipo_control": "obligatorio",
@@ -2721,14 +3197,21 @@
         "texto": "Todas las estaciones de muestreo de artrópodos.",
         "condicion": null
       },
-      "unidad": { "tipo": "bandeja", "tipos_adicionales": [], "texto": "Una bandeja amarilla." },
+      "unidad": {
+        "tipo": "bandeja",
+        "tipos_adicionales": [],
+        "texto": "Una bandeja amarilla."
+      },
       "esfuerzo": {
         "estandar": {
           "cantidad": 5,
           "unidad": "bandejas durante 24 horas",
           "texto": "5 bandejas durante 24 horas."
         },
-        "za_ef": { "cantidad": 5, "texto": "5 bandejas durante 48 horas." }
+        "za_ef": {
+          "cantidad": 5,
+          "texto": "5 bandejas durante 48 horas."
+        }
       },
       "horario": null,
       "geometria": {
@@ -2770,7 +3253,12 @@
           "tipo": "hora",
           "requerido": true
         },
-        { "clave": "hora_retiro", "etiqueta": "Hora de retiro", "tipo": "hora", "requerido": true },
+        {
+          "clave": "hora_retiro",
+          "etiqueta": "Hora de retiro",
+          "tipo": "hora",
+          "requerido": true
+        },
         {
           "clave": "trazado_independiente",
           "etiqueta": "Trazado independiente (justificar)",
@@ -2781,7 +3269,12 @@
       "registros": {
         "etiqueta": "Capturas",
         "campos": [
-          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "especie",
+            "etiqueta": "Especie",
+            "tipo": "texto",
+            "requerido": true
+          },
           {
             "clave": "n_individuos",
             "etiqueta": "Número de individuos capturados",
@@ -2807,7 +3300,8 @@
           "tipo": "vinculo_unidad",
           "metodo": "artropodos.pitfall_sin_cebo",
           "tipo_control": "obligatorio",
-          "texto": "Validar vínculo espacial al transecto."
+          "texto": "Validar vínculo espacial al transecto.",
+          "campo_justificacion": "trazado_independiente"
         },
         {
           "tipo": "separacion_minima_m",
@@ -2847,10 +3341,25 @@
         "texto": "Un recorrido de colecta con red entomológica."
       },
       "esfuerzo": {
-        "estandar": { "cantidad": 1, "unidad": "recorrido de 1 hora", "texto": "1 hora." },
-        "za_ef": { "cantidad": 1, "texto": "2 horas." }
+        "estandar": {
+          "cantidad": 1,
+          "unidad": "recorrido de 1 hora",
+          "texto": "1 hora."
+        },
+        "za_ef": {
+          "cantidad": 1,
+          "texto": "2 horas."
+        }
       },
-      "horario": { "ventanas": [{ "inicio": "09:00", "fin": "15:00" }], "texto": "09:00–15:00" },
+      "horario": {
+        "ventanas": [
+          {
+            "inicio": "09:00",
+            "fin": "15:00"
+          }
+        ],
+        "texto": "09:00–15:00"
+      },
       "geometria": {
         "tipo": "inicio_fin",
         "texto": "Inicio + fin georreferenciados en la app; recorrido con track",
@@ -2882,13 +3391,23 @@
       "registros": {
         "etiqueta": "Especies registradas",
         "campos": [
-          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true }
+          {
+            "clave": "especie",
+            "etiqueta": "Especie",
+            "tipo": "texto",
+            "requerido": true
+          }
         ]
       },
       "validaciones": [
         {
           "tipo": "horario",
-          "ventanas": [{ "inicio": "09:00", "fin": "15:00" }],
+          "ventanas": [
+            {
+              "inicio": "09:00",
+              "fin": "15:00"
+            }
+          ],
           "tipo_control": "obligatorio",
           "texto": "Validar horario."
         },
@@ -2899,8 +3418,16 @@
           "tipo_control": "obligatorio",
           "texto": "Validar 1 h / 2 h ZA-EF."
         },
-        { "tipo": "geometria", "tipo_control": "obligatorio", "texto": "Validar inicio/fin." },
-        { "tipo": "track", "tipo_control": "obligatorio", "texto": "Validar track." },
+        {
+          "tipo": "geometria",
+          "tipo_control": "obligatorio",
+          "texto": "Validar inicio/fin."
+        },
+        {
+          "tipo": "track",
+          "tipo_control": "obligatorio",
+          "texto": "Validar track."
+        },
         {
           "tipo": "fotos_contexto",
           "cantidad_por_unidad": 6,
@@ -2936,7 +3463,10 @@
       "clase": "condicional",
       "aplicacion": {
         "texto": "Estaciones de muestreo de artrópodos de la región selva.",
-        "condicion": { "tipo": "region", "regiones": ["SELVA"] }
+        "condicion": {
+          "tipo": "region",
+          "regiones": ["SELVA"]
+        }
       },
       "unidad": {
         "tipo": "trampa",
@@ -2954,7 +3484,15 @@
           "texto": "Una trampa durante dos días, de 09:00 a 15:00 h en cada día. (El plan de trabajo del IGA desistido establece 24 horas de exposición; se adopta el horario diurno del plan de Walsh y de la tabla 3 de su OT de SERFOR para dirigir la evaluación a artrópodos de actividad diurna y evitar la captura durante la noche.)"
         }
       },
-      "horario": { "ventanas": [{ "inicio": "09:00", "fin": "15:00" }], "texto": "09:00–15:00" },
+      "horario": {
+        "ventanas": [
+          {
+            "inicio": "09:00",
+            "fin": "15:00"
+          }
+        ],
+        "texto": "09:00–15:00"
+      },
       "geometria": {
         "tipo": "punto",
         "texto": "Punto georreferenciado en la app de instalación",
@@ -2988,7 +3526,12 @@
           "tipo": "hora",
           "requerido": true
         },
-        { "clave": "hora_retiro", "etiqueta": "Hora de retiro", "tipo": "hora", "requerido": true },
+        {
+          "clave": "hora_retiro",
+          "etiqueta": "Hora de retiro",
+          "tipo": "hora",
+          "requerido": true
+        },
         {
           "clave": "dias_exposicion",
           "etiqueta": "Días de exposición",
@@ -2996,12 +3539,22 @@
           "requerido": true,
           "ayuda": "1; 2 en ZA/EF"
         },
-        { "clave": "fallas", "etiqueta": "Fallas", "tipo": "texto", "requerido": false }
+        {
+          "clave": "fallas",
+          "etiqueta": "Fallas",
+          "tipo": "texto",
+          "requerido": false
+        }
       ],
       "registros": {
         "etiqueta": "Capturas",
         "campos": [
-          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "especie",
+            "etiqueta": "Especie",
+            "tipo": "texto",
+            "requerido": true
+          },
           {
             "clave": "n_individuos",
             "etiqueta": "Número de individuos capturados",
@@ -3011,10 +3564,19 @@
         ]
       },
       "validaciones": [
-        { "tipo": "geometria", "tipo_control": "obligatorio", "texto": "Validar ubicación." },
+        {
+          "tipo": "geometria",
+          "tipo_control": "obligatorio",
+          "texto": "Validar ubicación."
+        },
         {
           "tipo": "horario",
-          "ventanas": [{ "inicio": "09:00", "fin": "15:00" }],
+          "ventanas": [
+            {
+              "inicio": "09:00",
+              "fin": "15:00"
+            }
+          ],
           "tipo_control": "obligatorio",
           "texto": "Validar horario 09:00–15:00, exposición por día(s)."
         },
@@ -3073,21 +3635,28 @@
           "unidad": "trampas durante 24 horas",
           "texto": "60 trampas durante 24 horas, distribuidas en 30 puntos con dos trampas cada uno."
         },
-        "za_ef": { "cantidad": 60, "texto": "60 trampas durante 48 horas." }
+        "za_ef": {
+          "cantidad": 60,
+          "texto": "60 trampas durante 48 horas."
+        }
       },
       "horario": null,
       "geometria": {
         "tipo": "punto_opcional",
         "texto": "Línea ≥300 m; inicio + fin georreferenciados en la app",
         "vinculo_metodo": null,
-        "por_tipo": { "transecto": "inicio_fin" },
+        "por_tipo": {
+          "transecto": "inicio_fin"
+        },
         "detalle": null
       },
       "track": false,
       "fotos": {
         "contexto": {
           "cantidad_por_unidad": null,
-          "por_tipo": { "transecto": 8 },
+          "por_tipo": {
+            "transecto": 8
+          },
           "cardinales": true,
           "reutiliza_metodo": null,
           "texto": "8 panorámicas por transecto: 4 N-S-E-O al inicio + 4 N-S-E-O al final."
@@ -3105,14 +3674,24 @@
           "tipo": "entero",
           "requerido": true
         },
-        { "clave": "cebo", "etiqueta": "Cebo", "tipo": "texto", "requerido": true },
+        {
+          "clave": "cebo",
+          "etiqueta": "Cebo",
+          "tipo": "texto",
+          "requerido": true
+        },
         {
           "clave": "hora_instalacion",
           "etiqueta": "Hora de instalación",
           "tipo": "hora",
           "requerido": true
         },
-        { "clave": "hora_retiro", "etiqueta": "Hora de retiro", "tipo": "hora", "requerido": true },
+        {
+          "clave": "hora_retiro",
+          "etiqueta": "Hora de retiro",
+          "tipo": "hora",
+          "requerido": true
+        },
         {
           "clave": "interrupciones",
           "etiqueta": "Interrupciones",
@@ -3129,7 +3708,12 @@
       "registros": {
         "etiqueta": "Capturas",
         "campos": [
-          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "especie",
+            "etiqueta": "Especie",
+            "tipo": "texto",
+            "requerido": true
+          },
           {
             "clave": "n_capturas",
             "etiqueta": "Número de capturas",
@@ -3143,7 +3727,12 @@
             "opciones": ["macho", "hembra", "indeterminado"],
             "requerido": false
           },
-          { "clave": "edad", "etiqueta": "Edad", "tipo": "texto", "requerido": false },
+          {
+            "clave": "edad",
+            "etiqueta": "Edad",
+            "tipo": "texto",
+            "requerido": false
+          },
           {
             "clave": "condicion_reproductiva",
             "etiqueta": "Condición reproductiva",
@@ -3166,7 +3755,11 @@
           "tipo_control": "obligatorio",
           "texto": "Validar 60 trampas/30 puntos."
         },
-        { "tipo": "geometria", "tipo_control": "obligatorio", "texto": "Validar inicio/fin." },
+        {
+          "tipo": "geometria",
+          "tipo_control": "obligatorio",
+          "texto": "Validar inicio/fin."
+        },
         {
           "tipo": "campos_obligatorios",
           "tipo_control": "obligatorio",
@@ -3210,14 +3803,21 @@
         "texto": "Todas las estaciones de muestreo de mastozoología.",
         "condicion": null
       },
-      "unidad": { "tipo": "trampa", "tipos_adicionales": [], "texto": "Una trampa Tomahawk." },
+      "unidad": {
+        "tipo": "trampa",
+        "tipos_adicionales": [],
+        "texto": "Una trampa Tomahawk."
+      },
       "esfuerzo": {
         "estandar": {
           "cantidad": 10,
           "unidad": "trampas durante 24 horas",
           "texto": "10 trampas durante 24 horas."
         },
-        "za_ef": { "cantidad": 10, "texto": "10 trampas durante 48 horas." }
+        "za_ef": {
+          "cantidad": 10,
+          "texto": "10 trampas durante 48 horas."
+        }
       },
       "horario": null,
       "geometria": {
@@ -3241,14 +3841,24 @@
       },
       "campos_ejecucion": [],
       "campos": [
-        { "clave": "cebo", "etiqueta": "Cebo", "tipo": "texto", "requerido": true },
+        {
+          "clave": "cebo",
+          "etiqueta": "Cebo",
+          "tipo": "texto",
+          "requerido": true
+        },
         {
           "clave": "hora_instalacion",
           "etiqueta": "Hora de instalación",
           "tipo": "hora",
           "requerido": true
         },
-        { "clave": "hora_retiro", "etiqueta": "Hora de retiro", "tipo": "hora", "requerido": true },
+        {
+          "clave": "hora_retiro",
+          "etiqueta": "Hora de retiro",
+          "tipo": "hora",
+          "requerido": true
+        },
         {
           "clave": "interrupciones",
           "etiqueta": "Interrupciones",
@@ -3271,7 +3881,12 @@
       "registros": {
         "etiqueta": "Capturas",
         "campos": [
-          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "especie",
+            "etiqueta": "Especie",
+            "tipo": "texto",
+            "requerido": true
+          },
           {
             "clave": "n_capturas",
             "etiqueta": "Número de capturas",
@@ -3285,7 +3900,12 @@
             "opciones": ["macho", "hembra", "indeterminado"],
             "requerido": false
           },
-          { "clave": "edad", "etiqueta": "Edad", "tipo": "texto", "requerido": false },
+          {
+            "clave": "edad",
+            "etiqueta": "Edad",
+            "tipo": "texto",
+            "requerido": false
+          },
           {
             "clave": "condicion_reproductiva",
             "etiqueta": "Condición reproductiva",
@@ -3366,7 +3986,15 @@
           "texto": "Un detector durante dos noches de 12 horas cada una. (Duplicación indicada en la OT SERFOR, literal b, opinión i, aunque la tabla 3 consigna 12 horas.)"
         }
       },
-      "horario": { "ventanas": [{ "inicio": "18:00", "fin": "06:00" }], "texto": "18:00–06:00" },
+      "horario": {
+        "ventanas": [
+          {
+            "inicio": "18:00",
+            "fin": "06:00"
+          }
+        ],
+        "texto": "18:00–06:00"
+      },
       "geometria": {
         "tipo": "punto",
         "texto": "Punto georreferenciado en la app de instalación del detector",
@@ -3400,8 +4028,18 @@
           "tipo": "fecha",
           "requerido": true
         },
-        { "clave": "hora_inicio", "etiqueta": "Hora de inicio", "tipo": "hora", "requerido": true },
-        { "clave": "hora_fin", "etiqueta": "Hora de fin", "tipo": "hora", "requerido": true },
+        {
+          "clave": "hora_inicio",
+          "etiqueta": "Hora de inicio",
+          "tipo": "hora",
+          "requerido": true
+        },
+        {
+          "clave": "hora_fin",
+          "etiqueta": "Hora de fin",
+          "tipo": "hora",
+          "requerido": true
+        },
         {
           "clave": "noches",
           "etiqueta": "Noches de registro",
@@ -3415,7 +4053,12 @@
           "tipo": "texto",
           "requerido": true
         },
-        { "clave": "fallas", "etiqueta": "Fallas", "tipo": "texto", "requerido": false }
+        {
+          "clave": "fallas",
+          "etiqueta": "Fallas",
+          "tipo": "texto",
+          "requerido": false
+        }
       ],
       "registros": {
         "etiqueta": "Señales / especies",
@@ -3435,7 +4078,11 @@
         ]
       },
       "validaciones": [
-        { "tipo": "geometria", "tipo_control": "obligatorio", "texto": "Validar punto." },
+        {
+          "tipo": "geometria",
+          "tipo_control": "obligatorio",
+          "texto": "Validar punto."
+        },
         {
           "tipo": "parametros_tecnicos",
           "parametros": ["10–80 kHz", "WAV", "384 kHz", "1 min cada 5 min", "18:00–06:00"],
@@ -3444,7 +4091,12 @@
         },
         {
           "tipo": "horario",
-          "ventanas": [{ "inicio": "18:00", "fin": "06:00" }],
+          "ventanas": [
+            {
+              "inicio": "18:00",
+              "fin": "06:00"
+            }
+          ],
           "tipo_control": "obligatorio",
           "texto": "18:00–06:00."
         },
@@ -3503,14 +4155,27 @@
           "unidad": "redes durante una noche",
           "texto": "10 redes durante una noche."
         },
-        "za_ef": { "cantidad": 10, "texto": "10 redes durante dos noches consecutivas." }
+        "za_ef": {
+          "cantidad": 10,
+          "texto": "10 redes durante dos noches consecutivas."
+        }
       },
-      "horario": { "ventanas": [{ "inicio": "17:30", "fin": "00:00" }], "texto": "17:30–00:00" },
+      "horario": {
+        "ventanas": [
+          {
+            "inicio": "17:30",
+            "fin": "00:00"
+          }
+        ],
+        "texto": "17:30–00:00"
+      },
       "geometria": {
         "tipo": "punto_opcional",
         "texto": "Dos líneas/transectos de instalación; registrar inicio y fin en la app. Cada red conserva su código y ubicación asociada.",
         "vinculo_metodo": null,
-        "por_tipo": { "transecto": "inicio_fin" },
+        "por_tipo": {
+          "transecto": "inicio_fin"
+        },
         "detalle": null
       },
       "track": false,
@@ -3541,14 +4206,24 @@
           "opciones": ["sotobosque", "dosel"],
           "requerido": true
         },
-        { "clave": "habitat", "etiqueta": "Hábitat", "tipo": "texto", "requerido": true },
+        {
+          "clave": "habitat",
+          "etiqueta": "Hábitat",
+          "tipo": "texto",
+          "requerido": true
+        },
         {
           "clave": "hora_apertura",
           "etiqueta": "Hora de apertura",
           "tipo": "hora",
           "requerido": true
         },
-        { "clave": "hora_cierre", "etiqueta": "Hora de cierre", "tipo": "hora", "requerido": true },
+        {
+          "clave": "hora_cierre",
+          "etiqueta": "Hora de cierre",
+          "tipo": "hora",
+          "requerido": true
+        },
         {
           "clave": "interrupciones",
           "etiqueta": "Interrupciones",
@@ -3559,7 +4234,12 @@
       "registros": {
         "etiqueta": "Capturas",
         "campos": [
-          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "especie",
+            "etiqueta": "Especie",
+            "tipo": "texto",
+            "requerido": true
+          },
           {
             "clave": "n_capturas",
             "etiqueta": "Número de capturas",
@@ -3609,7 +4289,12 @@
         },
         {
           "tipo": "horario",
-          "ventanas": [{ "inicio": "17:30", "fin": "00:00" }],
+          "ventanas": [
+            {
+              "inicio": "17:30",
+              "fin": "00:00"
+            }
+          ],
           "tipo_control": "obligatorio",
           "texto": "Validar horario."
         },
@@ -3666,12 +4351,21 @@
           "unidad": "transectos (uno diurno y uno nocturno)",
           "texto": "Un transecto diurno y un transecto nocturno."
         },
-        "za_ef": { "cantidad": 4, "texto": "Dos transectos diurnos y dos nocturnos." }
+        "za_ef": {
+          "cantidad": 4,
+          "texto": "Dos transectos diurnos y dos nocturnos."
+        }
       },
       "horario": {
         "ventanas": [
-          { "inicio": "05:00", "fin": "10:00" },
-          { "inicio": "18:00", "fin": "00:00" }
+          {
+            "inicio": "05:00",
+            "fin": "10:00"
+          },
+          {
+            "inicio": "18:00",
+            "fin": "00:00"
+          }
         ],
         "texto": "05:00–10:00; 18:00–00:00"
       },
@@ -3703,7 +4397,12 @@
           "opciones": ["diurno", "nocturno"],
           "requerido": true
         },
-        { "clave": "habitat", "etiqueta": "Hábitat", "tipo": "texto", "requerido": true },
+        {
+          "clave": "habitat",
+          "etiqueta": "Hábitat",
+          "tipo": "texto",
+          "requerido": true
+        },
         {
           "clave": "distancia_km",
           "etiqueta": "Distancia recorrida (km)",
@@ -3714,7 +4413,12 @@
       "registros": {
         "etiqueta": "Registros y evidencias",
         "campos": [
-          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "especie",
+            "etiqueta": "Especie",
+            "tipo": "texto",
+            "requerido": true
+          },
           {
             "clave": "n_individuos",
             "etiqueta": "Número de individuos observados",
@@ -3739,8 +4443,18 @@
             "tipo": "punto",
             "requerido": true
           },
-          { "clave": "sexo", "etiqueta": "Sexo", "tipo": "texto", "requerido": false },
-          { "clave": "edad", "etiqueta": "Edad", "tipo": "texto", "requerido": false }
+          {
+            "clave": "sexo",
+            "etiqueta": "Sexo",
+            "tipo": "texto",
+            "requerido": false
+          },
+          {
+            "clave": "edad",
+            "etiqueta": "Edad",
+            "tipo": "texto",
+            "requerido": false
+          }
         ]
       },
       "validaciones": [
@@ -3752,8 +4466,14 @@
         {
           "tipo": "horario",
           "ventanas": [
-            { "inicio": "05:00", "fin": "10:00" },
-            { "inicio": "18:00", "fin": "00:00" }
+            {
+              "inicio": "05:00",
+              "fin": "10:00"
+            },
+            {
+              "inicio": "18:00",
+              "fin": "00:00"
+            }
           ],
           "tipo_control": "obligatorio",
           "texto": "Validar horario."
@@ -3807,7 +4527,11 @@
         "texto": "Todas las estaciones de muestreo de mastozoología.",
         "condicion": null
       },
-      "unidad": { "tipo": "camara", "tipos_adicionales": [], "texto": "Una cámara trampa." },
+      "unidad": {
+        "tipo": "camara",
+        "tipos_adicionales": [],
+        "texto": "Una cámara trampa."
+      },
       "esfuerzo": {
         "estandar": {
           "cantidad": 6,
@@ -3877,21 +4601,46 @@
           "tipo": "entero",
           "requerido": false
         },
-        { "clave": "habitat", "etiqueta": "Hábitat", "tipo": "texto", "requerido": true },
-        { "clave": "orientacion", "etiqueta": "Orientación", "tipo": "texto", "requerido": true },
+        {
+          "clave": "habitat",
+          "etiqueta": "Hábitat",
+          "tipo": "texto",
+          "requerido": true
+        },
+        {
+          "clave": "orientacion",
+          "etiqueta": "Orientación",
+          "tipo": "texto",
+          "requerido": true
+        },
         {
           "clave": "funcionamiento",
           "etiqueta": "Funcionamiento",
           "tipo": "texto",
           "requerido": false
         },
-        { "clave": "archivos", "etiqueta": "Archivos", "tipo": "texto", "requerido": false },
-        { "clave": "fallas", "etiqueta": "Fallas", "tipo": "texto", "requerido": false }
+        {
+          "clave": "archivos",
+          "etiqueta": "Archivos",
+          "tipo": "texto",
+          "requerido": false
+        },
+        {
+          "clave": "fallas",
+          "etiqueta": "Fallas",
+          "tipo": "texto",
+          "requerido": false
+        }
       ],
       "registros": {
         "etiqueta": "Especies registradas",
         "campos": [
-          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "especie",
+            "etiqueta": "Especie",
+            "tipo": "texto",
+            "requerido": true
+          },
           {
             "clave": "n_individuos",
             "etiqueta": "Número de individuos observables",
@@ -3969,8 +4718,15 @@
         "texto": "Observaciones de mamíferos y evidencias de su presencia no obtenidas mediante los métodos estandarizados de evaluación.",
         "condicion": null
       },
-      "unidad": { "tipo": "evento", "tipos_adicionales": [], "texto": null },
-      "esfuerzo": { "estandar": null, "za_ef": null },
+      "unidad": {
+        "tipo": "evento",
+        "tipos_adicionales": [],
+        "texto": null
+      },
+      "esfuerzo": {
+        "estandar": null,
+        "za_ef": null
+      },
       "horario": null,
       "geometria": {
         "tipo": "punto_opcional",
@@ -3986,26 +4742,49 @@
           "reutiliza_metodo": null,
           "texto": "Sin panorámicas sistemáticas. Fotografiar evidencias cuando sea posible."
         },
-        "metodologicas": { "minimo": 0, "texto": "No exigir foto metodológica del especialista." }
+        "metodologicas": {
+          "minimo": 0,
+          "texto": "No exigir foto metodológica del especialista."
+        }
       },
       "campos_ejecucion": [],
       "campos": [
-        { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+        {
+          "clave": "especie",
+          "etiqueta": "Especie",
+          "tipo": "texto",
+          "requerido": true
+        },
         {
           "clave": "tipo_evidencia",
           "etiqueta": "Tipo de evidencia",
           "tipo": "texto",
           "requerido": true
         },
-        { "clave": "habitat", "etiqueta": "Hábitat", "tipo": "texto", "requerido": true },
+        {
+          "clave": "habitat",
+          "etiqueta": "Hábitat",
+          "tipo": "texto",
+          "requerido": true
+        },
         {
           "clave": "comportamiento",
           "etiqueta": "Comportamiento, cuando sea observable",
           "tipo": "texto",
           "requerido": false
         },
-        { "clave": "fecha", "etiqueta": "Fecha", "tipo": "fecha", "requerido": true },
-        { "clave": "hora", "etiqueta": "Hora", "tipo": "hora", "requerido": true }
+        {
+          "clave": "fecha",
+          "etiqueta": "Fecha",
+          "tipo": "fecha",
+          "requerido": true
+        },
+        {
+          "clave": "hora",
+          "etiqueta": "Hora",
+          "tipo": "hora",
+          "requerido": true
+        }
       ],
       "registros": null,
       "validaciones": [
@@ -4015,7 +4794,10 @@
           "texto": "Registrar fecha/hora, tipo de evidencia, hábitat, localidad/coordenada disponible y fotografía cuando exista."
         }
       ],
-      "vinculo": { "texto": "No contabilizar como esfuerzo de transectos/cámaras.", "metodos": [] },
+      "vinculo": {
+        "texto": "No contabilizar como esfuerzo de transectos/cámaras.",
+        "metodos": []
+      },
       "fuente": {
         "estado": "CERRADO COMO EVENTO",
         "origen": "Regla funcional para evento incidental.",
@@ -4052,7 +4834,9 @@
         "tipo": "punto",
         "texto": "Track obligatorio registrado por la app del recorrido de búsqueda complementaria + coordenada individual de cada ABS identificado",
         "vinculo_metodo": null,
-        "por_tipo": { "recorrido": "inicio_fin" },
+        "por_tipo": {
+          "recorrido": "inicio_fin"
+        },
         "detalle": null
       },
       "track": true,
@@ -4076,8 +4860,18 @@
           "opciones": ["aves", "anfibios y reptiles", "artrópodos", "mamíferos"],
           "requerido": true
         },
-        { "clave": "hora_inicio", "etiqueta": "Hora de inicio", "tipo": "hora", "requerido": true },
-        { "clave": "hora_fin", "etiqueta": "Hora de término", "tipo": "hora", "requerido": true },
+        {
+          "clave": "hora_inicio",
+          "etiqueta": "Hora de inicio",
+          "tipo": "hora",
+          "requerido": true
+        },
+        {
+          "clave": "hora_fin",
+          "etiqueta": "Hora de término",
+          "tipo": "hora",
+          "requerido": true
+        },
         {
           "clave": "tiempo_efectivo_min",
           "etiqueta": "Tiempo efectivo de búsqueda (min)",
@@ -4099,7 +4893,12 @@
         }
       ],
       "campos": [
-        { "clave": "tipo_sitio", "etiqueta": "Tipo de sitio", "tipo": "texto", "requerido": true },
+        {
+          "clave": "tipo_sitio",
+          "etiqueta": "Tipo de sitio",
+          "tipo": "texto",
+          "requerido": true
+        },
         {
           "clave": "funcion",
           "etiqueta": "Función",
@@ -4122,7 +4921,12 @@
           "tipo": "texto",
           "requerido": true
         },
-        { "clave": "ambiente", "etiqueta": "Ambiente", "tipo": "texto", "requerido": true },
+        {
+          "clave": "ambiente",
+          "etiqueta": "Ambiente",
+          "tipo": "texto",
+          "requerido": true
+        },
         {
           "clave": "recurso_utilizado",
           "etiqueta": "Recurso utilizado",
@@ -4136,25 +4940,40 @@
           "opciones": ["directo", "indirecto", "información local", "potencial sustentado"],
           "requerido": true
         },
-        { "clave": "fecha", "etiqueta": "Fecha", "tipo": "fecha", "requerido": true }
+        {
+          "clave": "fecha",
+          "etiqueta": "Fecha",
+          "tipo": "fecha",
+          "requerido": true
+        }
       ],
       "registros": null,
       "validaciones": [
-        { "tipo": "track", "tipo_control": "obligatorio", "texto": "Validar track." },
+        {
+          "tipo": "track",
+          "tipo_control": "obligatorio",
+          "texto": "Validar track."
+        },
         {
           "tipo": "tiempo_efectivo",
           "minutos": 120,
           "reducible_a_min": 60,
           "condicion_reduccion": "Para reducir de 2 h a 1 h, exigir registro de cobertura amplia de sectores/ambientes + ABS identificadas + sectores/sitios que sustentan la reducción. No contabilizar tiempo de otros métodos ni aceptar un sitio aislado como sustento suficiente.",
           "tipo_control": "obligatorio",
-          "texto": "Validar horas."
+          "texto": "Validar horas.",
+          "campo_minutos": "tiempo_efectivo_min",
+          "campos_sustento": ["sectores_cubiertos", "sustento_reduccion"]
         },
         {
           "tipo": "campos_obligatorios",
           "tipo_control": "obligatorio",
           "texto": "Validar campos obligatorios."
         },
-        { "tipo": "geometria", "tipo_control": "obligatorio", "texto": "Coordenada de cada ABS." },
+        {
+          "tipo": "geometria",
+          "tipo_control": "obligatorio",
+          "texto": "Coordenada de cada ABS."
+        },
         {
           "tipo": "fotos_contexto",
           "cantidad_por_unidad": 2,

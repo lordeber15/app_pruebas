@@ -74,6 +74,8 @@ export const REGIONES = ['COSTA', 'SIERRA', 'SELVA'] as const;
 export type Region = (typeof REGIONES)[number];
 
 const texto = z.string().trim().min(1);
+/** Clave de un campo del formulario (`campoSchema.clave`). */
+const clave = z.string().regex(/^[a-z][a-z0-9_]*$/);
 const textoOpcional = z.string().trim().min(1).nullable();
 const horaHHMM = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'hora HH:MM');
 const tipoControl = z.enum(TIPOS_CONTROL);
@@ -99,7 +101,7 @@ export const condicionAplicabilidadSchema = z.discriminatedUnion('tipo', [
 export type CondicionAplicabilidad = z.infer<typeof condicionAplicabilidadSchema>;
 
 export const campoSchema = z.object({
-  clave: z.string().regex(/^[a-z][a-z0-9_]*$/),
+  clave,
   etiqueta: texto,
   /** `punto`: coordenada tomada con la geolocalización de la app (p. ej. ubicación de una detección). */
   tipo: z.enum(['texto', 'entero', 'decimal', 'opcion', 'booleano', 'hora', 'fecha', 'punto']),
@@ -134,10 +136,15 @@ export const validacionSchema = z.discriminatedUnion('tipo', [
     tipo_control: tipoControl,
     texto: texto,
   }),
-  /** Filas registradas por unidad (100 lecturas por transecto, 20 especies por lista). */
+  /**
+   * Filas registradas por unidad (100 lecturas por transecto, 20 especies por lista).
+   * `campo_motivo`: campo de la unidad cuyo texto justifica un registro incompleto cuando D01 lo
+   * admite («20 especies o motivo de lista incompleta»).
+   */
   z.object({
     tipo: z.literal('cantidad_registros'),
     minimo: z.number().int().positive(),
+    campo_motivo: clave.optional(),
     tipo_control: tipoControl,
     texto: texto,
   }),
@@ -192,12 +199,18 @@ export const validacionSchema = z.discriminatedUnion('tipo', [
   }),
   /** Mensaje informativo sin control. */
   z.object({ tipo: z.literal('mensaje'), tipo_control: z.literal('informativo'), texto: texto }),
-  /** Tiempo efectivo de búsqueda (ABS): minutos y condición de reducción. */
+  /**
+   * Tiempo efectivo de búsqueda (ABS): minutos y condición de reducción. `campo_minutos` es el
+   * campo de la ejecución con los minutos; `campos_sustento`, los que deben tener contenido para
+   * aceptar la reducción (además de al menos una ABS identificada, RN-33).
+   */
   z.object({
     tipo: z.literal('tiempo_efectivo'),
     minutos: z.number().positive(),
     reducible_a_min: z.number().positive().nullable(),
     condicion_reduccion: textoOpcional,
+    campo_minutos: clave,
+    campos_sustento: z.array(clave),
     tipo_control: tipoControl,
     texto: texto,
   }),
@@ -208,10 +221,14 @@ export const validacionSchema = z.discriminatedUnion('tipo', [
     tipo_control: tipoControl,
     texto: texto,
   }),
-  /** Vínculo espacial obligatorio con una unidad de otro método. */
+  /**
+   * Vínculo espacial obligatorio con una unidad de otro método. `campo_justificacion`: campo de
+   * la unidad cuyo texto justifica un trazado independiente cuando D01 lo permite (F-10).
+   */
   z.object({
     tipo: z.literal('vinculo_unidad'),
     metodo: texto,
+    campo_justificacion: clave.optional(),
     tipo_control: tipoControl,
     texto: texto,
   }),
