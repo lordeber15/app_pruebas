@@ -13,7 +13,7 @@ import { sql } from 'kysely';
 import { ProblemaHttp } from '../../plataforma/errores.ts';
 import { generarId } from '../../plataforma/ids.ts';
 import type { Actor } from '../../plataforma/sesion.ts';
-import { exigirEnCuadrilla, noEncontrado, rolEnCuadrilla } from '../alcance/autorizacion.ts';
+import { exigirEnBrigada, noEncontrado, rolEnBrigada } from '../alcance/autorizacion.ts';
 import { punto } from '../sync/repositorio.ts';
 
 /**
@@ -70,24 +70,24 @@ export const crearCuaderno = async (
   db: Db,
   actor: Actor,
   d: {
-    cuadrillaId: string;
+    brigadaId: string;
     responsableId: string;
     titulo: string;
     validacionActiva: boolean | null;
   },
 ) => {
-  await exigirEnCuadrilla(db, actor, 'gestionar_cuadernos_tareas', d.cuadrillaId);
+  await exigirEnBrigada(db, actor, 'gestionar_cuadernos_tareas', d.brigadaId);
   const c = await db
-    .selectFrom('cuadrilla')
+    .selectFrom('brigada')
     .select('proyecto_id')
-    .where('id', '=', d.cuadrillaId)
+    .where('id', '=', d.brigadaId)
     .executeTakeFirst();
-  if (c === undefined) throw noEncontrado('La cuadrilla');
-  // RN-01: el responsable es un miembro activo de la cuadrilla.
+  if (c === undefined) throw noEncontrado('La brigada');
+  // RN-01: el responsable es un miembro activo de la brigada.
   const miembro = await db
-    .selectFrom('miembro_cuadrilla')
+    .selectFrom('miembro_brigada')
     .select('id')
-    .where('cuadrilla_id', '=', d.cuadrillaId)
+    .where('brigada_id', '=', d.brigadaId)
     .where('usuario_id', '=', d.responsableId)
     .where('estado', '=', 'activo')
     .executeTakeFirst();
@@ -95,7 +95,7 @@ export const crearCuaderno = async (
     throw new ProblemaHttp(
       409,
       'RESPONSABLE_NO_MIEMBRO',
-      'El responsable debe ser miembro activo de la cuadrilla.',
+      'El responsable debe ser miembro activo de la brigada.',
     );
   }
   const id = generarId();
@@ -104,7 +104,7 @@ export const crearCuaderno = async (
     .values({
       id,
       proyecto_id: c.proyecto_id,
-      cuadrilla_id: d.cuadrillaId,
+      brigada_id: d.brigadaId,
       responsable_id: d.responsableId,
       titulo: d.titulo,
       validacion_activa: d.validacionActiva,
@@ -119,12 +119,12 @@ export const listarCuadernos = async (db: Db, actor: Actor, proyectoId: string) 
   const filas = await db
     .selectFrom('cuaderno')
     .innerJoin('usuario as r', 'r.id', 'cuaderno.responsable_id')
-    .innerJoin('cuadrilla', 'cuadrilla.id', 'cuaderno.cuadrilla_id')
+    .innerJoin('brigada', 'brigada.id', 'cuaderno.brigada_id')
     .select([
       'cuaderno.id',
       'cuaderno.titulo',
-      'cuaderno.cuadrilla_id',
-      'cuadrilla.nombre as cuadrilla_nombre',
+      'cuaderno.brigada_id',
+      'brigada.nombre as brigada_nombre',
       'cuaderno.responsable_id',
       'r.nombre as responsable_nombre',
       'cuaderno.validacion_activa',
@@ -141,7 +141,7 @@ export const listarCuadernos = async (db: Db, actor: Actor, proyectoId: string) 
     .execute();
   const visibles: typeof filas = [];
   for (const f of filas) {
-    const rol = await rolEnCuadrilla(db, actor, f.cuadrilla_id);
+    const rol = await rolEnBrigada(db, actor, f.brigada_id);
     if (
       rol === 'supervisor' ||
       rol === 'jefe' ||
@@ -167,11 +167,11 @@ export interface NuevaTarea {
 export const crearTarea = async (db: Db, actor: Actor, t: NuevaTarea) => {
   const cuaderno = await db
     .selectFrom('cuaderno')
-    .select(['id', 'proyecto_id', 'cuadrilla_id'])
+    .select(['id', 'proyecto_id', 'brigada_id'])
     .where('id', '=', t.cuadernoId)
     .executeTakeFirst();
   if (cuaderno === undefined) throw noEncontrado('El cuaderno');
-  await exigirEnCuadrilla(db, actor, 'gestionar_cuadernos_tareas', cuaderno.cuadrilla_id);
+  await exigirEnBrigada(db, actor, 'gestionar_cuadernos_tareas', cuaderno.brigada_id);
 
   let geom = t.ubicacion === null ? null : punto(t.ubicacion.lon, t.ubicacion.lat);
   if (t.estacionId !== null) {
@@ -238,17 +238,17 @@ interface TareaBloqueada {
   readonly id: string;
   readonly estado: EstadoTarea;
   readonly origen: OrigenTarea;
-  readonly cuadrillaId: string;
+  readonly brigadaId: string;
   readonly proyectoId: string;
   readonly validacionActiva: boolean;
 }
 
-/** Carga y bloquea la tarea, y exige la acción en su cuadrilla. */
+/** Carga y bloquea la tarea, y exige la acción en su brigada. */
 const tareaConPermiso = async (
   tx: Db,
   actor: Actor,
   tareaId: string,
-  accion: Parameters<typeof exigirEnCuadrilla>[2],
+  accion: Parameters<typeof exigirEnBrigada>[2],
 ): Promise<TareaBloqueada> => {
   const t = await tx
     .selectFrom('tarea')
@@ -259,7 +259,7 @@ const tareaConPermiso = async (
       'tarea.estado',
       'tarea.origen',
       'tarea.proyecto_id',
-      'cuaderno.cuadrilla_id',
+      'cuaderno.brigada_id',
       'cuaderno.validacion_activa as v_cuaderno',
       'proyecto.validacion_activa as v_proyecto',
     ])
@@ -267,14 +267,14 @@ const tareaConPermiso = async (
     .forUpdate('tarea')
     .executeTakeFirst();
   if (t === undefined) throw noEncontrado('La tarea');
-  if ((await rolEnCuadrilla(tx, actor, t.cuadrilla_id)) === null) throw noEncontrado('La tarea');
-  await exigirEnCuadrilla(tx, actor, accion, t.cuadrilla_id);
+  if ((await rolEnBrigada(tx, actor, t.brigada_id)) === null) throw noEncontrado('La tarea');
+  await exigirEnBrigada(tx, actor, accion, t.brigada_id);
   if (!esEstadoTarea(t.estado)) throw new Error('Estado desconocido en la BD');
   return {
     id: t.id,
     estado: t.estado,
     origen: t.origen === 'regla' ? 'regla' : 'manual',
-    cuadrillaId: t.cuadrilla_id,
+    brigadaId: t.brigada_id,
     proyectoId: t.proyecto_id,
     validacionActiva: validacionEfectiva(t.v_cuaderno, t.v_proyecto),
   };
@@ -306,11 +306,11 @@ export const reasignar = async (db: Db, actor: Actor, tareaId: string, cuadernoD
     const t = await tareaConPermiso(tx, actor, tareaId, 'reasignar_tarea');
     const destino = await tx
       .selectFrom('cuaderno')
-      .select(['id', 'proyecto_id', 'cuadrilla_id', 'responsable_id'])
+      .select(['id', 'proyecto_id', 'brigada_id', 'responsable_id'])
       .where('id', '=', cuadernoDestinoId)
       .executeTakeFirst();
     if (destino?.proyecto_id !== t.proyectoId) throw noEncontrado('El cuaderno de destino');
-    await exigirEnCuadrilla(tx, actor, 'reasignar_tarea', destino.cuadrilla_id);
+    await exigirEnBrigada(tx, actor, 'reasignar_tarea', destino.brigada_id);
     const estado = await aplicar(tx, actor, t, { tipo: 'reasignar' });
     await tx.updateTable('tarea').set({ cuaderno_id: destino.id }).where('id', '=', t.id).execute();
     await registrarEvento(tx, actor, 'tarea_reasignada', t.id, { cuaderno_id: destino.id });
@@ -443,11 +443,11 @@ const tareaVisible = async (db: Db, actor: Actor, tareaId: string) => {
   const t = await db
     .selectFrom('tarea')
     .innerJoin('cuaderno', 'cuaderno.id', 'tarea.cuaderno_id')
-    .select(['tarea.id', 'cuaderno.cuadrilla_id', 'cuaderno.responsable_id'])
+    .select(['tarea.id', 'cuaderno.brigada_id', 'cuaderno.responsable_id'])
     .where('tarea.id', '=', tareaId)
     .executeTakeFirst();
   if (t === undefined) throw noEncontrado('La tarea');
-  const rol = await rolEnCuadrilla(db, actor, t.cuadrilla_id);
+  const rol = await rolEnBrigada(db, actor, t.brigada_id);
   const propia = t.responsable_id === actor.usuarioId;
   if (rol === null || ((rol === 'especialista' || rol === 'logistico') && !propia))
     throw noEncontrado('La tarea');

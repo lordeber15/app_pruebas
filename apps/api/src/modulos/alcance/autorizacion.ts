@@ -5,29 +5,29 @@ import type { Actor } from '../../plataforma/sesion.ts';
 
 /**
  * Autorización por rol + alcance (CLAUDE.md, Seguridad). El nivel lo da la matriz de core
- * (doc. 01 §2.3); aquí se resuelve qué rol tiene el actor en una cuadrilla concreta.
+ * (doc. 01 §2.3); aquí se resuelve qué rol tiene el actor en una brigada concreta.
  *
  * - Supervisor (rol global): todos los proyectos.
- * - Jefe: la cuadrilla de la que es jefe.
- * - Especialista o logístico: miembro activo de la cuadrilla; además solo lo suyo.
+ * - Jefe: la brigada de la que es jefe.
+ * - Especialista o logístico: miembro activo de la brigada; además solo lo suyo.
  * - Administrador (rol global): solo usuarios y dispositivos.
  */
-export const rolEnCuadrilla = async (
+export const rolEnBrigada = async (
   db: Db,
   actor: Actor,
-  cuadrillaId: string,
+  brigadaId: string,
 ): Promise<Rol | null> => {
   if (actor.rolGlobal === 'supervisor') return 'supervisor';
   const c = await db
-    .selectFrom('cuadrilla')
-    .leftJoin('miembro_cuadrilla as m', (j) =>
+    .selectFrom('brigada')
+    .leftJoin('miembro_brigada as m', (j) =>
       j
-        .onRef('m.cuadrilla_id', '=', 'cuadrilla.id')
+        .onRef('m.brigada_id', '=', 'brigada.id')
         .on('m.usuario_id', '=', actor.usuarioId)
         .on('m.estado', '=', 'activo'),
     )
-    .select(['cuadrilla.jefe_id', 'm.rol'])
-    .where('cuadrilla.id', '=', cuadrillaId)
+    .select(['brigada.jefe_id', 'm.rol'])
+    .where('brigada.id', '=', brigadaId)
     .executeTakeFirst();
   if (c === undefined) return null;
   if (c.jefe_id === actor.usuarioId) return 'jefe';
@@ -35,20 +35,20 @@ export const rolEnCuadrilla = async (
   return null;
 };
 
-/** Exige que el actor pueda modificar en esa cuadrilla. Devuelve su rol ahí. */
-export const exigirEnCuadrilla = async (
+/** Exige que el actor pueda modificar en esa brigada. Devuelve su rol ahí. */
+export const exigirEnBrigada = async (
   db: Db,
   actor: Actor,
   accion: Accion,
-  cuadrillaId: string,
+  brigadaId: string,
 ): Promise<Rol> => {
-  const rol = await rolEnCuadrilla(db, actor, cuadrillaId);
+  const rol = await rolEnBrigada(db, actor, brigadaId);
   const nivel = rol === null ? 'no' : nivelPermiso(rol, accion);
   if (rol === null || (nivel !== 'total' && nivel !== 'alcance')) throw noAutorizado();
   return rol;
 };
 
-/** Acciones de nivel global (configurar proyecto, crear cuadrillas): solo el supervisor. */
+/** Acciones de nivel global (configurar proyecto, crear brigadas): solo el supervisor. */
 export const exigirSupervisor = (actor: Actor): void => {
   if (actor.rolGlobal !== 'supervisor') throw noAutorizado();
 };
@@ -63,27 +63,27 @@ export const noEncontrado = (que: string): ProblemaHttp =>
   new ProblemaHttp(404, 'NO_ENCONTRADO', `${que} no existe o no está a su alcance.`);
 
 /**
- * Cuadrillas visibles para el actor en un proyecto, con su rol en cada una.
+ * Brigadas visibles para el actor en un proyecto, con su rol en cada una.
  * Supervisor: todas. Jefe: las suyas. Miembro: la suya (pero solo verá lo propio).
  */
-export const cuadrillasVisibles = async (
+export const brigadasVisibles = async (
   db: Db,
   actor: Actor,
   proyectoId: string,
 ): Promise<ReadonlyMap<string, Rol>> => {
-  const cuadrillas = await db
-    .selectFrom('cuadrilla')
-    .leftJoin('miembro_cuadrilla as m', (j) =>
+  const brigadas = await db
+    .selectFrom('brigada')
+    .leftJoin('miembro_brigada as m', (j) =>
       j
-        .onRef('m.cuadrilla_id', '=', 'cuadrilla.id')
+        .onRef('m.brigada_id', '=', 'brigada.id')
         .on('m.usuario_id', '=', actor.usuarioId)
         .on('m.estado', '=', 'activo'),
     )
-    .select(['cuadrilla.id', 'cuadrilla.jefe_id', 'm.rol'])
-    .where('cuadrilla.proyecto_id', '=', proyectoId)
+    .select(['brigada.id', 'brigada.jefe_id', 'm.rol'])
+    .where('brigada.proyecto_id', '=', proyectoId)
     .execute();
   const mapa = new Map<string, Rol>();
-  for (const c of cuadrillas) {
+  for (const c of brigadas) {
     if (actor.rolGlobal === 'supervisor') mapa.set(c.id, 'supervisor');
     else if (c.jefe_id === actor.usuarioId) mapa.set(c.id, 'jefe');
     else if (c.rol === 'especialista' || c.rol === 'logistico') mapa.set(c.id, c.rol);

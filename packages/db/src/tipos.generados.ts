@@ -27,29 +27,78 @@ export type Numeric = ColumnType<string, number | string, number | string>;
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
+export interface Alerta {
+  actualizado_en: Generated<Timestamp>;
+  actualizado_por: string | null;
+  afecta_cronograma: Generated<boolean>;
+  brigada_id: string | null;
+  cerrado_en: Timestamp | null;
+  cerrado_por: string | null;
+  cierre_comentario: string | null;
+  clave_dedup: string | null;
+  creado_en: Generated<Timestamp>;
+  creado_por: string | null;
+  descripcion: string | null;
+  dispositivo_id: string | null;
+  ejecucion_id: string | null;
+  estacion_id: string | null;
+  estado: Generated<string>;
+  evento_id: string | null;
+  hora_dispositivo: Timestamp | null;
+  id: string;
+  origen: string;
+  proyecto_id: string;
+  responsable_id: string | null;
+  solicitud_cronograma_id: string | null;
+  tarea_id: string | null;
+  tipo: string;
+  titulo: string;
+}
+
+export interface AlertaMensaje {
+  actualizado_en: Generated<Timestamp>;
+  actualizado_por: string | null;
+  alerta_id: string;
+  autor_id: string;
+  creado_en: Generated<Timestamp>;
+  creado_por: string | null;
+  evento_id: string | null;
+  id: string;
+  texto: string;
+  tipo: string;
+}
+
 export interface Archivo {
   actualizado_en: Generated<Timestamp>;
   actualizado_por: string | null;
   altitud_m: number | null;
+  candidata_reporte: Generated<boolean>;
   capturado_en: Timestamp;
   categoria_foto_id: string | null;
   creado_en: Generated<Timestamp>;
   creado_por: string | null;
+  ejecucion_id: string | null;
+  estacion_id: string | null;
   estado: Generated<string>;
   evidencia_item_id: string | null;
   geom: string | null;
   hash_original: string | null;
   hash_preview: string;
   id: string;
+  metodo_id: string | null;
+  orientacion: string | null;
   precision_m: number | null;
   proyecto_id: string;
   ruta_miniatura: string | null;
   ruta_original: string | null;
   ruta_preview: string | null;
+  seleccionada_reporte: Generated<boolean>;
   tamano_original: Int8 | null;
   tamano_preview: Int8;
   tarea_id: string | null;
   tipo: string;
+  tipo_foto: string | null;
+  unidad_id: string | null;
   usuario_id: string;
 }
 
@@ -117,6 +166,34 @@ export interface AuthVerification {
   value: string;
 }
 
+export interface Brigada {
+  actualizado_en: Generated<Timestamp>;
+  actualizado_por: string | null;
+  campania_id: string | null;
+  codigo: string | null;
+  creado_en: Generated<Timestamp>;
+  creado_por: string | null;
+  id: string;
+  jefe_id: string | null;
+  nombre: string;
+  proyecto_id: string;
+  region: string | null;
+  tipo: Generated<string>;
+}
+
+export interface Campania {
+  actualizado_en: Generated<Timestamp>;
+  actualizado_por: string | null;
+  creado_en: Generated<Timestamp>;
+  creado_por: string | null;
+  estado: Generated<string>;
+  fecha_fin: Timestamp | null;
+  fecha_inicio: Timestamp | null;
+  id: string;
+  nombre: string;
+  proyecto_id: string;
+}
+
 export interface CatalogoMetodologia {
   actualizado_en: Generated<Timestamp>;
   actualizado_por: string | null;
@@ -152,29 +229,63 @@ export interface Comentario {
   texto: string;
 }
 
-export interface Cuaderno {
+export interface ConfiguracionMetodologica {
   actualizado_en: Generated<Timestamp>;
   actualizado_por: string | null;
   creado_en: Generated<Timestamp>;
   creado_por: string | null;
-  cuadrilla_id: string;
+  estado: Generated<string>;
+  id: string;
+  notas: string | null;
+  numero: number;
+  origen: string;
+  proyecto_id: string;
+}
+
+export interface CronogramaItem {
+  actividad_especial: string | null;
+  actualizado_en: Generated<Timestamp>;
+  actualizado_por: string | null;
+  brigada_id: string;
+  creado_en: Generated<Timestamp>;
+  creado_por: string | null;
+  detalle: string | null;
+  estacion_id: string | null;
+  estado_fila: Generated<string>;
+  fecha: Timestamp;
+  id: string;
+  orden: Generated<number>;
+  tipo_actividad: string;
+  version_id: string;
+}
+
+export interface CronogramaVersion {
+  actualizado_en: Generated<Timestamp>;
+  actualizado_por: string | null;
+  aprobado_en: Timestamp | null;
+  aprobado_por: string | null;
+  campania_id: string;
+  creado_en: Generated<Timestamp>;
+  creado_por: string | null;
+  es_base: Generated<boolean>;
+  estado: Generated<string>;
+  id: string;
+  numero: number;
+  solicitud_id: string | null;
+}
+
+export interface Cuaderno {
+  actualizado_en: Generated<Timestamp>;
+  actualizado_por: string | null;
+  brigada_id: string;
+  creado_en: Generated<Timestamp>;
+  creado_por: string | null;
   estado: Generated<string>;
   id: string;
   proyecto_id: string;
   responsable_id: string;
   titulo: string;
   validacion_activa: boolean | null;
-}
-
-export interface Cuadrilla {
-  actualizado_en: Generated<Timestamp>;
-  actualizado_por: string | null;
-  creado_en: Generated<Timestamp>;
-  creado_por: string | null;
-  id: string;
-  jefe_id: string | null;
-  nombre: string;
-  proyecto_id: string;
 }
 
 export interface Dispositivo {
@@ -198,16 +309,74 @@ export interface DispositivoNonce {
   usado_en: Generated<Timestamp>;
 }
 
+export interface Ejecucion {
+  abierta_en: Timestamp;
+  actualizado_en: Generated<Timestamp>;
+  actualizado_por: string | null;
+  cerrada_en: Timestamp | null;
+  creado_en: Generated<Timestamp>;
+  creado_por: string | null;
+  datos: Generated<Json>;
+  desviacion_explicacion: string | null;
+  desviacion_tipo: Generated<string>;
+  dispositivo_id: string | null;
+  esfuerzo_ejecutado: Json | null;
+  esfuerzo_planificado: Json | null;
+  estacion_id: string;
+  estado: Generated<string>;
+  id: string;
+  metodo_id: string;
+  proyecto_id: string;
+  qa_evaluado_en: Timestamp | null;
+  resultado_qa: Json | null;
+  tarea_id: string;
+  usuario_id: string;
+  version: Generated<number>;
+}
+
+export interface Especialidad {
+  actualizado_en: Generated<Timestamp>;
+  actualizado_por: string | null;
+  codigo: string;
+  creado_en: Generated<Timestamp>;
+  creado_por: string | null;
+  es_fauna: boolean;
+  id: string;
+  nombre: string;
+  orden: Generated<number>;
+  proyecto_id: string;
+}
+
 export interface Estacion {
   actualizado_en: Generated<Timestamp>;
   actualizado_por: string | null;
+  aid_aii: string | null;
   atributos: Generated<Json>;
   codigo: string;
   creado_en: Generated<Timestamp>;
   creado_por: string | null;
+  este: Numeric | null;
   geom: string;
   id: string;
+  norte: Numeric | null;
   proyecto_id: string;
+  region: string | null;
+  uv: string | null;
+  za_ef: string | null;
+  zona_utm: string | null;
+}
+
+export interface EstacionMetodo {
+  actualizado_en: Generated<Timestamp>;
+  actualizado_por: string | null;
+  condicion_pendiente: Generated<boolean>;
+  creado_en: Generated<Timestamp>;
+  creado_por: string | null;
+  estacion_id: string;
+  habilitado: boolean;
+  id: string;
+  metodo_id: string;
+  origen: string;
 }
 
 export interface EstacionMetodologia {
@@ -265,12 +434,29 @@ export interface Jornada {
   usuario_id: string;
 }
 
-export interface MiembroCuadrilla {
+export interface Metodo {
   actualizado_en: Generated<Timestamp>;
   actualizado_por: string | null;
+  clase: string;
+  codigo: string;
+  config: Json;
+  configuracion_id: string;
   creado_en: Generated<Timestamp>;
   creado_por: string | null;
-  cuadrilla_id: string;
+  especialidad_id: string;
+  id: string;
+  nombre: string;
+  orden: Generated<number>;
+  requiere_track: Generated<boolean>;
+  tipo_geometria: string;
+}
+
+export interface MiembroBrigada {
+  actualizado_en: Generated<Timestamp>;
+  actualizado_por: string | null;
+  brigada_id: string;
+  creado_en: Generated<Timestamp>;
+  creado_por: string | null;
   estado: Generated<string>;
   id: string;
   rol: string;
@@ -298,11 +484,13 @@ export interface RegistroEsfuerzo {
   cantidad: Numeric;
   creado_en: Generated<Timestamp>;
   creado_por: string | null;
-  estacion_metodologia_id: string;
+  ejecucion_id: string | null;
+  estacion_metodologia_id: string | null;
   evento_id: string;
   fase: string;
   fecha: Timestamp;
   id: string;
+  unidad_id: string | null;
   usuario_id: string;
 }
 
@@ -322,18 +510,40 @@ export interface ReglaAlerta {
   tipo: string;
 }
 
+export interface SolicitudCronograma {
+  actualizado_en: Generated<Timestamp>;
+  actualizado_por: string | null;
+  alerta_id: string | null;
+  cambios: Json;
+  campania_id: string;
+  comentario_decision: string | null;
+  creado_en: Generated<Timestamp>;
+  creado_por: string | null;
+  decidido_en: Timestamp | null;
+  decidido_por: string | null;
+  estado: Generated<string>;
+  id: string;
+  motivo: string;
+  propuesto_por: string;
+  version_base_id: string;
+}
+
 export interface Tarea {
   actualizado_en: Generated<Timestamp>;
   actualizado_por: string | null;
+  brigada_id: string | null;
   clave_dedup: string | null;
   creado_en: Generated<Timestamp>;
   creado_por: string | null;
-  cuaderno_id: string;
+  cronograma_item_id: string | null;
+  cuaderno_id: string | null;
   descripcion: string | null;
   estacion_id: string | null;
   estado: Generated<string>;
+  fecha_programada: Timestamp | null;
   geom: string | null;
   id: string;
+  metodo_id: string | null;
   metodologia_id: string | null;
   origen: string;
   proyecto_id: string;
@@ -341,6 +551,40 @@ export interface Tarea {
   tipo: string;
   titulo: string;
   version: Generated<number>;
+}
+
+export interface Track {
+  actualizado_en: Generated<Timestamp>;
+  actualizado_por: string | null;
+  creado_en: Generated<Timestamp>;
+  creado_por: string | null;
+  ejecucion_id: string;
+  evento_id: string | null;
+  fin: Timestamp;
+  geom: string;
+  id: string;
+  inicio: Timestamp;
+  puntos: Json;
+  unidad_id: string | null;
+}
+
+export interface Unidad {
+  actualizado_en: Generated<Timestamp>;
+  actualizado_por: string | null;
+  codigo: string;
+  creado_en: Generated<Timestamp>;
+  creado_por: string | null;
+  datos: Generated<Json>;
+  ejecucion_id: string;
+  estado: Generated<string>;
+  fin: Timestamp | null;
+  geom: string | null;
+  geom_detalle: Json | null;
+  id: string;
+  inicio: Timestamp | null;
+  orden: Generated<number>;
+  tipo_unidad: string;
+  unidad_vinculada_id: string | null;
 }
 
 export interface Usuario {
@@ -358,28 +602,41 @@ export interface Usuario {
 }
 
 export interface DB {
+  alerta: Alerta;
+  alerta_mensaje: AlertaMensaje;
   archivo: Archivo;
   asignacion: Asignacion;
   auth_account: AuthAccount;
   auth_session: AuthSession;
   auth_user: AuthUser;
   auth_verification: AuthVerification;
+  brigada: Brigada;
+  campania: Campania;
   catalogo_metodologia: CatalogoMetodologia;
   categoria_foto: CategoriaFoto;
   comentario: Comentario;
+  configuracion_metodologica: ConfiguracionMetodologica;
+  cronograma_item: CronogramaItem;
+  cronograma_version: CronogramaVersion;
   cuaderno: Cuaderno;
-  cuadrilla: Cuadrilla;
   dispositivo: Dispositivo;
   dispositivo_nonce: DispositivoNonce;
+  ejecucion: Ejecucion;
+  especialidad: Especialidad;
   estacion: Estacion;
+  estacion_metodo: EstacionMetodo;
   estacion_metodologia: EstacionMetodologia;
   evento: Evento;
   evidencia_item: EvidenciaItem;
   jornada: Jornada;
-  miembro_cuadrilla: MiembroCuadrilla;
+  metodo: Metodo;
+  miembro_brigada: MiembroBrigada;
   proyecto: Proyecto;
   registro_esfuerzo: RegistroEsfuerzo;
   regla_alerta: ReglaAlerta;
+  solicitud_cronograma: SolicitudCronograma;
   tarea: Tarea;
+  track: Track;
+  unidad: Unidad;
   usuario: Usuario;
 }

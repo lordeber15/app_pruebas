@@ -8,3 +8,9 @@ export * from './asignacion/maquina.ts';
 export * from './eventos/esquemas.ts';
 export * from './uuid.ts';
 export * from './archivo/maquina.ts';
+// Modelo TOCE (ERS v4.0): configuración por método, aplicabilidad, ejecución, alertas y cronograma.
+export * from './configuracion/metodo.ts';
+export * from './configuracion/aplicabilidad.ts';
+export * from './ejecucion/maquina.ts';
+export * from './alerta/maquina.ts';
+export * from './cronograma/cambios.ts';

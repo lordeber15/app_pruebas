@@ -16,7 +16,7 @@ import {
  * Prueba de la matriz de permisos (CLAUDE.md, Seguridad; doc. 01 §2.3; SEG-01 y SEG-02).
  * Se genera desde MATRIZ_PERMISOS de core: para cada acción con endpoint y cada rol, lo permitido
  * debe responder 2xx y lo no permitido 403/404. Los casos horizontales (otro proyecto, otra
- * cuadrilla) van al final.
+ * brigada) van al final.
  */
 let e: Entorno;
 let o: Organizacion;
@@ -44,7 +44,7 @@ type Caso = (token: string) => Promise<{ statusCode: number }>;
 const cuadernoConValidacion = async () => {
   const id = (
     await pedir(e, o.supervisor.token, 'POST', '/cuadernos', {
-      cuadrilla_id: o.esc.cuadrillaId,
+      brigada_id: o.esc.brigadaId,
       responsable_id: o.especialista.id,
       titulo: 'Validación',
       validacion_activa: true,
@@ -56,8 +56,8 @@ const cuadernoConValidacion = async () => {
 const CASOS: Partial<Record<Accion, Caso>> = {
   configurar_proyecto: (t) =>
     pedir(e, t, 'PATCH', `/proyectos/${o.esc.proyectoId}`, { dias_bloqueo: 15 }),
-  gestionar_cuadrillas: (t) =>
-    pedir(e, t, 'POST', `/proyectos/${o.esc.proyectoId}/cuadrillas`, { nombre: 'Nueva' }),
+  gestionar_brigadas: (t) =>
+    pedir(e, t, 'POST', `/proyectos/${o.esc.proyectoId}/brigadas`, { nombre: 'Nueva' }),
   gestionar_cuadernos_tareas: (t) =>
     pedir(e, t, 'POST', '/tareas', { cuaderno_id: o.cuadernoA, titulo: 'Tarea de matriz' }),
   reasignar_tarea: async (t) => {
@@ -79,7 +79,7 @@ const CASOS: Partial<Record<Accion, Caso>> = {
     await completada(e, tarea, o.especialista.id);
     return pedir(e, t, 'POST', `/tareas/${tarea}/reabrir`, { motivo: 'Prueba de matriz' });
   },
-  // La tarea es del especialista: el logístico de la cuadrilla no la ve (solo lo suyo).
+  // La tarea es del especialista: el logístico de la brigada no la ve (solo lo suyo).
   comentar_tareas: async (t) => {
     const tarea = await nuevaTarea(e, o.esc, o.cuadernoA);
     return pedir(e, t, 'POST', `/tareas/${tarea}/comentarios`, { texto: 'Comentario de matriz' });
@@ -109,7 +109,7 @@ describe('matriz de permisos (doc. 01 §2.3)', () => {
 });
 
 describe('alcance horizontal (SEG-01)', () => {
-  it('SEG-01 otra cuadrilla: el jefe B no crea tareas en el cuaderno de la cuadrilla A', async () => {
+  it('SEG-01 otra brigada: el jefe B no crea tareas en el cuaderno de la brigada A', async () => {
     const r = await pedir(e, o.jefeB.token, 'POST', '/tareas', {
       cuaderno_id: o.cuadernoA,
       titulo: 'Intruso',
@@ -117,7 +117,7 @@ describe('alcance horizontal (SEG-01)', () => {
     expect([403, 404]).toContain(r.statusCode);
   });
 
-  it('SEG-01 otra cuadrilla: el jefe B no ve ni valida una tarea de la cuadrilla A', async () => {
+  it('SEG-01 otra brigada: el jefe B no ve ni valida una tarea de la brigada A', async () => {
     const tarea = await nuevaTarea(e, o.esc, o.cuadernoA);
     expect((await pedir(e, o.jefeB.token, 'GET', `/tareas/${tarea}`)).statusCode).toBe(404);
     expect([403, 404]).toContain(
@@ -126,7 +126,7 @@ describe('alcance horizontal (SEG-01)', () => {
     );
   });
 
-  it('SEG-01 otro proyecto: un jefe sin cuadrillas en el proyecto no lo ve', async () => {
+  it('SEG-01 otro proyecto: un jefe sin brigadas en el proyecto no lo ve', async () => {
     const otro = await organizacion(e);
     expect(
       (await pedir(e, otro.jefeA.token, 'GET', `/proyectos/${o.esc.proyectoId}`)).statusCode,
@@ -139,21 +139,21 @@ describe('alcance horizontal (SEG-01)', () => {
     ).toBe(404);
   });
 
-  it('SEG-01 el especialista no ve los miembros de su cuadrilla (RN-25)', async () => {
+  it('SEG-01 el especialista no ve los miembros de su brigada (RN-25)', async () => {
     expect(
-      (await pedir(e, o.especialista.token, 'GET', `/cuadrillas/${o.esc.cuadrillaId}/miembros`))
+      (await pedir(e, o.especialista.token, 'GET', `/brigadas/${o.esc.brigadaId}/miembros`))
         .statusCode,
     ).toBe(404);
     expect(
-      (await pedir(e, o.jefeA.token, 'GET', `/cuadrillas/${o.esc.cuadrillaId}/miembros`))
+      (await pedir(e, o.jefeA.token, 'GET', `/brigadas/${o.esc.brigadaId}/miembros`))
         .statusCode,
     ).toBe(200);
   });
 
-  it('SEG-01 el especialista no ve la tarea de otro especialista de su cuadrilla', async () => {
+  it('SEG-01 el especialista no ve la tarea de otro especialista de su brigada', async () => {
     const cuadernoLog = (
       await pedir(e, o.supervisor.token, 'POST', '/cuadernos', {
-        cuadrilla_id: o.esc.cuadrillaId,
+        brigada_id: o.esc.brigadaId,
         responsable_id: o.logistico.id,
         titulo: 'Del logístico',
       })

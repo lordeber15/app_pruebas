@@ -69,8 +69,8 @@ export interface Yo {
   tipo_documento: string;
   num_documento: string;
   rol_global: 'supervisor' | 'admin' | 'ninguno';
-  cuadrillas_jefe: string[];
-  membresias: { cuadrilla_id: string; rol: string }[];
+  brigadas_jefe: string[];
+  membresias: { brigada_id: string; rol: string }[];
 }
 
 export interface Proyecto {
@@ -83,7 +83,7 @@ export interface Proyecto {
   hora_cierre_jornada: string | null;
 }
 
-export interface Cuadrilla {
+export interface Brigada {
   id: string;
   nombre: string;
   jefe_id: string | null;
@@ -112,8 +112,8 @@ export interface Usuario {
 export interface Cuaderno {
   id: string;
   titulo: string;
-  cuadrilla_id: string;
-  cuadrilla_nombre: string;
+  brigada_id: string;
+  brigada_nombre: string;
   responsable_id: string;
   responsable_nombre: string;
   validacion_activa: boolean | null;
@@ -129,7 +129,7 @@ export interface FilaTarea {
   tipo: 'tecnica' | 'logistica';
   actualizado_en: string;
   cuaderno_titulo: string;
-  cuadrilla_nombre: string;
+  brigada_nombre: string;
   responsable_nombre: string;
   lat: number | null;
   lon: number | null;
@@ -166,7 +166,7 @@ export interface DetalleTarea {
     proyecto_id: string;
     cuaderno_id: string;
     cuaderno_titulo: string;
-    cuadrilla_nombre: string;
+    brigada_nombre: string;
     responsable_nombre: string;
     estacion_codigo: string | null;
     metodologia_nombre: string | null;
@@ -207,7 +207,7 @@ export interface DetalleTarea {
 }
 
 export interface Avance {
-  cuadrillas: { id: string; nombre: string; estados: Partial<Record<EstadoTarea, number>> }[];
+  brigadas: { id: string; nombre: string; estados: Partial<Record<EstadoTarea, number>> }[];
   esfuerzo: {
     id: string;
     estacion: string;

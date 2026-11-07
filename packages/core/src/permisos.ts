@@ -5,17 +5,17 @@ import type { Rol } from './estados.ts';
  * matriz (`pnpm test:authz`) y de la autorización de la API.
  *
  * - `total`: permitido en todo su ámbito.
- * - `alcance`: solo dentro de su alcance (jefe: su cuadrilla; especialista y logístico: lo suyo).
+ * - `alcance`: solo dentro de su alcance (jefe: su brigada; especialista y logístico: lo suyo).
  * - `ver`: solo lectura.
  * - `no`: no permitido.
  *
- * El alcance concreto (proyecto, cuadrilla, propiedad) lo verifica la API contra la base de datos.
+ * El alcance concreto (proyecto, brigada, propiedad) lo verifica la API contra la base de datos.
  */
 export type NivelPermiso = 'total' | 'alcance' | 'ver' | 'no';
 
 export const ACCIONES = [
   'configurar_proyecto',
-  'gestionar_cuadrillas',
+  'gestionar_brigadas',
   'gestionar_cuadernos_tareas',
   'reasignar_tarea',
   'revocar_asignacion',
@@ -40,7 +40,7 @@ export const MATRIZ_PERMISOS: Readonly<Record<Accion, Readonly<Record<Rol, Nivel
     logistico: 'no',
     admin: 'no',
   },
-  gestionar_cuadrillas: {
+  gestionar_brigadas: {
     supervisor: 'total',
     jefe: 'no',
     especialista: 'no',
@@ -118,7 +118,7 @@ export const MATRIZ_PERMISOS: Readonly<Record<Accion, Readonly<Record<Rol, Nivel
     logistico: 'no',
     admin: 'no',
   },
-  // En avance, mapa y galería, el especialista solo ve lo suyo, no lo de su cuadrilla.
+  // En avance, mapa y galería, el especialista solo ve lo suyo, no lo de su brigada.
   ver_avance: {
     supervisor: 'total',
     jefe: 'alcance',

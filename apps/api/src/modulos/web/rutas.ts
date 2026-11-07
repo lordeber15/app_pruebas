@@ -7,7 +7,7 @@ import type { Firmador } from '../../plataforma/almacenamiento.ts';
 import type { Auth } from '../../plataforma/auth.ts';
 import { noAutenticado } from '../../plataforma/errores.ts';
 import { requiereSesion, type Actor } from '../../plataforma/sesion.ts';
-import { noEncontrado, rolEnCuadrilla } from '../alcance/autorizacion.ts';
+import { noEncontrado, rolEnBrigada } from '../alcance/autorizacion.ts';
 import { rutaParaDescarga } from '../archivos/servicio.ts';
 import * as org from '../organizacion/servicio.ts';
 import * as consultas from '../tareas/consultas.ts';
@@ -54,17 +54,17 @@ export const rutasWeb: FastifyPluginAsyncZod<Opciones> = (app, { auth, db, firma
       .where('id', '=', a.usuarioId)
       .executeTakeFirstOrThrow();
     const jefe = await db
-      .selectFrom('cuadrilla')
+      .selectFrom('brigada')
       .select('id')
       .where('jefe_id', '=', a.usuarioId)
       .execute();
     const miembro = await db
-      .selectFrom('miembro_cuadrilla')
-      .select(['cuadrilla_id', 'rol'])
+      .selectFrom('miembro_brigada')
+      .select(['brigada_id', 'rol'])
       .where('usuario_id', '=', a.usuarioId)
       .where('estado', '=', 'activo')
       .execute();
-    return { ...u, cuadrillas_jefe: jefe.map((j) => j.id), membresias: miembro };
+    return { ...u, brigadas_jefe: jefe.map((j) => j.id), membresias: miembro };
   });
 
   // ── Proyectos ──
@@ -124,12 +124,12 @@ export const rutasWeb: FastifyPluginAsyncZod<Opciones> = (app, { auth, db, firma
     },
   );
 
-  // ── Cuadrillas y miembros ──
-  app.get('/proyectos/:id/cuadrillas', { schema: { params: conId } }, async (request) => ({
-    cuadrillas: await org.listarCuadrillas(db, actor(request), request.params.id),
+  // ── Brigadas y miembros ──
+  app.get('/proyectos/:id/brigadas', { schema: { params: conId } }, async (request) => ({
+    brigadas: await org.listarBrigadas(db, actor(request), request.params.id),
   }));
   app.post(
-    '/proyectos/:id/cuadrillas',
+    '/proyectos/:id/brigadas',
     {
       schema: {
         params: conId,
@@ -137,7 +137,7 @@ export const rutasWeb: FastifyPluginAsyncZod<Opciones> = (app, { auth, db, firma
       },
     },
     async (request, reply) => {
-      const nuevo = await org.crearCuadrilla(
+      const nuevo = await org.crearBrigada(
         db,
         actor(request),
         request.params.id,
@@ -148,7 +148,7 @@ export const rutasWeb: FastifyPluginAsyncZod<Opciones> = (app, { auth, db, firma
     },
   );
   app.patch(
-    '/cuadrillas/:id',
+    '/brigadas/:id',
     {
       schema: {
         params: conId,
@@ -156,18 +156,18 @@ export const rutasWeb: FastifyPluginAsyncZod<Opciones> = (app, { auth, db, firma
       },
     },
     async (request, reply) => {
-      await org.actualizarCuadrilla(db, actor(request), request.params.id, {
+      await org.actualizarBrigada(db, actor(request), request.params.id, {
         ...(request.body.nombre === undefined ? {} : { nombre: request.body.nombre }),
         ...(request.body.jefe_id === undefined ? {} : { jefeId: request.body.jefe_id }),
       });
       return reply.status(204).send();
     },
   );
-  app.get('/cuadrillas/:id/miembros', { schema: { params: conId } }, async (request) => ({
+  app.get('/brigadas/:id/miembros', { schema: { params: conId } }, async (request) => ({
     miembros: await org.listarMiembros(db, actor(request), request.params.id),
   }));
   app.post(
-    '/cuadrillas/:id/miembros',
+    '/brigadas/:id/miembros',
     {
       schema: {
         params: conId,
@@ -261,7 +261,7 @@ export const rutasWeb: FastifyPluginAsyncZod<Opciones> = (app, { auth, db, firma
     {
       schema: {
         body: z.object({
-          cuadrilla_id: id,
+          brigada_id: id,
           responsable_id: id,
           titulo: texto(200),
           validacion_activa: z.boolean().nullable().default(null),
@@ -270,7 +270,7 @@ export const rutasWeb: FastifyPluginAsyncZod<Opciones> = (app, { auth, db, firma
     },
     async (request, reply) => {
       const nuevo = await tareas.crearCuaderno(db, actor(request), {
-        cuadrillaId: request.body.cuadrilla_id,
+        brigadaId: request.body.brigada_id,
         responsableId: request.body.responsable_id,
         titulo: request.body.titulo,
         validacionActiva: request.body.validacion_activa,
@@ -286,7 +286,7 @@ export const rutasWeb: FastifyPluginAsyncZod<Opciones> = (app, { auth, db, firma
         params: conId,
         querystring: z.object({
           estado: z.enum(ESTADOS_TAREA).optional(),
-          cuadrilla_id: id.optional(),
+          brigada_id: id.optional(),
           origen: z.enum(['manual', 'regla']).optional(),
           tipo: z.enum(['tecnica', 'logistica']).optional(),
           despues_de: id.optional(),
@@ -298,7 +298,7 @@ export const rutasWeb: FastifyPluginAsyncZod<Opciones> = (app, { auth, db, firma
       consultas.listarTareas(db, actor(request), {
         proyectoId: request.params.id,
         estado: request.query.estado,
-        cuadrillaId: request.query.cuadrilla_id,
+        brigadaId: request.query.brigada_id,
         origen: request.query.origen,
         tipo: request.query.tipo,
         despuesDe: request.query.despues_de,
@@ -423,7 +423,7 @@ export const rutasWeb: FastifyPluginAsyncZod<Opciones> = (app, { auth, db, firma
       const clave = await rutaParaDescarga(
         db,
         a,
-        (c) => rolEnCuadrilla(db, a, c),
+        (c) => rolEnBrigada(db, a, c),
         request.params.id,
         request.query.variante,
       );

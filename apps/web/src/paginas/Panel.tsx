@@ -92,22 +92,22 @@ export const Avance = () => {
   });
   if (q.isPending) return <Cargando que="el avance" />;
   if (q.data === undefined) return <AvisoError error={q.error} />;
-  const { cuadrillas, esfuerzo } = q.data;
-  const total = (c: (typeof cuadrillas)[number]) =>
+  const { brigadas, esfuerzo } = q.data;
+  const total = (c: (typeof brigadas)[number]) =>
     Object.values(c.estados).reduce((s, n) => s + n, 0);
-  const terminadas = (c: (typeof cuadrillas)[number]) =>
+  const terminadas = (c: (typeof brigadas)[number]) =>
     (c.estados.completada ?? 0) + (c.estados.validada ?? 0) + (c.estados.cerrada ?? 0);
 
   return (
     <div className="flex flex-col gap-8">
       <section>
-        <Encabezado titulo="Avance por cuadrilla" />
-        {cuadrillas.length === 0 ? <Vacio titulo="Aún no hay tareas para medir el avance" /> : null}
-        {cuadrillas.length > 0 ? (
-          <Tabla titulo="Tareas por estado y cuadrilla">
+        <Encabezado titulo="Avance por brigada" />
+        {brigadas.length === 0 ? <Vacio titulo="Aún no hay tareas para medir el avance" /> : null}
+        {brigadas.length > 0 ? (
+          <Tabla titulo="Tareas por estado y brigada">
             <thead>
               <tr>
-                <th className={th}>Cuadrilla</th>
+                <th className={th}>Brigada</th>
                 {ORDEN.map((e) => (
                   <th key={e} className={`${th} text-right`}>
                     <span className="inline-flex items-center gap-1">
@@ -120,7 +120,7 @@ export const Avance = () => {
               </tr>
             </thead>
             <tbody>
-              {cuadrillas.map((c) => (
+              {brigadas.map((c) => (
                 <tr key={c.id}>
                   <td className={`${td} font-semibold`}>{c.nombre}</td>
                   {ORDEN.map((e) => (

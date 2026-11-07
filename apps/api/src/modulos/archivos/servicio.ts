@@ -193,7 +193,7 @@ export type VarianteDescarga = 'miniatura' | 'preview' | 'original';
 export const rutaParaDescarga = async (
   db: Db,
   actor: { usuarioId: string },
-  rolEnTarea: (cuadrillaId: string) => Promise<string | null>,
+  rolEnTarea: (brigadaId: string) => Promise<string | null>,
   archivoId: string,
   variante: VarianteDescarga,
 ): Promise<string | null> => {
@@ -207,12 +207,12 @@ export const rutaParaDescarga = async (
       'archivo.ruta_miniatura',
       'archivo.ruta_preview',
       'archivo.ruta_original',
-      'cuaderno.cuadrilla_id',
+      'cuaderno.brigada_id',
     ])
     .where('archivo.id', '=', archivoId)
     .executeTakeFirst();
   if (a === undefined) return null;
-  const rol = await rolEnTarea(a.cuadrilla_id);
+  const rol = await rolEnTarea(a.brigada_id);
   if (rol === null) return null;
   if ((rol === 'especialista' || rol === 'logistico') && a.usuario_id !== actor.usuarioId)
     return null;

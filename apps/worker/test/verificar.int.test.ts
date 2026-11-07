@@ -64,7 +64,7 @@ beforeAll(async () => {
 
   usuarioId = generarId();
   proyectoId = generarId();
-  const cuadrillaId = generarId();
+  const brigadaId = generarId();
   cuadernoId = generarId();
   await admin
     .insertInto('usuario')
@@ -80,15 +80,15 @@ beforeAll(async () => {
     .values({ id: proyectoId, nombre: 'Proyecto sintético', validacion_activa: false })
     .execute();
   await admin
-    .insertInto('cuadrilla')
-    .values({ id: cuadrillaId, proyecto_id: proyectoId, nombre: 'Cuadrilla' })
+    .insertInto('brigada')
+    .values({ id: brigadaId, proyecto_id: proyectoId, nombre: 'Brigada' })
     .execute();
   await admin
     .insertInto('cuaderno')
     .values({
       id: cuadernoId,
       proyecto_id: proyectoId,
-      cuadrilla_id: cuadrillaId,
+      brigada_id: brigadaId,
       responsable_id: usuarioId,
       titulo: 'Cuaderno',
     })

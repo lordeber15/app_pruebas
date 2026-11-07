@@ -16,7 +16,7 @@ export const disponibles = async (
   const roles = await rolesDeCampo(db, actor.usuarioId);
   const tareas = await repo.listarDisponibles(db, actor.usuarioId, limite, desde);
   return tareas.filter((t) => {
-    const rol = roles.get(t.cuadrilla_id);
+    const rol = roles.get(t.brigada_id);
     return (
       rol !== undefined && puedeIntentar(rol, 'ejecutar_tareas') && TIPO_POR_ROL[rol] === t.tipo
     );
@@ -60,7 +60,7 @@ export const descargar = async (
     try {
       const resultado = await db.transaction().execute(async (tx) => {
         const tarea = await repo.tareaParaDescargar(tx, actor.usuarioId, tareaId);
-        const rol = tarea === undefined ? undefined : roles.get(tarea.cuadrilla_id);
+        const rol = tarea === undefined ? undefined : roles.get(tarea.brigada_id);
         // Mismo motivo si no existe o es de otro: no se revela la existencia de tareas ajenas.
         if (tarea === undefined || rol === undefined || TIPO_POR_ROL[rol] !== tarea.tipo) {
           return { ok: false as const, motivo: 'NO_DISPONIBLE' as const };

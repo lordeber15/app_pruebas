@@ -4,7 +4,7 @@ import { useState } from 'react';
 import {
   api,
   type Cuaderno,
-  type Cuadrilla,
+  type Brigada,
   type DetalleTarea as Detalle,
   type EstadoTarea,
   type Estacion,
@@ -38,14 +38,14 @@ export const Tareas = () => {
   const yo = useYo();
   const qc = useQueryClient();
   const [estado, setEstado] = useState<EstadoTarea | ''>('');
-  const [cuadrilla, setCuadrilla] = useState('');
+  const [brigada, setBrigada] = useState('');
   const [tipo, setTipo] = useState<'' | 'tecnica' | 'logistica'>('');
   const [paginas, setPaginas] = useState<string[]>([]);
   const cursor = paginas.at(-1);
 
   const filtros = new URLSearchParams({ limite: '50' });
   if (estado !== '') filtros.set('estado', estado);
-  if (cuadrilla !== '') filtros.set('cuadrilla_id', cuadrilla);
+  if (brigada !== '') filtros.set('brigada_id', brigada);
   if (tipo !== '') filtros.set('tipo', tipo);
   if (cursor !== undefined) filtros.set('despues_de', cursor);
 
@@ -56,9 +56,9 @@ export const Tareas = () => {
         `/proyectos/${proyectoId}/tareas?${filtros.toString()}`,
       ),
   });
-  const cuadrillas = useQuery({
-    queryKey: ['cuadrillas', proyectoId],
-    queryFn: () => api.get<{ cuadrillas: Cuadrilla[] }>(`/proyectos/${proyectoId}/cuadrillas`),
+  const brigadas = useQuery({
+    queryKey: ['brigadas', proyectoId],
+    queryFn: () => api.get<{ brigadas: Brigada[] }>(`/proyectos/${proyectoId}/brigadas`),
   });
   const cuadernos = useQuery({
     queryKey: ['cuadernos', proyectoId],
@@ -252,17 +252,17 @@ export const Tareas = () => {
           </select>
         </label>
         <label className="flex flex-col gap-1 text-sm font-semibold">
-          Cuadrilla
+          Brigada
           <select
-            value={cuadrilla}
+            value={brigada}
             onChange={(e) => {
-              setCuadrilla(e.target.value);
+              setBrigada(e.target.value);
               reiniciar();
             }}
             className={`${claseEntrada} w-52 font-normal`}
           >
             <option value="">Todas</option>
-            {cuadrillas.data?.cuadrillas.map((c) => (
+            {brigadas.data?.brigadas.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.nombre}
               </option>
@@ -291,12 +291,12 @@ export const Tareas = () => {
       {q.data?.tareas.length === 0 ? (
         <Vacio
           titulo={
-            estado === '' && cuadrilla === '' && tipo === ''
+            estado === '' && brigada === '' && tipo === ''
               ? 'Aún no hay tareas en este proyecto'
               : 'Ninguna tarea cumple estos filtros'
           }
         >
-          {estado === '' && cuadrilla === '' && tipo === ''
+          {estado === '' && brigada === '' && tipo === ''
             ? 'Cree un cuaderno en Equipo y cuadernos, y luego una tarea con Nueva tarea.'
             : 'Cambie o quite los filtros.'}
         </Vacio>
@@ -309,7 +309,7 @@ export const Tareas = () => {
                 <th className={th}>Tarea</th>
                 <th className={th}>Estado</th>
                 <th className={th}>Responsable</th>
-                <th className={th}>Cuadrilla</th>
+                <th className={th}>Brigada</th>
                 <th className={th}>Actualizada</th>
               </tr>
             </thead>
@@ -333,7 +333,7 @@ export const Tareas = () => {
                     <Estado estado={t.estado} />
                   </td>
                   <td className={td}>{t.responsable_nombre}</td>
-                  <td className={td}>{t.cuadrilla_nombre}</td>
+                  <td className={td}>{t.brigada_nombre}</td>
                   <td className={`${td} cifras whitespace-nowrap text-tinta-suave`}>
                     {fechaHora(t.actualizado_en)}
                   </td>
@@ -583,7 +583,7 @@ export const DetalleTarea = () => {
           <dl className="grid grid-cols-1 gap-x-6 gap-y-3 rounded-md border border-linea bg-hoja p-4 text-sm sm:grid-cols-2">
             {[
               ['Responsable', t.responsable_nombre],
-              ['Cuadrilla', t.cuadrilla_nombre],
+              ['Brigada', t.brigada_nombre],
               ['Cuaderno', t.cuaderno_titulo],
               ['Origen', t.origen === 'regla' ? 'Generada por una regla' : 'Creada en la web'],
               ['Estación', t.estacion_codigo ?? 'Sin estación'],

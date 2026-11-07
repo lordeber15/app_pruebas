@@ -42,11 +42,11 @@ beforeAll(async () => {
     [PROY],
   );
   await appRw.query(
-    `INSERT INTO cuadrilla (id, proyecto_id, nombre) VALUES ($1, $2, 'Cuadrilla A')`,
+    `INSERT INTO brigada (id, proyecto_id, nombre) VALUES ($1, $2, 'Brigada A')`,
     [CUAD, PROY],
   );
   await appRw.query(
-    `INSERT INTO cuaderno (id, proyecto_id, cuadrilla_id, responsable_id, titulo)
+    `INSERT INTO cuaderno (id, proyecto_id, brigada_id, responsable_id, titulo)
      VALUES ($1, $2, $3, $4, 'Cuaderno 1')`,
     [CUADERNO, PROY, CUAD, U.especialista],
   );

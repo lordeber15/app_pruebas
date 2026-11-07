@@ -2,7 +2,7 @@ import type { Db } from '@campo/db';
 import { sql } from 'kysely';
 import { ProblemaHttp } from '../../plataforma/errores.ts';
 import type { Actor } from '../../plataforma/sesion.ts';
-import { cuadrillasVisibles, exigirEnCuadrilla, noEncontrado } from '../alcance/autorizacion.ts';
+import { brigadasVisibles, exigirEnBrigada, noEncontrado } from '../alcance/autorizacion.ts';
 
 /**
  * Eventos en revisión y duplicados (RN-08, doc. 02 §6.5). El supervisor o el jefe deciden qué se
@@ -14,7 +14,7 @@ import { cuadrillasVisibles, exigirEnCuadrilla, noEncontrado } from '../alcance/
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 export const listarRevisiones = async (db: Db, actor: Actor, proyectoId: string) => {
-  const mapa = await cuadrillasVisibles(db, actor, proyectoId);
+  const mapa = await brigadasVisibles(db, actor, proyectoId);
   const gestionables = [...mapa]
     .filter(([, rol]) => rol === 'supervisor' || rol === 'jefe')
     .map(([id]) => id);
@@ -43,7 +43,7 @@ export const listarRevisiones = async (db: Db, actor: Actor, proyectoId: string)
       ])
       .where('evento.estado', 'in', ['en_revision', 'duplicado'])
       .where('tarea.proyecto_id', '=', proyectoId)
-      .where('cuaderno.cuadrilla_id', 'in', gestionables)
+      .where('cuaderno.brigada_id', 'in', gestionables)
       .orderBy('evento.hora_servidor')
       .limit(500)
       .execute()
@@ -74,11 +74,11 @@ export const resolverRevision = async (
   const t = await db
     .selectFrom('tarea')
     .innerJoin('cuaderno', 'cuaderno.id', 'tarea.cuaderno_id')
-    .select('cuaderno.cuadrilla_id')
+    .select('cuaderno.brigada_id')
     .where('tarea.id', '=', ev.tarea_id)
     .executeTakeFirst();
   if (t === undefined) throw noEncontrado('El evento');
-  await exigirEnCuadrilla(db, actor, 'resolver_revisiones', t.cuadrilla_id);
+  await exigirEnBrigada(db, actor, 'resolver_revisiones', t.brigada_id);
   if (ev.estado !== 'en_revision' && ev.estado !== 'duplicado') {
     throw new ProblemaHttp(409, 'YA_RESUELTO', 'Este evento ya fue resuelto.');
   }

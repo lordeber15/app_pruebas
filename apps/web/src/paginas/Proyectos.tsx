@@ -4,7 +4,7 @@ import { useState, type ReactNode } from 'react';
 import {
   api,
   type Cuaderno,
-  type Cuadrilla,
+  type Brigada,
   type Estacion,
   type Metodologia,
   type Miembro,
@@ -151,7 +151,7 @@ export const Proyectos = () => {
         <Vacio titulo="Aún no hay proyectos a su alcance">
           {puede(yo.data).supervisor
             ? 'Cree el primero con el botón Nuevo proyecto.'
-            : 'Cuando lo incluyan en una cuadrilla, su proyecto aparecerá aquí.'}
+            : 'Cuando lo incluyan en una brigada, su proyecto aparecerá aquí.'}
         </Vacio>
       ) : null}
       {q.data !== undefined && q.data.proyectos.length > 0 ? (
@@ -226,7 +226,7 @@ export const MarcoProyecto = () => {
   );
 };
 
-// ── Equipo: cuadrillas, miembros y cuadernos ──
+// ── Equipo: brigadas, miembros y cuadernos ──
 
 const useUsuarios = (habilitado: boolean) =>
   useQuery({
@@ -235,43 +235,43 @@ const useUsuarios = (habilitado: boolean) =>
     enabled: habilitado,
   });
 
-const MiembrosCuadrilla = ({
-  cuadrilla,
+const MiembrosBrigada = ({
+  brigada,
   supervisor,
 }: {
-  cuadrilla: Cuadrilla;
+  brigada: Brigada;
   supervisor: boolean;
 }) => {
   const qc = useQueryClient();
   const q = useQuery({
-    queryKey: ['miembros', cuadrilla.id],
-    queryFn: () => api.get<{ miembros: Miembro[] }>(`/cuadrillas/${cuadrilla.id}/miembros`),
+    queryKey: ['miembros', brigada.id],
+    queryFn: () => api.get<{ miembros: Miembro[] }>(`/brigadas/${brigada.id}/miembros`),
   });
   const usuarios = useUsuarios(supervisor);
   const [usuarioId, setUsuarioId] = useState('');
   const [rol, setRol] = useState<'especialista' | 'logistico'>('especialista');
   const jefe = useMutation({
     mutationFn: (jefeId: string | null) =>
-      api.patch(`/cuadrillas/${cuadrilla.id}`, { jefe_id: jefeId }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['cuadrillas'] }),
+      api.patch(`/brigadas/${brigada.id}`, { jefe_id: jefeId }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['brigadas'] }),
   });
 
   return (
     <section className="rounded-md border border-linea bg-hoja p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h3 className="text-lg font-semibold">{cuadrilla.nombre}</h3>
-          <p className="text-sm text-tinta-suave">Jefe: {cuadrilla.jefe_nombre ?? 'sin asignar'}</p>
+          <h3 className="text-lg font-semibold">{brigada.nombre}</h3>
+          <p className="text-sm text-tinta-suave">Jefe: {brigada.jefe_nombre ?? 'sin asignar'}</p>
         </div>
         {supervisor ? (
           <div className="flex flex-wrap gap-2">
-            <label className="sr-only" htmlFor={`jefe-${cuadrilla.id}`}>
-              Jefe de la cuadrilla {cuadrilla.nombre}
+            <label className="sr-only" htmlFor={`jefe-${brigada.id}`}>
+              Jefe de la brigada {brigada.nombre}
             </label>
             <select
-              id={`jefe-${cuadrilla.id}`}
+              id={`jefe-${brigada.id}`}
               className={`${claseEntrada} w-56`}
-              value={cuadrilla.jefe_id ?? ''}
+              value={brigada.jefe_id ?? ''}
               onChange={(e) => jefe.mutate(e.target.value === '' ? null : e.target.value)}
             >
               <option value="">Sin jefe</option>
@@ -284,15 +284,15 @@ const MiembrosCuadrilla = ({
                 ))}
             </select>
             <FormularioDialogo
-              titulo={`Agregar a ${cuadrilla.nombre}`}
+              titulo={`Agregar a ${brigada.nombre}`}
               boton="Agregar"
               abrir="Agregar persona"
               alGuardar={async () => {
-                await api.post(`/cuadrillas/${cuadrilla.id}/miembros`, {
+                await api.post(`/brigadas/${brigada.id}/miembros`, {
                   usuario_id: usuarioId,
                   rol,
                 });
-                await qc.invalidateQueries({ queryKey: ['miembros', cuadrilla.id] });
+                await qc.invalidateQueries({ queryKey: ['miembros', brigada.id] });
               }}
             >
               <Campo etiqueta="Persona">
@@ -315,7 +315,7 @@ const MiembrosCuadrilla = ({
                   </select>
                 )}
               </Campo>
-              <Campo etiqueta="Rol en la cuadrilla">
+              <Campo etiqueta="Rol en la brigada">
                 {(id) => (
                   <select
                     id={id}
@@ -358,41 +358,41 @@ export const Equipo = () => {
   const yo = useYo();
   const qc = useQueryClient();
   const p = puede(yo.data);
-  const cuadrillas = useQuery({
-    queryKey: ['cuadrillas', proyectoId],
-    queryFn: () => api.get<{ cuadrillas: Cuadrilla[] }>(`/proyectos/${proyectoId}/cuadrillas`),
+  const brigadas = useQuery({
+    queryKey: ['brigadas', proyectoId],
+    queryFn: () => api.get<{ brigadas: Brigada[] }>(`/proyectos/${proyectoId}/brigadas`),
   });
   const cuadernos = useQuery({
     queryKey: ['cuadernos', proyectoId],
     queryFn: () => api.get<{ cuadernos: Cuaderno[] }>(`/proyectos/${proyectoId}/cuadernos`),
   });
   const [nombre, setNombre] = useState('');
-  const [cCuadrilla, setCCuadrilla] = useState('');
+  const [cBrigada, setCBrigada] = useState('');
   const [cResponsable, setCResponsable] = useState('');
   const [cTitulo, setCTitulo] = useState('');
   const miembros = useQuery({
-    queryKey: ['miembros', cCuadrilla],
-    queryFn: () => api.get<{ miembros: Miembro[] }>(`/cuadrillas/${cCuadrilla}/miembros`),
-    enabled: cCuadrilla !== '',
+    queryKey: ['miembros', cBrigada],
+    queryFn: () => api.get<{ miembros: Miembro[] }>(`/brigadas/${cBrigada}/miembros`),
+    enabled: cBrigada !== '',
   });
   const jefeOSupervisor = p.gestionarTareas;
 
   return (
     <div className="flex flex-col gap-8">
       <section>
-        <Encabezado titulo="Cuadrillas">
+        <Encabezado titulo="Brigadas">
           {p.supervisor ? (
             <FormularioDialogo
-              titulo="Nueva cuadrilla"
-              boton="Crear cuadrilla"
-              abrir="Nueva cuadrilla"
+              titulo="Nueva brigada"
+              boton="Crear brigada"
+              abrir="Nueva brigada"
               alGuardar={async () => {
-                await api.post(`/proyectos/${proyectoId}/cuadrillas`, { nombre });
+                await api.post(`/proyectos/${proyectoId}/brigadas`, { nombre });
                 setNombre('');
-                await qc.invalidateQueries({ queryKey: ['cuadrillas', proyectoId] });
+                await qc.invalidateQueries({ queryKey: ['brigadas', proyectoId] });
               }}
             >
-              <Campo etiqueta="Nombre de la cuadrilla">
+              <Campo etiqueta="Nombre de la brigada">
                 {(id) => (
                   <input
                     id={id}
@@ -406,15 +406,15 @@ export const Equipo = () => {
             </FormularioDialogo>
           ) : null}
         </Encabezado>
-        {cuadrillas.isPending ? <Cargando que="las cuadrillas" /> : null}
-        <AvisoError error={cuadrillas.error} />
-        {cuadrillas.data?.cuadrillas.length === 0 ? (
-          <Vacio titulo="Este proyecto aún no tiene cuadrillas" />
+        {brigadas.isPending ? <Cargando que="las brigadas" /> : null}
+        <AvisoError error={brigadas.error} />
+        {brigadas.data?.brigadas.length === 0 ? (
+          <Vacio titulo="Este proyecto aún no tiene brigadas" />
         ) : null}
         <div className="grid gap-4 lg:grid-cols-2">
-          {cuadrillas.data?.cuadrillas.map((c) =>
+          {brigadas.data?.brigadas.map((c) =>
             jefeOSupervisor ? (
-              <MiembrosCuadrilla key={c.id} cuadrilla={c} supervisor={p.supervisor} />
+              <MiembrosBrigada key={c.id} brigada={c} supervisor={p.supervisor} />
             ) : (
               <section key={c.id} className="rounded-md border border-linea bg-hoja p-4">
                 <h3 className="text-lg font-semibold">{c.nombre}</h3>
@@ -434,7 +434,7 @@ export const Equipo = () => {
               abrir="Nuevo cuaderno"
               alGuardar={async () => {
                 await api.post('/cuadernos', {
-                  cuadrilla_id: cCuadrilla,
+                  brigada_id: cBrigada,
                   responsable_id: cResponsable,
                   titulo: cTitulo,
                 });
@@ -453,20 +453,20 @@ export const Equipo = () => {
                   />
                 )}
               </Campo>
-              <Campo etiqueta="Cuadrilla">
+              <Campo etiqueta="Brigada">
                 {(id) => (
                   <select
                     id={id}
-                    value={cCuadrilla}
+                    value={cBrigada}
                     onChange={(e) => {
-                      setCCuadrilla(e.target.value);
+                      setCBrigada(e.target.value);
                       setCResponsable('');
                     }}
                     required
                     className={claseEntrada}
                   >
-                    <option value="">Elija una cuadrilla</option>
-                    {cuadrillas.data?.cuadrillas.map((c) => (
+                    <option value="">Elija una brigada</option>
+                    {brigadas.data?.brigadas.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.nombre}
                       </option>
@@ -481,7 +481,7 @@ export const Equipo = () => {
                     value={cResponsable}
                     onChange={(e) => setCResponsable(e.target.value)}
                     required
-                    disabled={cCuadrilla === ''}
+                    disabled={cBrigada === ''}
                     className={claseEntrada}
                   >
                     <option value="">Elija un integrante</option>
@@ -509,7 +509,7 @@ export const Equipo = () => {
             <thead>
               <tr>
                 <th className={th}>Cuaderno</th>
-                <th className={th}>Cuadrilla</th>
+                <th className={th}>Brigada</th>
                 <th className={th}>Responsable</th>
                 <th className={`${th} text-right`}>Tareas</th>
               </tr>
@@ -518,7 +518,7 @@ export const Equipo = () => {
               {cuadernos.data.cuadernos.map((c) => (
                 <tr key={c.id}>
                   <td className={td}>{c.titulo}</td>
-                  <td className={td}>{c.cuadrilla_nombre}</td>
+                  <td className={td}>{c.brigada_nombre}</td>
                   <td className={td}>{c.responsable_nombre}</td>
                   <td className={`${td} cifras text-right`}>{c.tareas ?? 0}</td>
                 </tr>

@@ -1,0 +1,4182 @@
+{
+  "fuente": "D01_TOCE_FINAL.xlsx, hoja 01_Config_Metodos y 02_Reglas_Globales (requerimientos/cliente)",
+  "version": "v0.6 QA, 2026-11-07; curado por GENIA el 2026-11-07 sin agregar reglas: cada validación conserva el texto de D01 y su tipo de control",
+  "especialidades": [
+    { "codigo": "flora_vegetacion", "nombre": "FLORA Y VEGETACIÓN", "es_fauna": false, "orden": 1 },
+    { "codigo": "epifitas", "nombre": "EPÍFITAS", "es_fauna": false, "orden": 2 },
+    {
+      "codigo": "recursos_forestales",
+      "nombre": "RECURSOS FORESTALES",
+      "es_fauna": false,
+      "orden": 3
+    },
+    { "codigo": "bofedales", "nombre": "BOFEDALES", "es_fauna": false, "orden": 4 },
+    { "codigo": "agrostologia", "nombre": "AGROSTOLOGÍA", "es_fauna": false, "orden": 5 },
+    { "codigo": "aves", "nombre": "AVES", "es_fauna": true, "orden": 6 },
+    {
+      "codigo": "anfibios_reptiles",
+      "nombre": "ANFIBIOS Y REPTILES",
+      "es_fauna": true,
+      "orden": 7
+    },
+    { "codigo": "artropodos", "nombre": "ARTRÓPODOS", "es_fauna": true, "orden": 8 },
+    {
+      "codigo": "mamiferos_menores_terrestres",
+      "nombre": "MAMÍFEROS MENORES TERRESTRES",
+      "es_fauna": true,
+      "orden": 9
+    },
+    {
+      "codigo": "mamiferos_menores_voladores",
+      "nombre": "MAMÍFEROS MENORES VOLADORES",
+      "es_fauna": true,
+      "orden": 10
+    },
+    { "codigo": "mamiferos_mayores", "nombre": "MAMÍFEROS MAYORES", "es_fauna": true, "orden": 11 },
+    {
+      "codigo": "fauna_transversal",
+      "nombre": "FAUNA – TRANSVERSAL",
+      "es_fauna": true,
+      "orden": 12
+    }
+  ],
+  "metodos": [
+    {
+      "codigo": "flora_vegetacion.puntos_intercepcion",
+      "nombre": "PUNTOS DE INTERCEPCIÓN",
+      "especialidad": "flora_vegetacion",
+      "clase": "todas",
+      "aplicacion": {
+        "texto": "Todas las estaciones de muestreo de flora y vegetación.",
+        "condicion": null
+      },
+      "unidad": {
+        "tipo": "transecto",
+        "tipos_adicionales": [],
+        "texto": "Transecto de 50 m, con 100 puntos de lectura separados cada 0,50 m."
+      },
+      "esfuerzo": {
+        "estandar": {
+          "cantidad": 3,
+          "unidad": "transectos",
+          "texto": "3 transectos, con separación mínima de 100 m."
+        },
+        "za_ef": { "cantidad": 6, "texto": "6 transectos." }
+      },
+      "horario": null,
+      "geometria": {
+        "tipo": "inicio_fin",
+        "texto": "Línea de 50 m; inicio + fin georreferenciados en la app",
+        "vinculo_metodo": null,
+        "detalle": null
+      },
+      "track": false,
+      "fotos": {
+        "contexto": {
+          "cantidad_por_unidad": 8,
+          "cardinales": true,
+          "reutiliza_metodo": null,
+          "texto": "8 panorámicas por transecto: 4 cardinales N-S-E-O al inicio + 4 cardinales N-S-E-O al final."
+        },
+        "metodologicas": {
+          "minimo": 2,
+          "texto": "2 por estación/método, semipanorámicas laterales u oblicuas: especialista realizando lecturas sobre la wincha/transecto; debe verse acción, equipo y hábitat."
+        }
+      },
+      "campos_ejecucion": [],
+      "campos": [],
+      "registros": {
+        "etiqueta": "Lecturas (100 puntos)",
+        "campos": [
+          {
+            "clave": "punto",
+            "etiqueta": "Punto de lectura",
+            "tipo": "entero",
+            "requerido": true,
+            "ayuda": "1 a 100, cada 0,50 m"
+          },
+          {
+            "clave": "presencia_vegetacion",
+            "etiqueta": "Presencia de vegetación",
+            "tipo": "booleano",
+            "requerido": true
+          },
+          {
+            "clave": "especie",
+            "etiqueta": "Especie registrada",
+            "tipo": "texto",
+            "requerido": false
+          },
+          {
+            "clave": "forma_crecimiento",
+            "etiqueta": "Forma de crecimiento",
+            "tipo": "texto",
+            "requerido": false
+          },
+          {
+            "clave": "estado_fenologico",
+            "etiqueta": "Estado fenológico",
+            "tipo": "texto",
+            "requerido": false
+          }
+        ]
+      },
+      "validaciones": [
+        {
+          "tipo": "cantidad_unidades",
+          "minimo": 3,
+          "minimo_za_ef": 6,
+          "tipo_control": "obligatorio",
+          "texto": "Validar número de transectos."
+        },
+        {
+          "tipo": "separacion_minima_m",
+          "metros": 100,
+          "tipo_control": "obligatorio",
+          "texto": "Validar separación mínima de 100 m."
+        },
+        { "tipo": "geometria", "tipo_control": "obligatorio", "texto": "Validar inicio/fin." },
+        {
+          "tipo": "cantidad_registros",
+          "minimo": 100,
+          "tipo_control": "obligatorio",
+          "texto": "Validar 100 lecturas."
+        },
+        {
+          "tipo": "fotos_contexto",
+          "cantidad_por_unidad": 8,
+          "tipo_control": "obligatorio",
+          "texto": "Validar fotos requeridas."
+        },
+        {
+          "tipo": "fotos_metodologicas",
+          "minimo": 2,
+          "tipo_control": "obligatorio",
+          "texto": "2 por estación/método (F-06)."
+        }
+      ],
+      "vinculo": {
+        "texto": "Los cuadrantes asociados usan sus propias fotos interiores; no duplicar panorámicas del transecto.",
+        "metodos": ["flora_vegetacion.cuadrantes_herbaceas"]
+      },
+      "fuente": {
+        "estado": "CERRADO",
+        "origen": "Geometría fuente + regla fotográfica funcional Walsh.",
+        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad."
+      }
+    },
+    {
+      "codigo": "flora_vegetacion.cuadrantes_herbaceas",
+      "nombre": "CUADRANTES DE HERBÁCEAS",
+      "especialidad": "flora_vegetacion",
+      "clase": "todas",
+      "aplicacion": {
+        "texto": "Evaluación del estrato herbáceo en las estaciones de muestreo de flora y vegetación, incluidas las coberturas abiertas, arbustivas y boscosas.",
+        "condicion": null
+      },
+      "unidad": {
+        "tipo": "cuadrante",
+        "tipos_adicionales": [],
+        "texto": "Cuadrante de 1 × 1 m, subdividido en 4 partes."
+      },
+      "esfuerzo": {
+        "estandar": {
+          "cantidad": 9,
+          "unidad": "cuadrantes",
+          "texto": "9 cuadrantes, distribuidos en 3 por transecto, en las posiciones 12,5; 25 y 37,5 m."
+        },
+        "za_ef": {
+          "cantidad": 18,
+          "texto": "18 cuadrantes, conservando la distribución por transecto."
+        }
+      },
+      "horario": null,
+      "geometria": {
+        "tipo": "punto",
+        "texto": "Punto georreferenciado en la app en el centro de cada cuadrante",
+        "vinculo_metodo": null,
+        "detalle": null
+      },
+      "track": false,
+      "fotos": {
+        "contexto": {
+          "cantidad_por_unidad": 1,
+          "cardinales": false,
+          "reutiliza_metodo": "flora_vegetacion.puntos_intercepcion",
+          "texto": "1 foto georreferenciada por cuadrante, dirigida al interior y mostrando preferentemente su delimitación completa. Reutiliza como contexto las panorámicas del transecto de intercepción asociado."
+        },
+        "metodologicas": {
+          "minimo": 2,
+          "texto": "2 por estación/método, semipanorámicas laterales/oblicuas o ligeramente elevadas: especialista evaluando el cuadrante completo."
+        }
+      },
+      "campos_ejecucion": [],
+      "campos": [
+        {
+          "clave": "transecto_asociado",
+          "etiqueta": "Transecto de intercepción asociado",
+          "tipo": "texto",
+          "requerido": true
+        },
+        {
+          "clave": "posicion_m",
+          "etiqueta": "Posición en el transecto",
+          "tipo": "opcion",
+          "opciones": ["12,5 m", "25 m", "37,5 m"],
+          "requerido": true
+        },
+        {
+          "clave": "cobertura_vegetal_viva",
+          "etiqueta": "Cobertura vegetal viva (%)",
+          "tipo": "decimal",
+          "requerido": true
+        }
+      ],
+      "registros": {
+        "etiqueta": "Especies registradas",
+        "campos": [
+          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "n_individuos",
+            "etiqueta": "Número de individuos",
+            "tipo": "entero",
+            "requerido": true
+          },
+          {
+            "clave": "cobertura",
+            "etiqueta": "Cobertura (%)",
+            "tipo": "decimal",
+            "requerido": true
+          },
+          {
+            "clave": "estado_fenologico",
+            "etiqueta": "Estado fenológico",
+            "tipo": "texto",
+            "requerido": false
+          }
+        ]
+      },
+      "validaciones": [
+        {
+          "tipo": "cantidad_unidades",
+          "minimo": 9,
+          "minimo_za_ef": 18,
+          "tipo_control": "obligatorio",
+          "texto": "Validar cantidad y posiciones 12,5; 25; 37,5 m por transecto."
+        },
+        {
+          "tipo": "geometria",
+          "tipo_control": "obligatorio",
+          "texto": "Centro georreferenciado en la app."
+        },
+        {
+          "tipo": "fotos_contexto",
+          "cantidad_por_unidad": 1,
+          "tipo_control": "obligatorio",
+          "texto": "Foto interior."
+        },
+        {
+          "tipo": "vinculo_unidad",
+          "metodo": "flora_vegetacion.puntos_intercepcion",
+          "tipo_control": "obligatorio",
+          "texto": "Vínculo al transecto."
+        },
+        {
+          "tipo": "fotos_metodologicas",
+          "minimo": 2,
+          "tipo_control": "obligatorio",
+          "texto": "2 por estación/método (F-06)."
+        }
+      ],
+      "vinculo": {
+        "texto": "Reutiliza como contexto las panorámicas del transecto de intercepción asociado.",
+        "metodos": ["flora_vegetacion.puntos_intercepcion"]
+      },
+      "fuente": {
+        "estado": "CERRADO",
+        "origen": "Geometría fuente + regla fotográfica funcional Walsh.",
+        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad."
+      }
+    },
+    {
+      "codigo": "flora_vegetacion.parcelas_arbustos",
+      "nombre": "PARCELAS DE ARBUSTOS",
+      "especialidad": "flora_vegetacion",
+      "clase": "condicional",
+      "aplicacion": {
+        "texto": "Evaluación del estrato arbustivo en las estaciones de muestreo, incluidas las coberturas abiertas y boscosas que lo presenten. Aplicar solo en estaciones donde esté presente el estrato arbustivo.",
+        "condicion": { "tipo": "manual" }
+      },
+      "unidad": { "tipo": "parcela", "tipos_adicionales": [], "texto": "Parcela de 5 × 5 m." },
+      "esfuerzo": {
+        "estandar": {
+          "cantidad": 9,
+          "unidad": "parcelas",
+          "texto": "9 parcelas, distribuidas dentro del ámbito de evaluación definido para la estación."
+        },
+        "za_ef": { "cantidad": 18, "texto": "18 parcelas." }
+      },
+      "horario": null,
+      "geometria": {
+        "tipo": "vertices",
+        "texto": "Vértices georreferenciados en la app de la parcela 5 × 5 m",
+        "vinculo_metodo": null,
+        "detalle": { "vertices_minimos": 4 }
+      },
+      "track": false,
+      "fotos": {
+        "contexto": {
+          "cantidad_por_unidad": 2,
+          "cardinales": false,
+          "reutiliza_metodo": null,
+          "texto": "2 panorámicas por parcela: 1 orientada hacia el centro/interior + 1 lateral mostrando borde y entorno."
+        },
+        "metodologicas": {
+          "minimo": 2,
+          "texto": "2 por estación/método, semipanorámicas laterales/oblicuas: especialista realizando identificación/conteo/cobertura dentro de la parcela."
+        }
+      },
+      "campos_ejecucion": [],
+      "campos": [],
+      "registros": {
+        "etiqueta": "Especies registradas",
+        "campos": [
+          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "n_individuos",
+            "etiqueta": "Número de individuos",
+            "tipo": "entero",
+            "requerido": true
+          },
+          {
+            "clave": "cobertura",
+            "etiqueta": "Cobertura (%)",
+            "tipo": "decimal",
+            "requerido": true
+          },
+          {
+            "clave": "estado_fenologico",
+            "etiqueta": "Estado fenológico",
+            "tipo": "texto",
+            "requerido": false
+          }
+        ]
+      },
+      "validaciones": [
+        {
+          "tipo": "cantidad_unidades",
+          "minimo": 9,
+          "minimo_za_ef": 18,
+          "tipo_control": "obligatorio",
+          "texto": "Validar cantidad de parcelas."
+        },
+        {
+          "tipo": "geometria",
+          "tipo_control": "obligatorio",
+          "texto": "Registro de todos los vértices georreferenciados en la app de cada parcela 5 × 5 m."
+        },
+        {
+          "tipo": "fotos_contexto",
+          "cantidad_por_unidad": 2,
+          "tipo_control": "obligatorio",
+          "texto": "2 panorámicas (centro/interior y lateral)."
+        },
+        { "tipo": "campos_obligatorios", "tipo_control": "obligatorio", "texto": "Código único." },
+        {
+          "tipo": "fotos_metodologicas",
+          "minimo": 2,
+          "tipo_control": "obligatorio",
+          "texto": "2 por estación/método (F-06)."
+        }
+      ],
+      "vinculo": {
+        "texto": "Parcela independiente del transecto de intercepción; no reutilizar sus fotos como única evidencia de contexto.",
+        "metodos": []
+      },
+      "fuente": {
+        "estado": "CERRADO",
+        "origen": "Geometría funcional aprobada por Walsh: vértices georreferenciados en la app para parcela 5 × 5 m + regla fotográfica funcional.",
+        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición."
+      }
+    },
+    {
+      "codigo": "flora_vegetacion.parcelas_arboles",
+      "nombre": "PARCELAS DE ÁRBOLES",
+      "especialidad": "flora_vegetacion",
+      "clase": "condicional",
+      "aplicacion": {
+        "texto": "Evaluación del estrato arbóreo en estaciones de muestreo ubicadas en bosques, plantaciones forestales y matorrales con componente arbóreo, así como en coberturas intervenidas que lo presenten. Aplicar solo en estaciones con componente arbóreo.",
+        "condicion": { "tipo": "manual" }
+      },
+      "unidad": { "tipo": "parcela", "tipos_adicionales": [], "texto": "Parcela de 30 × 30 m." },
+      "esfuerzo": {
+        "estandar": {
+          "cantidad": 9,
+          "unidad": "parcelas",
+          "texto": "9 parcelas, distribuidas dentro del ámbito de evaluación definido para la estación."
+        },
+        "za_ef": { "cantidad": 18, "texto": "18 parcelas." }
+      },
+      "horario": null,
+      "geometria": {
+        "tipo": "vertices",
+        "texto": "Vértices georreferenciados en la app de la parcela 30 × 30 m",
+        "vinculo_metodo": null,
+        "detalle": { "vertices_minimos": 4 }
+      },
+      "track": false,
+      "fotos": {
+        "contexto": {
+          "cantidad_por_unidad": 4,
+          "cardinales": false,
+          "reutiliza_metodo": null,
+          "texto": "4 panorámicas por parcela: centro – lateral – centro desde lado opuesto – lateral desde lado opuesto."
+        },
+        "metodologicas": {
+          "minimo": 2,
+          "texto": "2 por estación/método, semipanorámicas laterales/oblicuas: especialista midiendo/evaluando árboles dentro de la parcela."
+        }
+      },
+      "campos_ejecucion": [],
+      "campos": [],
+      "registros": {
+        "etiqueta": "Especies registradas",
+        "campos": [
+          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "n_individuos",
+            "etiqueta": "Número de individuos",
+            "tipo": "entero",
+            "requerido": true
+          },
+          {
+            "clave": "cobertura",
+            "etiqueta": "Cobertura (%)",
+            "tipo": "decimal",
+            "requerido": true
+          },
+          {
+            "clave": "estado_fenologico",
+            "etiqueta": "Estado fenológico",
+            "tipo": "texto",
+            "requerido": false
+          }
+        ]
+      },
+      "validaciones": [
+        {
+          "tipo": "cantidad_unidades",
+          "minimo": 9,
+          "minimo_za_ef": 18,
+          "tipo_control": "obligatorio",
+          "texto": "Validar cantidad de parcelas."
+        },
+        { "tipo": "geometria", "tipo_control": "obligatorio", "texto": "Vértices exigidos." },
+        {
+          "tipo": "fotos_contexto",
+          "cantidad_por_unidad": 4,
+          "tipo_control": "obligatorio",
+          "texto": "4 panorámicas."
+        },
+        { "tipo": "campos_obligatorios", "tipo_control": "obligatorio", "texto": "Código único." },
+        {
+          "tipo": "fotos_metodologicas",
+          "minimo": 2,
+          "tipo_control": "obligatorio",
+          "texto": "2 por estación/método (F-06)."
+        }
+      ],
+      "vinculo": { "texto": "Parcela independiente del transecto de intercepción.", "metodos": [] },
+      "fuente": {
+        "estado": "CERRADO",
+        "origen": "Geometría fuente + regla fotográfica funcional Walsh.",
+        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición."
+      }
+    },
+    {
+      "codigo": "flora_vegetacion.evaluacion_cualitativa",
+      "nombre": "EVALUACIÓN CUALITATIVA DE FLORA Y VEGETACIÓN",
+      "especialidad": "flora_vegetacion",
+      "clase": "todas",
+      "aplicacion": {
+        "texto": "Todas las estaciones de muestreo de flora y vegetación.",
+        "condicion": null
+      },
+      "unidad": {
+        "tipo": "recorrido",
+        "tipos_adicionales": [],
+        "texto": "Recorrido alrededor de la estación (radio aproximado 100 m)."
+      },
+      "esfuerzo": { "estandar": null, "za_ef": null },
+      "horario": null,
+      "geometria": {
+        "tipo": "inicio_fin",
+        "texto": "Recorrido alrededor de la estación (radio aproximado 100 m); track funcional de app",
+        "vinculo_metodo": null,
+        "detalle": null
+      },
+      "track": true,
+      "fotos": {
+        "contexto": {
+          "cantidad_por_unidad": null,
+          "cardinales": false,
+          "reutiliza_metodo": "flora_vegetacion.puntos_intercepcion",
+          "texto": "Reutilizar panorámicas representativas ya existentes de la estación; no exigir duplicación sistemática."
+        },
+        "metodologicas": {
+          "minimo": 2,
+          "texto": "2 por estación/método, semipanorámicas laterales/oblicuas: especialista realizando búsqueda libre, identificación o registro de especie."
+        }
+      },
+      "campos_ejecucion": [],
+      "campos": [
+        {
+          "clave": "duracion_min",
+          "etiqueta": "Duración (min), si se captura",
+          "tipo": "entero",
+          "requerido": false
+        }
+      ],
+      "registros": {
+        "etiqueta": "Especies registradas",
+        "campos": [
+          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "forma_crecimiento",
+            "etiqueta": "Forma de crecimiento",
+            "tipo": "texto",
+            "requerido": false
+          },
+          {
+            "clave": "estado_fenologico",
+            "etiqueta": "Estado fenológico observado",
+            "tipo": "texto",
+            "requerido": false
+          }
+        ]
+      },
+      "validaciones": [
+        {
+          "tipo": "geometria",
+          "tipo_control": "obligatorio",
+          "texto": "Registrar inicio/fin del recorrido."
+        },
+        { "tipo": "track", "tipo_control": "obligatorio", "texto": "Registrar track." },
+        {
+          "tipo": "fotos_metodologicas",
+          "minimo": 2,
+          "tipo_control": "obligatorio",
+          "texto": "Evidencia fotográfica metodológica."
+        }
+      ],
+      "vinculo": {
+        "texto": "No crear unidades artificiales adicionales; el track documenta el ámbito recorrido como regla de app.",
+        "metodos": []
+      },
+      "fuente": {
+        "estado": "CERRADO COMO REGLA APP",
+        "origen": "La fuente no exige geometría específica; el track se incorpora como control funcional de la app.",
+        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad."
+      }
+    },
+    {
+      "codigo": "flora_vegetacion.formas_crecimiento_fenologia",
+      "nombre": "FORMAS DE CRECIMIENTO Y ESTADOS FENOLÓGICOS",
+      "especialidad": "flora_vegetacion",
+      "clase": "atributo",
+      "aplicacion": {
+        "texto": "Metodologías que contemplen el registro de forma de crecimiento o estado fenológico.",
+        "condicion": null
+      },
+      "unidad": { "tipo": "atributo", "tipos_adicionales": [], "texto": null },
+      "esfuerzo": { "estandar": null, "za_ef": null },
+      "horario": null,
+      "geometria": {
+        "tipo": "hereda",
+        "texto": "Hereda la geometría del método donde se registra",
+        "vinculo_metodo": null,
+        "detalle": null
+      },
+      "track": false,
+      "fotos": {
+        "contexto": {
+          "cantidad_por_unidad": null,
+          "cardinales": false,
+          "reutiliza_metodo": null,
+          "texto": "No genera fotos de contexto propias."
+        },
+        "metodologicas": {
+          "minimo": 0,
+          "texto": "No aplica foto metodológica independiente; se documenta dentro del método de flora correspondiente."
+        }
+      },
+      "campos_ejecucion": [],
+      "campos": [
+        {
+          "clave": "forma_crecimiento",
+          "etiqueta": "Forma de crecimiento",
+          "tipo": "texto",
+          "requerido": false
+        },
+        {
+          "clave": "estado_fenologico",
+          "etiqueta": "Estado fenológico",
+          "tipo": "texto",
+          "requerido": false
+        }
+      ],
+      "registros": null,
+      "validaciones": [
+        {
+          "tipo": "campos_obligatorios",
+          "tipo_control": "obligatorio",
+          "texto": "Validar que los campos científicos se asocien al registro de flora correspondiente."
+        }
+      ],
+      "vinculo": { "texto": "No tratar como método o esfuerzo independiente.", "metodos": [] },
+      "fuente": {
+        "estado": "CERRADO COMO ATRIBUTO",
+        "origen": "Apartado científico, no unidad operativa independiente.",
+        "pendiente": "No aplica asignación nominal independiente."
+      }
+    },
+    {
+      "codigo": "epifitas.vasculares",
+      "nombre": "EPÍFITAS VASCULARES",
+      "especialidad": "epifitas",
+      "clase": "condicional",
+      "aplicacion": {
+        "texto": "Estaciones con cobertura arbórea y todas las estaciones ubicadas en zonas de amortiguamiento y/o ecosistemas frágiles, aunque no correspondan a bosques. Si no existen forófitos, registrar esa condición.",
+        "condicion": { "tipo": "za_ef_o_manual" }
+      },
+      "unidad": {
+        "tipo": "arbol",
+        "tipos_adicionales": [],
+        "texto": "Árbol hospedero con diámetro a la altura del pecho (DAP) igual o mayor a 10 cm, dividido en 6 secciones: 1 base del tronco; 2a parte inferior del tronco; 2b parte superior del tronco; 3 parte interior de la copa; 4 parte media de la copa; 5 parte exterior de la copa."
+      },
+      "esfuerzo": {
+        "estandar": {
+          "cantidad": 10,
+          "unidad": "árboles hospederos",
+          "texto": "10 árboles hospederos."
+        },
+        "za_ef": { "cantidad": 20, "texto": "20 árboles hospederos." }
+      },
+      "horario": null,
+      "geometria": {
+        "tipo": "punto",
+        "texto": "Punto georreferenciado en la app en la base de cada árbol hospedero",
+        "vinculo_metodo": null,
+        "detalle": null
+      },
+      "track": false,
+      "fotos": {
+        "contexto": {
+          "cantidad_por_unidad": 1,
+          "cardinales": false,
+          "reutiliza_metodo": null,
+          "texto": "1 panorámica por árbol hospedero mostrando el forófito completo y suficiente entorno para reconocer cobertura/hábitat."
+        },
+        "metodologicas": {
+          "minimo": 2,
+          "texto": "2 por estación/método, semipanorámicas laterales/oblicuas: especialista evaluando el forófito y sus secciones."
+        }
+      },
+      "campos_ejecucion": [
+        {
+          "clave": "sin_forofitos",
+          "etiqueta": "No existen forófitos en la estación",
+          "tipo": "booleano",
+          "requerido": false
+        }
+      ],
+      "campos": [
+        {
+          "clave": "especie_hospedero",
+          "etiqueta": "Especie del árbol hospedero",
+          "tipo": "texto",
+          "requerido": true
+        },
+        {
+          "clave": "dap_cm",
+          "etiqueta": "DAP (cm)",
+          "tipo": "decimal",
+          "requerido": true,
+          "ayuda": "≥ 10 cm"
+        }
+      ],
+      "registros": {
+        "etiqueta": "Epífitas vasculares",
+        "campos": [
+          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "seccion",
+            "etiqueta": "Sección del árbol",
+            "tipo": "opcion",
+            "opciones": ["1", "2a", "2b", "3", "4", "5"],
+            "requerido": true
+          },
+          {
+            "clave": "n_individuos",
+            "etiqueta": "Número de individuos",
+            "tipo": "entero",
+            "requerido": true
+          },
+          {
+            "clave": "estado_fenologico",
+            "etiqueta": "Estado fenológico observable",
+            "tipo": "texto",
+            "requerido": false
+          }
+        ]
+      },
+      "validaciones": [
+        {
+          "tipo": "cantidad_unidades",
+          "minimo": 10,
+          "minimo_za_ef": 20,
+          "tipo_control": "obligatorio",
+          "texto": "Validar número de árboles."
+        },
+        {
+          "tipo": "campos_obligatorios",
+          "tipo_control": "obligatorio",
+          "texto": "Código de forófito."
+        },
+        { "tipo": "geometria", "tipo_control": "obligatorio", "texto": "Coordenada base." },
+        {
+          "tipo": "fotos_contexto",
+          "cantidad_por_unidad": 1,
+          "tipo_control": "obligatorio",
+          "texto": "Foto panorámica."
+        },
+        {
+          "tipo": "fotos_metodologicas",
+          "minimo": 2,
+          "tipo_control": "obligatorio",
+          "texto": "2 por estación/método (F-06)."
+        }
+      ],
+      "vinculo": {
+        "texto": "La geometría del árbol se reutiliza para epífitas no vasculares cuando se evalúa el mismo forófito.",
+        "metodos": ["epifitas.no_vasculares"]
+      },
+      "fuente": {
+        "estado": "CERRADO",
+        "origen": "Geometría fuente + regla fotográfica funcional Walsh.",
+        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición."
+      }
+    },
+    {
+      "codigo": "epifitas.no_vasculares",
+      "nombre": "EPÍFITAS NO VASCULARES",
+      "especialidad": "epifitas",
+      "clase": "condicional",
+      "aplicacion": {
+        "texto": "Estaciones con cobertura arbórea y todas las estaciones ubicadas en zonas de amortiguamiento y/o ecosistemas frágiles, aunque no correspondan a bosques. Aplicar en las mismas estaciones/forófitos definidos para epífitas vasculares.",
+        "condicion": { "tipo": "za_ef_o_manual" }
+      },
+      "unidad": {
+        "tipo": "arbol",
+        "tipos_adicionales": [],
+        "texto": "Árbol hospedero con DAP igual o mayor a 10 cm. Evaluar seis grillas de 50 × 20 cm por árbol, una en cada sección utilizada para las epífitas vasculares. Cada grilla estará dividida en 100 celdas de 10 cm²."
+      },
+      "esfuerzo": {
+        "estandar": {
+          "cantidad": 10,
+          "unidad": "árboles hospederos",
+          "texto": "10 árboles hospederos."
+        },
+        "za_ef": { "cantidad": 20, "texto": "20 árboles hospederos." }
+      },
+      "horario": null,
+      "geometria": {
+        "tipo": "vinculada",
+        "texto": "Mismo punto/coordenada del árbol hospedero usado en epífitas vasculares",
+        "vinculo_metodo": "epifitas.vasculares",
+        "detalle": null
+      },
+      "track": false,
+      "fotos": {
+        "contexto": {
+          "cantidad_por_unidad": null,
+          "cardinales": false,
+          "reutiliza_metodo": "epifitas.vasculares",
+          "texto": "No repetir panorámica del árbol cuando el mismo forófito ya fue documentado."
+        },
+        "metodologicas": {
+          "minimo": 2,
+          "texto": "2 por estación/método, semipanorámicas laterales/oblicuas: especialista colocando/evaluando la grilla sobre el forófito; debe apreciarse grilla y sección."
+        }
+      },
+      "campos_ejecucion": [],
+      "campos": [
+        {
+          "clave": "especie_hospedero",
+          "etiqueta": "Especie del árbol hospedero",
+          "tipo": "texto",
+          "requerido": true
+        },
+        { "clave": "dap_cm", "etiqueta": "DAP (cm)", "tipo": "decimal", "requerido": true }
+      ],
+      "registros": {
+        "etiqueta": "Epífitas no vasculares",
+        "campos": [
+          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "seccion",
+            "etiqueta": "Sección del árbol hospedero",
+            "tipo": "opcion",
+            "opciones": ["1", "2a", "2b", "3", "4", "5"],
+            "requerido": true
+          },
+          {
+            "clave": "celdas_ocupadas",
+            "etiqueta": "Número de celdas ocupadas",
+            "tipo": "entero",
+            "requerido": true,
+            "ayuda": "de 100"
+          }
+        ]
+      },
+      "validaciones": [
+        {
+          "tipo": "vinculo_unidad",
+          "metodo": "epifitas.vasculares",
+          "tipo_control": "obligatorio",
+          "texto": "Validar vínculo al árbol."
+        },
+        {
+          "tipo": "campos_obligatorios",
+          "tipo_control": "obligatorio",
+          "texto": "Estratificación/secciones."
+        },
+        {
+          "tipo": "fotos_metodologicas",
+          "minimo": 2,
+          "tipo_control": "obligatorio",
+          "texto": "Evidencia de aplicación de grilla."
+        },
+        {
+          "tipo": "cantidad_unidades",
+          "minimo": 10,
+          "minimo_za_ef": 20,
+          "tipo_control": "obligatorio",
+          "texto": "10 árboles hospederos; 20 en ZA/EF."
+        }
+      ],
+      "vinculo": {
+        "texto": "Vincular al mismo código y coordenada del forófito; evitar duplicación.",
+        "metodos": ["epifitas.vasculares"]
+      },
+      "fuente": {
+        "estado": "CERRADO",
+        "origen": "Reutilización espacial aprobada + regla fotográfica funcional Walsh.",
+        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición."
+      }
+    },
+    {
+      "codigo": "recursos_forestales.parcela_forestal",
+      "nombre": "PARCELA FORESTAL",
+      "especialidad": "recursos_forestales",
+      "clase": "condicional",
+      "aplicacion": {
+        "texto": "Estaciones con cobertura arbórea, incluidos bosques, plantaciones forestales y matorrales con componente forestal. Aplicar solo en estaciones con cobertura arbórea/componente forestal.",
+        "condicion": { "tipo": "manual" }
+      },
+      "unidad": {
+        "tipo": "parcela",
+        "tipos_adicionales": [],
+        "texto": "Parcela de 250 × 20 m (0,5 ha), dividida en 5 subparcelas consecutivas de 50 × 20 m, numeradas del 1 al 5. En cada subdivisión, instalar una subparcela de 10 × 10 m para latizales y una de 5 × 5 m para brinzales (5 por categoría: 500 m² de latizales y 125 m² de brinzales)."
+      },
+      "esfuerzo": {
+        "estandar": { "cantidad": 1, "unidad": "parcela forestal", "texto": "1 parcela forestal." },
+        "za_ef": {
+          "cantidad": 2,
+          "texto": "2 parcelas, conservando la distribución de las subparcelas de regeneración en cada parcela."
+        }
+      },
+      "horario": null,
+      "geometria": {
+        "tipo": "parcela_forestal",
+        "texto": "Vértices georreferenciados en la app de la parcela principal de 250 × 20 m y vértices georreferenciados en la app de cada una de las 5 subparcelas de latizales de 10 × 10 m y de las 5 subparcelas de brinzales de 5 × 5 m.",
+        "vinculo_metodo": null,
+        "detalle": {
+          "vertices_minimos": 4,
+          "subparcelas": [
+            { "tipo": "latizales", "cantidad": 5, "dimensiones": "10 × 10 m" },
+            { "tipo": "brinzales", "cantidad": 5, "dimensiones": "5 × 5 m" }
+          ]
+        }
+      },
+      "track": false,
+      "fotos": {
+        "contexto": {
+          "cantidad_por_unidad": 16,
+          "cardinales": false,
+          "reutiliza_metodo": null,
+          "texto": "Parcela principal: 6 panorámicas distribuidas longitudinalmente (inicio, ~50, 100, 150, 200 y final), alternando vista interior/centro y lateral. Regeneración: 1 foto interior por cada subparcela (5 latizales + 5 brinzales = 10 fotos interiores)."
+        },
+        "metodologicas": {
+          "minimo": 2,
+          "texto": "2 por parcela, semipanorámicas laterales/oblicuas: una evaluación de árboles/fustales y una evaluación de regeneración."
+        }
+      },
+      "campos_ejecucion": [],
+      "campos": [],
+      "registros": {
+        "etiqueta": "Individuos",
+        "campos": [
+          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "categoria",
+            "etiqueta": "Categoría de desarrollo",
+            "tipo": "opcion",
+            "opciones": ["árbol", "fustal", "latizal", "brinzal"],
+            "requerido": true
+          },
+          {
+            "clave": "subparcela",
+            "etiqueta": "Subparcela (1–5)",
+            "tipo": "entero",
+            "requerido": false
+          },
+          { "clave": "dap_cm", "etiqueta": "DAP (cm)", "tipo": "decimal", "requerido": false },
+          {
+            "clave": "altura_total_m",
+            "etiqueta": "Altura total (m)",
+            "tipo": "decimal",
+            "requerido": false
+          },
+          {
+            "clave": "altura_comercial_m",
+            "etiqueta": "Altura comercial (m)",
+            "tipo": "decimal",
+            "requerido": false
+          },
+          {
+            "clave": "diametro_fuste_cm",
+            "etiqueta": "Diámetro del fuste (cm), regeneración",
+            "tipo": "decimal",
+            "requerido": false
+          },
+          {
+            "clave": "estado_fenologico",
+            "etiqueta": "Estado fenológico observable",
+            "tipo": "texto",
+            "requerido": false
+          }
+        ]
+      },
+      "validaciones": [
+        {
+          "tipo": "cantidad_unidades",
+          "minimo": 1,
+          "minimo_za_ef": 2,
+          "tipo_control": "obligatorio",
+          "texto": "1 parcela forestal; 2 en ZA/EF."
+        },
+        {
+          "tipo": "geometria",
+          "tipo_control": "obligatorio",
+          "texto": "Validar parcela principal 250 × 20 m, 5 subdivisiones de 50 × 20 m, 5 subparcelas de latizales 10 × 10 m y 5 subparcelas de brinzales 5 × 5 m; verificar 500 m² y 125 m²; vértices georreferenciados de la parcela principal y de cada subparcela."
+        },
+        {
+          "tipo": "fotos_contexto",
+          "cantidad_por_unidad": 16,
+          "tipo_control": "obligatorio",
+          "texto": "6 panorámicas principales y 10 fotos interiores de regeneración."
+        },
+        {
+          "tipo": "campos_obligatorios",
+          "tipo_control": "obligatorio",
+          "texto": "Códigos únicos."
+        },
+        {
+          "tipo": "fotos_metodologicas",
+          "minimo": 2,
+          "tipo_control": "obligatorio",
+          "texto": "2 por parcela."
+        }
+      ],
+      "vinculo": {
+        "texto": "No reemplazar la georreferenciación de los vértices con fotografías.",
+        "metodos": []
+      },
+      "fuente": {
+        "estado": "CERRADO",
+        "origen": "Ajuste funcional aprobado por Walsh: 5 subparcelas por categoría (subdivisiones 1–5), 500 m² para latizales y 125 m² para brinzales, con vértices georreferenciados en la app de parcela principal y subparcelas.",
+        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición."
+      }
+    },
+    {
+      "codigo": "bofedales.intercepcion_cuadrantes",
+      "nombre": "EVALUACIÓN MEDIANTE PUNTOS DE INTERCEPCIÓN Y CUADRANTES",
+      "especialidad": "bofedales",
+      "clase": "condicional",
+      "aplicacion": {
+        "texto": "Bofedales evaluados. Aplicar solo en estaciones correspondientes a bofedales.",
+        "condicion": { "tipo": "uv_contiene", "fragmentos": ["bofedal"] }
+      },
+      "unidad": {
+        "tipo": "transecto",
+        "tipos_adicionales": ["cuadrante"],
+        "texto": "Transectos de 50 m con 100 lecturas cada 0,50 m y cuadrantes de 1 × 1 m."
+      },
+      "esfuerzo": {
+        "estandar": {
+          "cantidad": null,
+          "unidad": "transectos y cuadrantes según superficie",
+          "texto": "Esfuerzo metodológico de referencia según superficie: hasta 0,25 ha = 1 transecto/3 cuadrantes; >0,25–1 ha = 2/6; >1–5 ha = 3/9; >5–10 ha = 4/12; >10–20 ha = 5/15; >20–50 ha = 6/16; >50 ha = 0,15 transectos/ha y 0,4 cuadrantes/ha. La app muestra esta referencia, pero no redondea, limita ni bloquea el número de unidades; el especialista define en campo el número entero final y puede seguir agregando unidades."
+        },
+        "za_ef": {
+          "cantidad": null,
+          "texto": "ZA/EF: duplicación metodológica de referencia. La app informa la referencia y permite registrar el número de unidades que defina el especialista; no bloquea cantidades adicionales."
+        }
+      },
+      "horario": null,
+      "geometria": {
+        "tipo": "inicio_fin",
+        "texto": "Transectos: inicio + fin georreferenciados en la app; cuadrantes: punto georreferenciado en la app central",
+        "vinculo_metodo": null,
+        "por_tipo": { "cuadrante": "punto" },
+        "detalle": null
+      },
+      "track": false,
+      "fotos": {
+        "contexto": {
+          "cantidad_por_unidad": 8,
+          "por_tipo": { "cuadrante": 1 },
+          "cardinales": true,
+          "reutiliza_metodo": null,
+          "texto": "Transectos: 8 panorámicas (4 N-S-E-O inicio + 4 N-S-E-O final). Cuadrantes 1 × 1 m: 1 foto interior por cuadrante."
+        },
+        "metodologicas": {
+          "minimo": 2,
+          "texto": "2 por estación/bofedal: una del especialista realizando lecturas en transecto y otra evaluando cuadrante; semipanorámicas laterales/oblicuas."
+        }
+      },
+      "campos_ejecucion": [
+        {
+          "clave": "superficie_ha",
+          "etiqueta": "Superficie del bofedal (ha)",
+          "tipo": "decimal",
+          "requerido": false,
+          "ayuda": "Para mostrar el esfuerzo de referencia"
+        }
+      ],
+      "campos": [
+        {
+          "clave": "cobertura_vegetal_viva",
+          "etiqueta": "Cobertura vegetal viva (%)",
+          "tipo": "decimal",
+          "requerido": false
+        }
+      ],
+      "registros": {
+        "etiqueta": "Especies / lecturas",
+        "campos": [
+          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": false },
+          {
+            "clave": "presencia_vegetacion",
+            "etiqueta": "Presencia de vegetación",
+            "tipo": "booleano",
+            "requerido": true
+          },
+          {
+            "clave": "n_individuos",
+            "etiqueta": "Número de individuos",
+            "tipo": "entero",
+            "requerido": false
+          },
+          {
+            "clave": "cobertura",
+            "etiqueta": "Cobertura por especie (%)",
+            "tipo": "decimal",
+            "requerido": false
+          }
+        ]
+      },
+      "validaciones": [
+        {
+          "tipo": "referencia_esfuerzo",
+          "tipo_control": "criterio_humano",
+          "texto": "Mostrar el esfuerzo de referencia según superficie; no bloquear por cantidad ni aplicar redondeos automáticos. Permitir agregar unidades adicionales."
+        },
+        {
+          "tipo": "geometria",
+          "tipo_control": "obligatorio",
+          "texto": "Validar la completitud de cada unidad registrada (geometría)."
+        },
+        {
+          "tipo": "campos_obligatorios",
+          "tipo_control": "obligatorio",
+          "texto": "Validar lecturas y campos de cada unidad registrada."
+        },
+        {
+          "tipo": "fotos_contexto",
+          "cantidad_por_unidad": 8,
+          "tipo_control": "obligatorio",
+          "texto": "Fotos de cada unidad registrada (8 por transecto; 1 interior por cuadrante)."
+        },
+        {
+          "tipo": "fotos_metodologicas",
+          "minimo": 2,
+          "tipo_control": "obligatorio",
+          "texto": "2 por estación/bofedal."
+        }
+      ],
+      "vinculo": {
+        "texto": "Aplicar la misma lógica fotográfica de flora, ajustando esfuerzo a superficie del bofedal.",
+        "metodos": ["bofedales.biomasa"]
+      },
+      "fuente": {
+        "estado": "CERRADO – CRITERIO HUMANO DE CAMPO",
+        "origen": "Esfuerzo de referencia de la metodología + decisión funcional aprobada: número final de unidades definido por el especialista en campo; sin redondeo ni bloqueo por cantidad.",
+        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición."
+      }
+    },
+    {
+      "codigo": "bofedales.biomasa",
+      "nombre": "BIOMASA AÉREA DEL BOFEDAL",
+      "especialidad": "bofedales",
+      "clase": "condicional",
+      "aplicacion": {
+        "texto": "Bofedales evaluados, utilizando las ubicaciones de los cuadrantes de cobertura vegetal. Aplicar solo en estaciones de bofedal donde se ejecuten los cuadrantes de cobertura asociados.",
+        "condicion": { "tipo": "uv_contiene", "fragmentos": ["bofedal"] }
+      },
+      "unidad": {
+        "tipo": "cuadrante",
+        "tipos_adicionales": [],
+        "texto": "Cuadrante de 25 × 25 cm, equivalente a 0,0625 m²."
+      },
+      "esfuerzo": {
+        "estandar": {
+          "cantidad": null,
+          "unidad": "cuadrantes según superficie",
+          "texto": "Esfuerzo metodológico de referencia: hasta 0,25 ha = 3 cuadrantes; >0,25–1 ha = 6; >1–5 ha = 9; >5–10 ha = 12; >10–20 ha = 15; >20–50 ha = 16; >50 ha = 0,4 cuadrantes/ha. La app no redondea, limita ni bloquea; el especialista define en campo el número entero final y puede continuar agregando unidades."
+        },
+        "za_ef": {
+          "cantidad": null,
+          "texto": "ZA/EF: duplicación metodológica de referencia. La app informa la referencia, pero el número final de cuadrantes queda a criterio del especialista de campo."
+        }
+      },
+      "horario": null,
+      "geometria": {
+        "tipo": "vinculada",
+        "texto": "Reutiliza la ubicación/coordenada del cuadrante de cobertura vegetal asociado",
+        "vinculo_metodo": "bofedales.intercepcion_cuadrantes",
+        "detalle": null
+      },
+      "track": false,
+      "fotos": {
+        "contexto": {
+          "cantidad_por_unidad": 1,
+          "cardinales": false,
+          "reutiliza_metodo": "bofedales.intercepcion_cuadrantes",
+          "texto": "1 foto por cuadrante de 25 × 25 cm antes del corte, mostrando claramente la unidad de corte. No repetir panorámicas del entorno."
+        },
+        "metodologicas": {
+          "minimo": 2,
+          "texto": "2 por estación/bofedal, semipanorámicas laterales/oblicuas: corte de vegetación + acondicionamiento/codificación de muestra."
+        }
+      },
+      "campos_ejecucion": [],
+      "campos": [
+        {
+          "clave": "cuadrante_cobertura_asociado",
+          "etiqueta": "Cuadrante de cobertura asociado",
+          "tipo": "texto",
+          "requerido": true
+        },
+        {
+          "clave": "codigo_muestra",
+          "etiqueta": "Código de muestra/bolsa",
+          "tipo": "texto",
+          "requerido": true
+        },
+        {
+          "clave": "superficie_recolectada_cm2",
+          "etiqueta": "Superficie recolectada (cm²)",
+          "tipo": "decimal",
+          "requerido": true
+        },
+        {
+          "clave": "superficie_total_cm2",
+          "etiqueta": "Superficie total recolectada (cm²)",
+          "tipo": "decimal",
+          "requerido": false
+        },
+        {
+          "clave": "peso_seco_g",
+          "etiqueta": "Peso seco de la vegetación (g)",
+          "tipo": "decimal",
+          "requerido": false
+        }
+      ],
+      "registros": null,
+      "validaciones": [
+        {
+          "tipo": "vinculo_unidad",
+          "metodo": "bofedales.intercepcion_cuadrantes",
+          "tipo_control": "obligatorio",
+          "texto": "Validar vínculo con el cuadrante de cobertura."
+        },
+        {
+          "tipo": "campos_obligatorios",
+          "tipo_control": "obligatorio",
+          "texto": "Superficie recolectada, código de muestra/bolsa."
+        },
+        {
+          "tipo": "fotos_contexto",
+          "cantidad_por_unidad": 1,
+          "tipo_control": "obligatorio",
+          "texto": "Fotos."
+        },
+        {
+          "tipo": "referencia_esfuerzo",
+          "tipo_control": "criterio_humano",
+          "texto": "Mostrar el esfuerzo de referencia, sin bloquear por cantidad ni aplicar redondeos; permitir unidades adicionales."
+        },
+        {
+          "tipo": "fotos_metodologicas",
+          "minimo": 2,
+          "tipo_control": "obligatorio",
+          "texto": "2 por estación/bofedal."
+        }
+      ],
+      "vinculo": {
+        "texto": "Vincular cada muestra al cuadrante de cobertura asociado y su coordenada.",
+        "metodos": ["bofedales.intercepcion_cuadrantes"]
+      },
+      "fuente": {
+        "estado": "CERRADO – CRITERIO HUMANO DE CAMPO",
+        "origen": "Esfuerzo de referencia y reutilización espacial de la metodología + decisión funcional aprobada: número final definido por el especialista, sin redondeo ni bloqueo.",
+        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición."
+      }
+    },
+    {
+      "codigo": "bofedales.suelo_agua",
+      "nombre": "SUELO Y NIVEL DE AGUA DEL BOFEDAL",
+      "especialidad": "bofedales",
+      "clase": "condicional",
+      "aplicacion": {
+        "texto": "Bofedales evaluados. Aplicar solo en estaciones correspondientes a bofedales.",
+        "condicion": { "tipo": "uv_contiene", "fragmentos": ["bofedal"] }
+      },
+      "unidad": {
+        "tipo": "punto",
+        "tipos_adicionales": [],
+        "texto": "Punto de medición o de recolección de muestras."
+      },
+      "esfuerzo": {
+        "estandar": {
+          "cantidad": null,
+          "unidad": "mediciones/muestras por parámetro según superficie",
+          "texto": "Esfuerzo metodológico de referencia por parámetro: hasta 0,25 ha = 1 medición/muestra; >0,25–1 ha = 2; >1–5 ha = 3; >5–10 ha = 4; >10–20 ha = 5; >20–50 ha = 6. Para >50 ha, el especialista define en campo el número de unidades. La app no extrapola, redondea ni bloquea."
+        },
+        "za_ef": {
+          "cantidad": null,
+          "texto": "ZA/EF: duplicación metodológica de referencia para los rangos definidos. La app informa la referencia, pero el especialista define el número final de unidades y puede registrar unidades adicionales."
+        }
+      },
+      "horario": null,
+      "geometria": {
+        "tipo": "punto",
+        "texto": "Punto georreferenciado en la app por medición o muestra",
+        "vinculo_metodo": null,
+        "detalle": null
+      },
+      "track": false,
+      "fotos": {
+        "contexto": {
+          "cantidad_por_unidad": 2,
+          "cardinales": false,
+          "reutiliza_metodo": null,
+          "texto": "2 panorámicas por punto en sentidos opuestos para mostrar vegetación, humedad y contexto inmediato."
+        },
+        "metodologicas": {
+          "minimo": 1,
+          "texto": "Una semipanorámica lateral/oblicua por cada procedimiento efectivamente ejecutado: barreno/turba, nivel de agua, materia orgánica y densidad aparente."
+        }
+      },
+      "campos_ejecucion": [],
+      "campos": [
+        {
+          "clave": "parametro",
+          "etiqueta": "Parámetro evaluado",
+          "tipo": "opcion",
+          "opciones": [
+            "profundidad de turba",
+            "nivel de agua",
+            "materia orgánica",
+            "densidad aparente"
+          ],
+          "requerido": true,
+          "ayuda": "Nivel de agua: temporada seca"
+        },
+        { "clave": "fecha", "etiqueta": "Fecha", "tipo": "fecha", "requerido": true },
+        {
+          "clave": "profundidad_turba_cm",
+          "etiqueta": "Profundidad de turba (cm)",
+          "tipo": "decimal",
+          "requerido": false
+        },
+        {
+          "clave": "profundidad_nivel_agua_cm",
+          "etiqueta": "Profundidad del nivel de agua (cm)",
+          "tipo": "decimal",
+          "requerido": false
+        },
+        {
+          "clave": "materia_organica_pct",
+          "etiqueta": "Contenido de materia orgánica (%)",
+          "tipo": "decimal",
+          "requerido": false
+        },
+        {
+          "clave": "densidad_aparente_g_cm3",
+          "etiqueta": "Densidad aparente (g/cm³)",
+          "tipo": "decimal",
+          "requerido": false
+        },
+        {
+          "clave": "volumen_cilindro_cm3",
+          "etiqueta": "Volumen del cilindro (cm³), cuando corresponda",
+          "tipo": "decimal",
+          "requerido": false
+        }
+      ],
+      "registros": null,
+      "validaciones": [
+        {
+          "tipo": "referencia_esfuerzo",
+          "tipo_control": "criterio_humano",
+          "texto": "Mostrar el esfuerzo de referencia por superficie y parámetro; no bloquear por cantidad. Para >50 ha, permitir que el especialista ingrese y ejecute el número de unidades definido en campo."
+        },
+        {
+          "tipo": "campos_obligatorios",
+          "tipo_control": "obligatorio",
+          "texto": "Validar código, parámetro, dato/muestra."
+        },
+        { "tipo": "geometria", "tipo_control": "obligatorio", "texto": "Validar coordenada." },
+        {
+          "tipo": "fotos_contexto",
+          "cantidad_por_unidad": 2,
+          "tipo_control": "obligatorio",
+          "texto": "Validar fotos."
+        },
+        {
+          "tipo": "fotos_metodologicas",
+          "minimo": 1,
+          "tipo_control": "obligatorio",
+          "texto": "Una por procedimiento ejecutado."
+        }
+      ],
+      "vinculo": {
+        "texto": "Permitir puntos independientes por parámetro y vincularlos cuando coincidan; no imponer coincidencia no definida por la fuente.",
+        "metodos": []
+      },
+      "fuente": {
+        "estado": "CERRADO – CRITERIO HUMANO DE CAMPO",
+        "origen": "Esfuerzo base y temporalidad de la metodología + decisión funcional aprobada: número final de unidades definido en campo; sin extrapolación, redondeo ni bloqueo.",
+        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición."
+      }
+    },
+    {
+      "codigo": "agrostologia.transeccion_al_paso",
+      "nombre": "TRANSECCIÓN AL PASO",
+      "especialidad": "agrostologia",
+      "clase": "condicional",
+      "aplicacion": {
+        "texto": "Estaciones de muestreo con pastos naturales que constituyan recursos forrajeros. Aplicar solo en estaciones con pastos naturales que constituyan recurso forrajero.",
+        "condicion": { "tipo": "manual" }
+      },
+      "unidad": {
+        "tipo": "transecto",
+        "tipos_adicionales": [],
+        "texto": "Transecto de 100 m, con 100 registros, utilizando un anillo censador de 2,5 cm de diámetro."
+      },
+      "esfuerzo": {
+        "estandar": { "cantidad": 1, "unidad": "transecto", "texto": "1 transecto." },
+        "za_ef": { "cantidad": 2, "texto": "2 transectos." }
+      },
+      "horario": null,
+      "geometria": {
+        "tipo": "inicio_fin",
+        "texto": "Línea de 100 m; inicio + fin georreferenciados en la app como regla funcional de app",
+        "vinculo_metodo": null,
+        "detalle": null
+      },
+      "track": false,
+      "fotos": {
+        "contexto": {
+          "cantidad_por_unidad": 8,
+          "cardinales": true,
+          "reutiliza_metodo": null,
+          "texto": "8 panorámicas por transecto: 4 N-S-E-O al inicio + 4 N-S-E-O al final."
+        },
+        "metodologicas": {
+          "minimo": 2,
+          "texto": "2 por transecto/estación: una semipanorámica lateral/oblicua del uso del anillo censador + una de medición de altura de especie forrajera indicadora."
+        }
+      },
+      "campos_ejecucion": [],
+      "campos": [
+        {
+          "clave": "tipo_ganado",
+          "etiqueta": "Tipo de ganado",
+          "tipo": "texto",
+          "requerido": false
+        },
+        {
+          "clave": "invasoras_presencia",
+          "etiqueta": "Presencia cualitativa de invasoras",
+          "tipo": "opcion",
+          "opciones": ["alta", "media", "baja", "nula"],
+          "requerido": true
+        },
+        {
+          "clave": "indicadoras_sobrepastoreo",
+          "etiqueta": "Plantas indicadoras de sobrepastoreo",
+          "tipo": "booleano",
+          "requerido": true
+        },
+        {
+          "clave": "suelo_compactado",
+          "etiqueta": "Indicadoras de suelo compactado",
+          "tipo": "booleano",
+          "requerido": true
+        },
+        {
+          "clave": "especie_indicadora",
+          "etiqueta": "Especie forrajera indicadora",
+          "tipo": "texto",
+          "requerido": true
+        },
+        {
+          "clave": "altura_indicadora_cm",
+          "etiqueta": "Altura de la especie indicadora (cm)",
+          "tipo": "decimal",
+          "requerido": true
+        },
+        {
+          "clave": "altura_referencia_sin_pastoreo_cm",
+          "etiqueta": "Altura de referencia sin pastoreo (cm)",
+          "tipo": "decimal",
+          "requerido": true
+        }
+      ],
+      "registros": {
+        "etiqueta": "Registros (100)",
+        "campos": [
+          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": false },
+          {
+            "clave": "categoria",
+            "etiqueta": "Mantillo / suelo desnudo / roca / erosión",
+            "tipo": "opcion",
+            "opciones": ["especie", "mantillo", "suelo desnudo", "roca", "evidencia de erosión"],
+            "requerido": true
+          },
+          {
+            "clave": "forma_crecimiento",
+            "etiqueta": "Forma de crecimiento",
+            "tipo": "texto",
+            "requerido": false
+          },
+          {
+            "clave": "estado_fenologico",
+            "etiqueta": "Estado fenológico",
+            "tipo": "texto",
+            "requerido": false
+          },
+          {
+            "clave": "exotica_invasora",
+            "etiqueta": "Especie exótica o invasora",
+            "tipo": "booleano",
+            "requerido": false
+          }
+        ]
+      },
+      "validaciones": [
+        {
+          "tipo": "cantidad_registros",
+          "minimo": 100,
+          "tipo_control": "obligatorio",
+          "texto": "Validar 100 registros."
+        },
+        {
+          "tipo": "geometria",
+          "tipo_control": "obligatorio",
+          "texto": "Validar longitud, inicio/fin app."
+        },
+        {
+          "tipo": "fotos_contexto",
+          "cantidad_por_unidad": 8,
+          "tipo_control": "obligatorio",
+          "texto": "Validar fotos."
+        },
+        {
+          "tipo": "campos_obligatorios",
+          "tipo_control": "obligatorio",
+          "texto": "Validar especie indicadora y altura de referencia."
+        },
+        {
+          "tipo": "cantidad_unidades",
+          "minimo": 1,
+          "minimo_za_ef": 2,
+          "tipo_control": "obligatorio",
+          "texto": "1 transecto; 2 en ZA/EF."
+        },
+        {
+          "tipo": "fotos_metodologicas",
+          "minimo": 2,
+          "tipo_control": "obligatorio",
+          "texto": "2 por transecto/estación."
+        }
+      ],
+      "vinculo": {
+        "texto": "La georreferenciación inicio/fin es regla funcional; la fuente no la explicita.",
+        "metodos": []
+      },
+      "fuente": {
+        "estado": "CERRADO COMO REGLA APP",
+        "origen": "Esfuerzo fuente + georreferenciación/fotos definidas funcionalmente.",
+        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición."
+      }
+    },
+    {
+      "codigo": "aves.puntos_conteo",
+      "nombre": "PUNTOS DE CONTEO",
+      "especialidad": "aves",
+      "clase": "condicional",
+      "aplicacion": {
+        "texto": "Estaciones de muestreo de costa y sierra, excepto las ubicadas en lagos, lagunas y cochas.",
+        "condicion": {
+          "tipo": "region_excepto_uv",
+          "regiones": ["COSTA", "SIERRA"],
+          "uv_excluida_contiene": ["lacustre", "laguna", "lago", "cocha"]
+        }
+      },
+      "unidad": {
+        "tipo": "punto",
+        "tipos_adicionales": [],
+        "texto": "Punto de conteo de 10 minutos, sin radio de detección limitado. Separación de 200 m entre puntos de conteo."
+      },
+      "esfuerzo": {
+        "estandar": {
+          "cantidad": 10,
+          "unidad": "puntos de conteo",
+          "texto": "10 puntos de conteo."
+        },
+        "za_ef": { "cantidad": 20, "texto": "20 puntos de conteo." }
+      },
+      "horario": { "ventanas": [{ "inicio": "06:00", "fin": "10:00" }], "texto": "06:00–10:00" },
+      "geometria": {
+        "tipo": "punto",
+        "texto": "Punto georreferenciado en la app individual por punto de conteo",
+        "vinculo_metodo": null,
+        "detalle": null
+      },
+      "track": false,
+      "fotos": {
+        "contexto": {
+          "cantidad_por_unidad": 4,
+          "cardinales": true,
+          "reutiliza_metodo": null,
+          "texto": "4 panorámicas por punto: N-S-E-O, sin zoom y con campo amplio para reconocer UV/hábitat."
+        },
+        "metodologicas": {
+          "minimo": 2,
+          "texto": "Mínimo 2 por estación/método, semipanorámicas laterales/oblicuas: especialista usando binoculares; cuando se use distanciómetro para altura de vuelo, una foto debe mostrar su utilización."
+        }
+      },
+      "campos_ejecucion": [],
+      "campos": [
+        {
+          "clave": "habitat_predominante",
+          "etiqueta": "Hábitat predominante",
+          "tipo": "texto",
+          "requerido": true
+        },
+        {
+          "clave": "otros_habitats",
+          "etiqueta": "Otros hábitats presentes alrededor del punto",
+          "tipo": "texto",
+          "requerido": false
+        },
+        {
+          "clave": "uso_distanciometro",
+          "etiqueta": "Se usó distanciómetro",
+          "tipo": "booleano",
+          "requerido": false
+        }
+      ],
+      "registros": {
+        "etiqueta": "Registros",
+        "campos": [
+          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "n_individuos",
+            "etiqueta": "Número de individuos",
+            "tipo": "entero",
+            "requerido": true
+          },
+          {
+            "clave": "tipo_registro",
+            "etiqueta": "Tipo de registro",
+            "tipo": "opcion",
+            "opciones": ["visual", "auditivo"],
+            "requerido": true
+          },
+          {
+            "clave": "comportamiento",
+            "etiqueta": "Comportamiento observado",
+            "tipo": "opcion",
+            "opciones": ["alimentación", "reposo", "desplazamiento", "reproducción"],
+            "requerido": false
+          },
+          {
+            "clave": "en_vuelo",
+            "etiqueta": "Ave en vuelo",
+            "tipo": "booleano",
+            "requerido": false
+          },
+          {
+            "clave": "altura_vuelo_m",
+            "etiqueta": "Altura de vuelo (m)",
+            "tipo": "decimal",
+            "requerido": false
+          },
+          {
+            "clave": "direccion_vuelo",
+            "etiqueta": "Dirección de vuelo",
+            "tipo": "texto",
+            "requerido": false
+          },
+          {
+            "clave": "tipo_vuelo",
+            "etiqueta": "Tipo de vuelo",
+            "tipo": "texto",
+            "requerido": false
+          }
+        ]
+      },
+      "validaciones": [
+        {
+          "tipo": "duracion_unidad_min",
+          "minutos": 10,
+          "minutos_za_ef": null,
+          "tipo_control": "obligatorio",
+          "texto": "Validar 10 min."
+        },
+        {
+          "tipo": "cantidad_unidades",
+          "minimo": 10,
+          "minimo_za_ef": 20,
+          "tipo_control": "obligatorio",
+          "texto": "Validar número de puntos."
+        },
+        {
+          "tipo": "separacion_minima_m",
+          "metros": 200,
+          "tipo_control": "obligatorio",
+          "texto": "Validar separación de 200 m."
+        },
+        { "tipo": "geometria", "tipo_control": "obligatorio", "texto": "Validar coordenada." },
+        {
+          "tipo": "fotos_contexto",
+          "cantidad_por_unidad": 4,
+          "tipo_control": "obligatorio",
+          "texto": "Validar 4 fotos."
+        },
+        {
+          "tipo": "campos_obligatorios",
+          "tipo_control": "obligatorio",
+          "texto": "Validar hábitat."
+        },
+        {
+          "tipo": "horario",
+          "ventanas": [{ "inicio": "06:00", "fin": "10:00" }],
+          "tipo_control": "obligatorio",
+          "texto": "Validar horario. El uso de playback no forma parte de la validación ni condiciona el cierre (T-04)."
+        },
+        {
+          "tipo": "fotos_metodologicas",
+          "minimo": 2,
+          "tipo_control": "obligatorio",
+          "texto": "Mínimo 2 por estación/método."
+        }
+      ],
+      "vinculo": {
+        "texto": "Fotos metodológicas separadas de las 4 panorámicas del punto; pueden marcarse como candidatas para reporte diario.",
+        "metodos": []
+      },
+      "fuente": {
+        "estado": "CERRADO",
+        "origen": "Metodología fuente + regla fotográfica funcional. Playback queda como comentario metodológico opcional, fuera de validación de la app.",
+        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición."
+      }
+    },
+    {
+      "codigo": "aves.listas_20",
+      "nombre": "LISTAS DE 20 ESPECIES",
+      "especialidad": "aves",
+      "clase": "condicional",
+      "aplicacion": {
+        "texto": "Estaciones de muestreo de la región selva.",
+        "condicion": { "tipo": "region", "regiones": ["SELVA"] }
+      },
+      "unidad": {
+        "tipo": "lista",
+        "tipos_adicionales": [],
+        "texto": "Lista de 20 especies distintas. Separación de 250 m entre listas."
+      },
+      "esfuerzo": {
+        "estandar": { "cantidad": 2, "unidad": "listas", "texto": "2 listas." },
+        "za_ef": { "cantidad": 4, "texto": "4 listas." }
+      },
+      "horario": { "ventanas": [{ "inicio": "06:00", "fin": "10:00" }], "texto": "06:00–10:00" },
+      "geometria": {
+        "tipo": "inicio_fin",
+        "texto": "Inicio + fin georreferenciados en la app de cada lista; recorrido con track funcional",
+        "vinculo_metodo": null,
+        "detalle": null
+      },
+      "track": true,
+      "fotos": {
+        "contexto": {
+          "cantidad_por_unidad": 8,
+          "cardinales": true,
+          "reutiliza_metodo": null,
+          "texto": "8 panorámicas por lista: 4 N-S-E-O al inicio + 4 N-S-E-O al final."
+        },
+        "metodologicas": {
+          "minimo": 2,
+          "texto": "Mínimo 2 por estación/método, semipanorámicas laterales/oblicuas: especialista usando binoculares; cuando se use distanciómetro para altura de vuelo, documentar su utilización."
+        }
+      },
+      "campos_ejecucion": [],
+      "campos": [
+        {
+          "clave": "habitat_predominante",
+          "etiqueta": "Hábitat predominante",
+          "tipo": "texto",
+          "requerido": true
+        },
+        {
+          "clave": "otros_habitats",
+          "etiqueta": "Otros hábitats presentes en el recorrido",
+          "tipo": "texto",
+          "requerido": false
+        },
+        {
+          "clave": "motivo_lista_incompleta",
+          "etiqueta": "Motivo de lista incompleta",
+          "tipo": "texto",
+          "requerido": false
+        }
+      ],
+      "registros": {
+        "etiqueta": "Especies (20)",
+        "campos": [
+          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "n_individuos",
+            "etiqueta": "Número de individuos",
+            "tipo": "entero",
+            "requerido": true
+          },
+          {
+            "clave": "comportamiento",
+            "etiqueta": "Comportamiento observado",
+            "tipo": "opcion",
+            "opciones": ["alimentación", "reposo", "desplazamiento", "reproducción"],
+            "requerido": false
+          },
+          {
+            "clave": "en_vuelo",
+            "etiqueta": "Ave en vuelo",
+            "tipo": "booleano",
+            "requerido": false
+          },
+          {
+            "clave": "altura_vuelo_m",
+            "etiqueta": "Altura de vuelo (m)",
+            "tipo": "decimal",
+            "requerido": false
+          },
+          {
+            "clave": "direccion_vuelo",
+            "etiqueta": "Dirección de vuelo",
+            "tipo": "texto",
+            "requerido": false
+          },
+          {
+            "clave": "tipo_vuelo",
+            "etiqueta": "Tipo de vuelo",
+            "tipo": "texto",
+            "requerido": false
+          }
+        ]
+      },
+      "validaciones": [
+        {
+          "tipo": "geometria",
+          "tipo_control": "obligatorio",
+          "texto": "Validar inicio/fin y horas."
+        },
+        { "tipo": "track", "tipo_control": "obligatorio", "texto": "Validar track." },
+        {
+          "tipo": "separacion_minima_m",
+          "metros": 250,
+          "tipo_control": "obligatorio",
+          "texto": "Validar separación entre listas."
+        },
+        {
+          "tipo": "cantidad_registros",
+          "minimo": 20,
+          "tipo_control": "obligatorio",
+          "texto": "20 especies o motivo de lista incompleta."
+        },
+        {
+          "tipo": "fotos_contexto",
+          "cantidad_por_unidad": 8,
+          "tipo_control": "obligatorio",
+          "texto": "Validar fotos."
+        },
+        {
+          "tipo": "horario",
+          "ventanas": [{ "inicio": "06:00", "fin": "10:00" }],
+          "tipo_control": "obligatorio",
+          "texto": "06:00–10:00."
+        },
+        {
+          "tipo": "cantidad_unidades",
+          "minimo": 2,
+          "minimo_za_ef": 4,
+          "tipo_control": "obligatorio",
+          "texto": "2 listas; 4 en ZA/EF."
+        },
+        {
+          "tipo": "fotos_metodologicas",
+          "minimo": 2,
+          "tipo_control": "obligatorio",
+          "texto": "Mínimo 2 por estación/método."
+        }
+      ],
+      "vinculo": {
+        "texto": "No duplicar fotos adicionales solo por el track; la evidencia de contexto está en inicio y fin.",
+        "metodos": []
+      },
+      "fuente": {
+        "estado": "CERRADO",
+        "origen": "Interpretación operativa aprobada: coordenadas de inicio y final.",
+        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición."
+      }
+    },
+    {
+      "codigo": "aves.conteo_total",
+      "nombre": "CONTEO TOTAL",
+      "especialidad": "aves",
+      "clase": "condicional",
+      "aplicacion": {
+        "texto": "Estaciones de muestreo ubicadas en lagos, lagunas y cochas.",
+        "condicion": {
+          "tipo": "uv_contiene",
+          "fragmentos": ["lacustre", "laguna", "lago", "cocha"]
+        }
+      },
+      "unidad": {
+        "tipo": "sector",
+        "tipos_adicionales": [],
+        "texto": "Un conteo total, por sector/posición de observación."
+      },
+      "esfuerzo": {
+        "estandar": {
+          "cantidad": 1,
+          "unidad": "conteo total de 30 minutos",
+          "texto": "1 conteo total de 30 minutos."
+        },
+        "za_ef": { "cantidad": 1, "texto": "1 conteo total de 60 minutos." }
+      },
+      "horario": { "ventanas": [{ "inicio": "07:00", "fin": "16:00" }], "texto": "07:00–16:00" },
+      "geometria": {
+        "tipo": "punto",
+        "texto": "Punto georreferenciado en la app por sector/posición de observación",
+        "vinculo_metodo": null,
+        "detalle": null
+      },
+      "track": false,
+      "fotos": {
+        "contexto": {
+          "cantidad_por_unidad": 5,
+          "cardinales": true,
+          "reutiliza_metodo": null,
+          "texto": "5 fotos por sector/posición: 4 panorámicas N-S-E-O + 1 semipanorámica de orilla y vegetación asociada."
+        },
+        "metodologicas": {
+          "minimo": 2,
+          "texto": "2 por estación/método, semipanorámicas laterales/oblicuas: especialista observando con binoculares/telescopio e incluyendo parte del cuerpo de agua."
+        }
+      },
+      "campos_ejecucion": [
+        {
+          "clave": "tiempo_total_min",
+          "etiqueta": "Tiempo total del conteo (min)",
+          "tipo": "entero",
+          "requerido": true
+        },
+        {
+          "clave": "tipo_cuerpo_agua",
+          "etiqueta": "Tipo de cuerpo de agua",
+          "tipo": "texto",
+          "requerido": true
+        },
+        {
+          "clave": "habitat_orillas",
+          "etiqueta": "Hábitat predominante en las orillas",
+          "tipo": "texto",
+          "requerido": false
+        },
+        {
+          "clave": "ambientes_usados",
+          "etiqueta": "Ambientes utilizados por las aves",
+          "tipo": "texto",
+          "requerido": false
+        },
+        {
+          "clave": "sectores_no_observables",
+          "etiqueta": "Sectores no observables",
+          "tipo": "texto",
+          "requerido": false
+        }
+      ],
+      "campos": [],
+      "registros": {
+        "etiqueta": "Registros",
+        "campos": [
+          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "n_individuos",
+            "etiqueta": "Número de individuos",
+            "tipo": "entero",
+            "requerido": true
+          },
+          {
+            "clave": "ubicacion_agrupacion",
+            "etiqueta": "Ubicación de la agrupación",
+            "tipo": "texto",
+            "requerido": false
+          }
+        ]
+      },
+      "validaciones": [
+        {
+          "tipo": "geometria",
+          "tipo_control": "obligatorio",
+          "texto": "Validar coordenada por posición."
+        },
+        {
+          "tipo": "duracion_unidad_min",
+          "minutos": 30,
+          "minutos_za_ef": 60,
+          "tipo_control": "obligatorio",
+          "texto": "Validar tiempo total: 30 minutos; 60 en ZA/EF."
+        },
+        {
+          "tipo": "campos_obligatorios",
+          "tipo_control": "obligatorio",
+          "texto": "Sectores no observables."
+        },
+        {
+          "tipo": "fotos_contexto",
+          "cantidad_por_unidad": 5,
+          "tipo_control": "obligatorio",
+          "texto": "5 fotos."
+        },
+        {
+          "tipo": "horario",
+          "ventanas": [{ "inicio": "07:00", "fin": "16:00" }],
+          "tipo_control": "obligatorio",
+          "texto": "Validar horario."
+        },
+        {
+          "tipo": "fotos_metodologicas",
+          "minimo": 2,
+          "tipo_control": "obligatorio",
+          "texto": "2 por estación/método."
+        }
+      ],
+      "vinculo": {
+        "texto": "Las posiciones adicionales usan su propia evidencia de contexto.",
+        "metodos": []
+      },
+      "fuente": {
+        "estado": "CERRADO",
+        "origen": "Geometría fuente + regla fotográfica funcional Walsh.",
+        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición."
+      }
+    },
+    {
+      "codigo": "aves.registros_oportunos",
+      "nombre": "REGISTROS OPORTUNOS",
+      "especialidad": "aves",
+      "clase": "evento",
+      "aplicacion": {
+        "texto": "Durante la permanencia y los desplazamientos en el área de estudio, fuera de la aplicación de métodos cuantitativos.",
+        "condicion": null
+      },
+      "unidad": { "tipo": "evento", "tipos_adicionales": [], "texto": null },
+      "esfuerzo": { "estandar": null, "za_ef": null },
+      "horario": null,
+      "geometria": {
+        "tipo": "punto_opcional",
+        "texto": "Evento puntual; coordenada del registro/localidad cuando corresponda",
+        "vinculo_metodo": null,
+        "detalle": null
+      },
+      "track": false,
+      "fotos": {
+        "contexto": {
+          "cantidad_por_unidad": null,
+          "cardinales": false,
+          "reutiliza_metodo": null,
+          "texto": "Sin panorámicas sistemáticas. Adjuntar foto del organismo/evidencia cuando aporte sustento."
+        },
+        "metodologicas": {
+          "minimo": 0,
+          "texto": "No exigir foto del especialista: es un registro incidental, no una unidad metodológica programada."
+        }
+      },
+      "campos_ejecucion": [],
+      "campos": [
+        { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+        { "clave": "fecha", "etiqueta": "Fecha", "tipo": "fecha", "requerido": true },
+        { "clave": "hora", "etiqueta": "Hora", "tipo": "hora", "requerido": true },
+        { "clave": "habitat", "etiqueta": "Hábitat", "tipo": "texto", "requerido": true },
+        {
+          "clave": "deteccion",
+          "etiqueta": "Detección",
+          "tipo": "opcion",
+          "opciones": ["visual", "auditiva"],
+          "requerido": true
+        },
+        {
+          "clave": "comportamiento",
+          "etiqueta": "Comportamiento observado",
+          "tipo": "texto",
+          "requerido": false
+        },
+        { "clave": "en_vuelo", "etiqueta": "Ave en vuelo", "tipo": "booleano", "requerido": false },
+        {
+          "clave": "altura_vuelo_m",
+          "etiqueta": "Altura de vuelo (m)",
+          "tipo": "decimal",
+          "requerido": false
+        },
+        {
+          "clave": "direccion_vuelo",
+          "etiqueta": "Dirección de vuelo",
+          "tipo": "texto",
+          "requerido": false
+        },
+        { "clave": "tipo_vuelo", "etiqueta": "Tipo de vuelo", "tipo": "texto", "requerido": false }
+      ],
+      "registros": null,
+      "validaciones": [
+        {
+          "tipo": "campos_obligatorios",
+          "tipo_control": "obligatorio",
+          "texto": "Registrar especie, fecha/hora, hábitat, comportamiento, coordenada cuando corresponda y evidencia disponible."
+        }
+      ],
+      "vinculo": {
+        "texto": "No contabilizar como esfuerzo del método cuantitativo.",
+        "metodos": []
+      },
+      "fuente": {
+        "estado": "CERRADO COMO EVENTO",
+        "origen": "Regla funcional para evento incidental.",
+        "pendiente": "No requiere matriz estación–método previa; solo mantener disponible el evento."
+      }
+    },
+    {
+      "codigo": "anfibios_reptiles.ves",
+      "nombre": "BÚSQUEDA POR ENCUENTROS VISUALES (VES)",
+      "especialidad": "anfibios_reptiles",
+      "clase": "todas",
+      "aplicacion": {
+        "texto": "Todas las estaciones de muestreo de anfibios y reptiles.",
+        "condicion": null
+      },
+      "unidad": {
+        "tipo": "recorrido",
+        "tipos_adicionales": [],
+        "texto": "Una búsqueda por encuentro visual de 30 minutos."
+      },
+      "esfuerzo": {
+        "estandar": {
+          "cantidad": null,
+          "unidad": "VES diurnos y nocturnos",
+          "texto": "Costa y sierra: 4 VES diurnos y 4 nocturnos. Selva: 2 VES diurnos y 2 nocturnos."
+        },
+        "za_ef": {
+          "cantidad": null,
+          "texto": "Estaciones de muestreo ubicadas en zonas de amortiguamiento y/o ecosistemas frágiles: costa y sierra, 8 VES diurnos y 8 nocturnos; selva, 4 VES diurnos y 4 nocturnos."
+        }
+      },
+      "horario": {
+        "ventanas": [
+          { "inicio": "06:00", "fin": "11:00" },
+          { "inicio": "19:00", "fin": "21:00" }
+        ],
+        "texto": "06:00–11:00; 19:00–21:00"
+      },
+      "geometria": {
+        "tipo": "inicio_fin",
+        "texto": "Inicio + fin georreferenciados en la app; track del recorrido",
+        "vinculo_metodo": null,
+        "detalle": null
+      },
+      "track": true,
+      "fotos": {
+        "contexto": {
+          "cantidad_por_unidad": 6,
+          "cardinales": true,
+          "reutiliza_metodo": null,
+          "texto": "6 fotos por VES: 4 panorámicas N-S-E-O al inicio + 1 semipanorámica representativa de hábitat/microhábitat durante el recorrido + 1 panorámica al final."
+        },
+        "metodologicas": {
+          "minimo": 2,
+          "texto": "Mínimo 2 por estación/método, semipanorámicas laterales/oblicuas: especialista realizando búsqueda activa/inspección de microhábitats. La foto intermedia puede servir si muestra claramente la aplicación."
+        }
+      },
+      "campos_ejecucion": [],
+      "campos": [
+        {
+          "clave": "periodo",
+          "etiqueta": "Periodo",
+          "tipo": "opcion",
+          "opciones": ["diurno", "nocturno"],
+          "requerido": true
+        },
+        { "clave": "sector", "etiqueta": "Sector", "tipo": "texto", "requerido": true },
+        {
+          "clave": "habitat_recorrido",
+          "etiqueta": "Hábitat del recorrido",
+          "tipo": "texto",
+          "requerido": true
+        },
+        { "clave": "altitud_m", "etiqueta": "Altitud (m)", "tipo": "decimal", "requerido": true }
+      ],
+      "registros": {
+        "etiqueta": "Detecciones",
+        "campos": [
+          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "n_individuos",
+            "etiqueta": "Número de individuos",
+            "tipo": "entero",
+            "requerido": true
+          },
+          {
+            "clave": "microhabitat",
+            "etiqueta": "Microhábitat de la detección",
+            "tipo": "texto",
+            "requerido": true
+          }
+        ]
+      },
+      "validaciones": [
+        {
+          "tipo": "duracion_unidad_min",
+          "minutos": 30,
+          "minutos_za_ef": null,
+          "tipo_control": "obligatorio",
+          "texto": "Validar 30 min."
+        },
+        {
+          "tipo": "horario",
+          "ventanas": [
+            { "inicio": "06:00", "fin": "11:00" },
+            { "inicio": "19:00", "fin": "21:00" }
+          ],
+          "tipo_control": "obligatorio",
+          "texto": "Validar horario."
+        },
+        { "tipo": "geometria", "tipo_control": "obligatorio", "texto": "Validar inicio/fin." },
+        { "tipo": "track", "tipo_control": "obligatorio", "texto": "Validar track." },
+        {
+          "tipo": "campos_obligatorios",
+          "tipo_control": "obligatorio",
+          "texto": "Validar altitud y sector diferenciado día/noche."
+        },
+        {
+          "tipo": "fotos_contexto",
+          "cantidad_por_unidad": 6,
+          "tipo_control": "obligatorio",
+          "texto": "Validar fotos."
+        },
+        {
+          "tipo": "cantidad_unidades",
+          "minimo": 4,
+          "minimo_za_ef": 8,
+          "por_region": { "COSTA": 8, "SIERRA": 8, "SELVA": 4 },
+          "za_ef_por_region": { "COSTA": 16, "SIERRA": 16, "SELVA": 8 },
+          "tipo_control": "obligatorio",
+          "texto": "Costa y sierra: 4 diurnos y 4 nocturnos; selva: 2 y 2. En ZA/EF se duplica."
+        },
+        {
+          "tipo": "separacion_minima_m",
+          "metros": 50,
+          "tipo_control": "advertencia",
+          "texto": "Mostrar advertencia no bloqueante si la separación entre VES es menor de 50 m; no establecer distancia máxima en la app."
+        },
+        {
+          "tipo": "fotos_metodologicas",
+          "minimo": 2,
+          "tipo_control": "obligatorio",
+          "texto": "Mínimo 2 por estación/método."
+        }
+      ],
+      "vinculo": {
+        "texto": "Cada VES diurno/nocturno corresponde a sector distinto según fuente.",
+        "metodos": []
+      },
+      "fuente": {
+        "estado": "CERRADO",
+        "origen": "Geometría fuente + track/fotos funcionales aprobados.",
+        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad."
+      }
+    },
+    {
+      "codigo": "anfibios_reptiles.tbf",
+      "nombre": "TRANSECTOS DE BANDA FIJA (TBF)",
+      "especialidad": "anfibios_reptiles",
+      "clase": "condicional",
+      "aplicacion": {
+        "texto": "Estaciones de muestreo de anfibios y reptiles de la región selva.",
+        "condicion": { "tipo": "region", "regiones": ["SELVA"] }
+      },
+      "unidad": {
+        "tipo": "transecto",
+        "tipos_adicionales": [],
+        "texto": "Transecto de banda fija de 100 × 2 m (200 m²), evaluado durante 30 minutos."
+      },
+      "esfuerzo": {
+        "estandar": {
+          "cantidad": 4,
+          "unidad": "transectos, cada uno evaluado de día y de noche",
+          "texto": "4 transectos, cada uno evaluado de día y de noche."
+        },
+        "za_ef": { "cantidad": 8, "texto": "8 transectos, cada uno evaluado de día y de noche." }
+      },
+      "horario": {
+        "ventanas": [
+          { "inicio": "08:00", "fin": "12:00" },
+          { "inicio": "18:00", "fin": "22:00" }
+        ],
+        "texto": "08:00–12:00; 18:00–22:00"
+      },
+      "geometria": {
+        "tipo": "inicio_fin",
+        "texto": "Inicio + fin georreferenciados en la app del transecto físico; track del recorrido",
+        "vinculo_metodo": null,
+        "detalle": null
+      },
+      "track": true,
+      "fotos": {
+        "contexto": {
+          "cantidad_por_unidad": 6,
+          "cardinales": true,
+          "reutiliza_metodo": null,
+          "texto": "6 fotos por transecto físico: 4 panorámicas N-S-E-O al inicio + 1 semipanorámica representativa durante el transecto + 1 panorámica al final. No repetir las fotos de hábitat en la segunda evaluación del mismo transecto físico (F-09)."
+        },
+        "metodologicas": {
+          "minimo": 2,
+          "texto": "Mínimo 2 por estación/método, semipanorámicas laterales/oblicuas: especialista evaluando dentro de la banda delimitada."
+        }
+      },
+      "campos_ejecucion": [],
+      "campos": [
+        {
+          "clave": "transecto_fisico",
+          "etiqueta": "Código del transecto físico",
+          "tipo": "texto",
+          "requerido": true,
+          "ayuda": "El mismo de día y de noche"
+        },
+        {
+          "clave": "periodo",
+          "etiqueta": "Periodo",
+          "tipo": "opcion",
+          "opciones": ["diurno", "nocturno"],
+          "requerido": true
+        },
+        {
+          "clave": "habitat",
+          "etiqueta": "Hábitat del transecto",
+          "tipo": "texto",
+          "requerido": true
+        }
+      ],
+      "registros": {
+        "etiqueta": "Detecciones",
+        "campos": [
+          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "n_individuos",
+            "etiqueta": "Número de individuos",
+            "tipo": "entero",
+            "requerido": true
+          },
+          {
+            "clave": "microhabitat",
+            "etiqueta": "Microhábitat de la detección",
+            "tipo": "texto",
+            "requerido": true
+          }
+        ]
+      },
+      "validaciones": [
+        {
+          "tipo": "geometria",
+          "tipo_control": "obligatorio",
+          "texto": "Validar 100 × 2 m, inicio/fin."
+        },
+        {
+          "tipo": "duracion_unidad_min",
+          "minutos": 30,
+          "minutos_za_ef": null,
+          "tipo_control": "obligatorio",
+          "texto": "Validar 30 min."
+        },
+        {
+          "tipo": "campos_obligatorios",
+          "tipo_control": "obligatorio",
+          "texto": "Mismo código físico día/noche."
+        },
+        { "tipo": "track", "tipo_control": "obligatorio", "texto": "Validar track." },
+        {
+          "tipo": "fotos_contexto",
+          "cantidad_por_unidad": 6,
+          "tipo_control": "obligatorio",
+          "texto": "Validar fotos sin duplicación."
+        },
+        {
+          "tipo": "horario",
+          "ventanas": [
+            { "inicio": "08:00", "fin": "12:00" },
+            { "inicio": "18:00", "fin": "22:00" }
+          ],
+          "tipo_control": "obligatorio",
+          "texto": "08:00–12:00; 18:00–22:00."
+        },
+        {
+          "tipo": "separacion_minima_m",
+          "metros": 50,
+          "tipo_control": "advertencia",
+          "texto": "Mostrar advertencia no bloqueante si la separación entre TBF es menor de 50 m."
+        },
+        {
+          "tipo": "cantidad_unidades",
+          "minimo": 4,
+          "minimo_za_ef": 8,
+          "tipo_control": "obligatorio",
+          "texto": "4 transectos físicos; 8 en ZA/EF; cada uno de día y de noche."
+        },
+        {
+          "tipo": "fotos_metodologicas",
+          "minimo": 2,
+          "tipo_control": "obligatorio",
+          "texto": "Mínimo 2 por estación/método."
+        }
+      ],
+      "vinculo": {
+        "texto": "El mismo transecto físico puede evaluarse de día y noche; no duplicar fotos de hábitat en la segunda evaluación.",
+        "metodos": []
+      },
+      "fuente": {
+        "estado": "CERRADO",
+        "origen": "Geometría fuente + regla de reutilización aprobada.",
+        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición."
+      }
+    },
+    {
+      "codigo": "anfibios_reptiles.registros_oportunos",
+      "nombre": "REGISTROS OPORTUNOS",
+      "especialidad": "anfibios_reptiles",
+      "clase": "evento",
+      "aplicacion": {
+        "texto": "Fuera de las evaluaciones mediante VES y transectos de banda fija TBF.",
+        "condicion": null
+      },
+      "unidad": { "tipo": "evento", "tipos_adicionales": [], "texto": null },
+      "esfuerzo": { "estandar": null, "za_ef": null },
+      "horario": null,
+      "geometria": {
+        "tipo": "punto_opcional",
+        "texto": "Evento puntual; coordenada cuando esté disponible",
+        "vinculo_metodo": null,
+        "detalle": null
+      },
+      "track": false,
+      "fotos": {
+        "contexto": {
+          "cantidad_por_unidad": null,
+          "cardinales": false,
+          "reutiliza_metodo": null,
+          "texto": "Sin panorámicas sistemáticas. Foto del ejemplar/evidencia/microhábitat cuando aporte sustento."
+        },
+        "metodologicas": { "minimo": 0, "texto": "No exigir foto metodológica del especialista." }
+      },
+      "campos_ejecucion": [],
+      "campos": [
+        { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+        {
+          "clave": "estacion_o_localidad",
+          "etiqueta": "Estación de muestreo o localidad",
+          "tipo": "texto",
+          "requerido": true
+        },
+        { "clave": "habitat", "etiqueta": "Hábitat", "tipo": "texto", "requerido": true },
+        { "clave": "microhabitat", "etiqueta": "Microhábitat", "tipo": "texto", "requerido": true },
+        { "clave": "fecha", "etiqueta": "Fecha", "tipo": "fecha", "requerido": true },
+        { "clave": "hora", "etiqueta": "Hora", "tipo": "hora", "requerido": true },
+        {
+          "clave": "deteccion",
+          "etiqueta": "Detección",
+          "tipo": "opcion",
+          "opciones": ["visual", "auditiva"],
+          "requerido": true
+        }
+      ],
+      "registros": null,
+      "validaciones": [
+        {
+          "tipo": "campos_obligatorios",
+          "tipo_control": "obligatorio",
+          "texto": "Registrar especie, estación/localidad, hábitat, microhábitat, fecha/hora, tipo detección, coordenada disponible."
+        }
+      ],
+      "vinculo": { "texto": "No contabilizar como esfuerzo VES/TBF.", "metodos": [] },
+      "fuente": {
+        "estado": "CERRADO COMO EVENTO",
+        "origen": "Regla funcional para evento incidental.",
+        "pendiente": "No requiere matriz estación–método previa; solo mantener disponible el evento."
+      }
+    },
+    {
+      "codigo": "artropodos.pitfall_cebadas",
+      "nombre": "TRAMPAS PITFALL CEBADAS",
+      "especialidad": "artropodos",
+      "clase": "todas",
+      "aplicacion": {
+        "texto": "Todas las estaciones de muestreo de artrópodos.",
+        "condicion": null
+      },
+      "unidad": {
+        "tipo": "trampa",
+        "tipos_adicionales": ["transecto"],
+        "texto": "Una trampa pitfall cebada, sobre una línea de 120 m."
+      },
+      "esfuerzo": {
+        "estandar": {
+          "cantidad": 9,
+          "unidad": "trampas durante 24 horas",
+          "texto": "9 trampas durante 24 horas: 3 con fruta fermentada, 3 con heces y 3 con carne de pollo en descomposición."
+        },
+        "za_ef": {
+          "cantidad": 9,
+          "texto": "9 trampas durante 48 horas, manteniendo la distribución por tipo de cebo."
+        }
+      },
+      "horario": null,
+      "geometria": {
+        "tipo": "punto_opcional",
+        "texto": "Línea de 120 m; inicio + fin georreferenciados en la app",
+        "vinculo_metodo": null,
+        "por_tipo": { "transecto": "inicio_fin" },
+        "detalle": null
+      },
+      "track": false,
+      "fotos": {
+        "contexto": {
+          "cantidad_por_unidad": null,
+          "por_tipo": { "transecto": 8 },
+          "cardinales": true,
+          "reutiliza_metodo": null,
+          "texto": "8 panorámicas por transecto: 4 N-S-E-O al inicio + 4 N-S-E-O al final."
+        },
+        "metodologicas": {
+          "minimo": 2,
+          "texto": "2 por estación/método, semipanorámicas laterales/oblicuas: instalación de la trampa + acondicionamiento/colocación del cebo, mostrando entorno."
+        }
+      },
+      "campos_ejecucion": [],
+      "campos": [
+        {
+          "clave": "cebo",
+          "etiqueta": "Tipo de cebo",
+          "tipo": "opcion",
+          "opciones": ["fruta fermentada", "heces", "carne de pollo en descomposición"],
+          "requerido": true
+        },
+        {
+          "clave": "habitat",
+          "etiqueta": "Hábitat de instalación",
+          "tipo": "texto",
+          "requerido": true
+        },
+        {
+          "clave": "hora_instalacion",
+          "etiqueta": "Hora de instalación",
+          "tipo": "hora",
+          "requerido": true
+        },
+        { "clave": "hora_retiro", "etiqueta": "Hora de retiro", "tipo": "hora", "requerido": true },
+        {
+          "clave": "exposicion_h",
+          "etiqueta": "Exposición (h)",
+          "tipo": "entero",
+          "requerido": true,
+          "ayuda": "24 h; 48 h en ZA/EF"
+        }
+      ],
+      "registros": {
+        "etiqueta": "Capturas",
+        "campos": [
+          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "n_individuos",
+            "etiqueta": "Número de individuos capturados",
+            "tipo": "entero",
+            "requerido": true
+          }
+        ]
+      },
+      "validaciones": [
+        {
+          "tipo": "cantidad_unidades",
+          "minimo": 9,
+          "minimo_za_ef": 9,
+          "tipo_control": "obligatorio",
+          "texto": "Validar 9 trampas, tipos de cebo 3/3/3, exposición."
+        },
+        { "tipo": "geometria", "tipo_control": "obligatorio", "texto": "Validar inicio/fin." },
+        {
+          "tipo": "campos_obligatorios",
+          "tipo_control": "obligatorio",
+          "texto": "Validar códigos y horas de instalación/retiro."
+        },
+        {
+          "tipo": "fotos_contexto",
+          "cantidad_por_unidad": 8,
+          "tipo_control": "obligatorio",
+          "texto": "Validar fotos (8 por transecto)."
+        },
+        {
+          "tipo": "fotos_metodologicas",
+          "minimo": 2,
+          "tipo_control": "obligatorio",
+          "texto": "2 por estación/método."
+        }
+      ],
+      "vinculo": { "texto": "Transecto independiente del de pitfall sin cebo.", "metodos": [] },
+      "fuente": {
+        "estado": "CERRADO",
+        "origen": "Geometría fuente + regla fotográfica funcional Walsh.",
+        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad."
+      }
+    },
+    {
+      "codigo": "artropodos.pitfall_sin_cebo",
+      "nombre": "TRAMPAS PITFALL SIN CEBO",
+      "especialidad": "artropodos",
+      "clase": "todas",
+      "aplicacion": {
+        "texto": "Todas las estaciones de muestreo de artrópodos.",
+        "condicion": null
+      },
+      "unidad": {
+        "tipo": "trampa",
+        "tipos_adicionales": ["transecto"],
+        "texto": "Una trampa pitfall sin cebo, sobre una línea de 120 m."
+      },
+      "esfuerzo": {
+        "estandar": {
+          "cantidad": 9,
+          "unidad": "trampas durante 24 horas",
+          "texto": "9 trampas durante 24 horas."
+        },
+        "za_ef": { "cantidad": 9, "texto": "9 trampas durante 48 horas." }
+      },
+      "horario": null,
+      "geometria": {
+        "tipo": "punto_opcional",
+        "texto": "Línea de 120 m; inicio + fin georreferenciados en la app",
+        "vinculo_metodo": null,
+        "por_tipo": { "transecto": "inicio_fin" },
+        "detalle": null
+      },
+      "track": false,
+      "fotos": {
+        "contexto": {
+          "cantidad_por_unidad": null,
+          "por_tipo": { "transecto": 8 },
+          "cardinales": true,
+          "reutiliza_metodo": null,
+          "texto": "8 panorámicas por transecto: 4 N-S-E-O al inicio + 4 N-S-E-O al final."
+        },
+        "metodologicas": {
+          "minimo": 2,
+          "texto": "2 por estación/método, semipanorámicas laterales/oblicuas: instalación enterrada + trampa correctamente instalada al nivel del suelo con contexto."
+        }
+      },
+      "campos_ejecucion": [],
+      "campos": [
+        {
+          "clave": "habitat",
+          "etiqueta": "Hábitat de instalación",
+          "tipo": "texto",
+          "requerido": true
+        },
+        {
+          "clave": "hora_instalacion",
+          "etiqueta": "Hora de instalación",
+          "tipo": "hora",
+          "requerido": true
+        },
+        { "clave": "hora_retiro", "etiqueta": "Hora de retiro", "tipo": "hora", "requerido": true },
+        {
+          "clave": "exposicion_h",
+          "etiqueta": "Exposición (h)",
+          "tipo": "entero",
+          "requerido": true,
+          "ayuda": "24 h; 48 h en ZA/EF"
+        }
+      ],
+      "registros": {
+        "etiqueta": "Capturas",
+        "campos": [
+          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "n_individuos",
+            "etiqueta": "Número de individuos capturados",
+            "tipo": "entero",
+            "requerido": true
+          }
+        ]
+      },
+      "validaciones": [
+        {
+          "tipo": "cantidad_unidades",
+          "minimo": 9,
+          "minimo_za_ef": 9,
+          "tipo_control": "obligatorio",
+          "texto": "Validar 9 trampas."
+        },
+        { "tipo": "geometria", "tipo_control": "obligatorio", "texto": "Validar inicio/fin." },
+        {
+          "tipo": "campos_obligatorios",
+          "tipo_control": "obligatorio",
+          "texto": "Validar códigos y horas de instalación/retiro."
+        },
+        {
+          "tipo": "fotos_contexto",
+          "cantidad_por_unidad": 8,
+          "tipo_control": "obligatorio",
+          "texto": "Validar fotos (8 por transecto)."
+        },
+        {
+          "tipo": "separacion_minima_m",
+          "metros": 10,
+          "tipo_control": "advertencia",
+          "texto": "Mostrar advertencia no bloqueante recordando una separación aproximada de 10 m entre trampas."
+        },
+        {
+          "tipo": "fotos_metodologicas",
+          "minimo": 2,
+          "tipo_control": "obligatorio",
+          "texto": "2 por estación/método."
+        }
+      ],
+      "vinculo": {
+        "texto": "Este transecto es distinto al de pitfall cebadas y sirve como trazado compartido por defecto para pan traps.",
+        "metodos": ["artropodos.pan_traps"]
+      },
+      "fuente": {
+        "estado": "CERRADO",
+        "origen": "Geometría fuente + regla funcional aprobada para trazado compartido con pan traps.",
+        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad."
+      }
+    },
+    {
+      "codigo": "artropodos.pan_traps",
+      "nombre": "TRAMPAS AMARILLAS (PAN TRAPS)",
+      "especialidad": "artropodos",
+      "clase": "todas",
+      "aplicacion": {
+        "texto": "Todas las estaciones de muestreo de artrópodos.",
+        "condicion": null
+      },
+      "unidad": { "tipo": "bandeja", "tipos_adicionales": [], "texto": "Una bandeja amarilla." },
+      "esfuerzo": {
+        "estandar": {
+          "cantidad": 5,
+          "unidad": "bandejas durante 24 horas",
+          "texto": "5 bandejas durante 24 horas."
+        },
+        "za_ef": { "cantidad": 5, "texto": "5 bandejas durante 48 horas." }
+      },
+      "horario": null,
+      "geometria": {
+        "tipo": "vinculada",
+        "texto": "Por defecto, vincular al mismo trazado de 120 m de pitfall sin cebo; conservar unidad/códigos propios",
+        "vinculo_metodo": "artropodos.pitfall_sin_cebo",
+        "detalle": null
+      },
+      "track": false,
+      "fotos": {
+        "contexto": {
+          "cantidad_por_unidad": null,
+          "cardinales": false,
+          "reutiliza_metodo": "artropodos.pitfall_sin_cebo",
+          "texto": "Reutilizar las 8 panorámicas del transecto de pitfall sin cebo. Si requiere trazado independiente por exposición a la luz, generar su propia evidencia de inicio/fin."
+        },
+        "metodologicas": {
+          "minimo": 2,
+          "texto": "2 por estación/método, semipanorámicas laterales/oblicuas: instalación + bandeja correctamente instalada con exposición a la luz y contexto."
+        }
+      },
+      "campos_ejecucion": [],
+      "campos": [
+        {
+          "clave": "exposicion_luz",
+          "etiqueta": "Exposición a la luz",
+          "tipo": "booleano",
+          "requerido": true
+        },
+        {
+          "clave": "habitat",
+          "etiqueta": "Hábitat de instalación",
+          "tipo": "texto",
+          "requerido": true
+        },
+        {
+          "clave": "hora_instalacion",
+          "etiqueta": "Hora de instalación",
+          "tipo": "hora",
+          "requerido": true
+        },
+        { "clave": "hora_retiro", "etiqueta": "Hora de retiro", "tipo": "hora", "requerido": true },
+        {
+          "clave": "trazado_independiente",
+          "etiqueta": "Trazado independiente (justificar)",
+          "tipo": "texto",
+          "requerido": false
+        }
+      ],
+      "registros": {
+        "etiqueta": "Capturas",
+        "campos": [
+          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "n_individuos",
+            "etiqueta": "Número de individuos capturados",
+            "tipo": "entero",
+            "requerido": true
+          }
+        ]
+      },
+      "validaciones": [
+        {
+          "tipo": "cantidad_unidades",
+          "minimo": 5,
+          "minimo_za_ef": 5,
+          "tipo_control": "obligatorio",
+          "texto": "Validar 5 bandejas, esfuerzo."
+        },
+        {
+          "tipo": "campos_obligatorios",
+          "tipo_control": "obligatorio",
+          "texto": "Validar exposición a la luz, códigos, horas."
+        },
+        {
+          "tipo": "vinculo_unidad",
+          "metodo": "artropodos.pitfall_sin_cebo",
+          "tipo_control": "obligatorio",
+          "texto": "Validar vínculo espacial al transecto."
+        },
+        {
+          "tipo": "separacion_minima_m",
+          "metros": 10,
+          "tipo_control": "advertencia",
+          "texto": "Mostrar advertencia no bloqueante recordando una separación aproximada de 10 m entre bandejas."
+        },
+        {
+          "tipo": "fotos_metodologicas",
+          "minimo": 2,
+          "tipo_control": "obligatorio",
+          "texto": "2 por estación/método."
+        }
+      ],
+      "vinculo": {
+        "texto": "No mezclar códigos ni esfuerzo con pitfall; compartir solo trazado/contexto cuando corresponda.",
+        "metodos": ["artropodos.pitfall_sin_cebo"]
+      },
+      "fuente": {
+        "estado": "CERRADO COMO REGLA APP",
+        "origen": "La fuente no exige transecto independiente; regla funcional aprobada.",
+        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad."
+      }
+    },
+    {
+      "codigo": "artropodos.red_entomologica",
+      "nombre": "COLECTA LIBRE CON RED ENTOMOLÓGICA",
+      "especialidad": "artropodos",
+      "clase": "todas",
+      "aplicacion": {
+        "texto": "Todas las estaciones de muestreo de artrópodos.",
+        "condicion": null
+      },
+      "unidad": {
+        "tipo": "recorrido",
+        "tipos_adicionales": [],
+        "texto": "Un recorrido de colecta con red entomológica."
+      },
+      "esfuerzo": {
+        "estandar": { "cantidad": 1, "unidad": "recorrido de 1 hora", "texto": "1 hora." },
+        "za_ef": { "cantidad": 1, "texto": "2 horas." }
+      },
+      "horario": { "ventanas": [{ "inicio": "09:00", "fin": "15:00" }], "texto": "09:00–15:00" },
+      "geometria": {
+        "tipo": "inicio_fin",
+        "texto": "Inicio + fin georreferenciados en la app; recorrido con track",
+        "vinculo_metodo": null,
+        "detalle": null
+      },
+      "track": true,
+      "fotos": {
+        "contexto": {
+          "cantidad_por_unidad": 6,
+          "cardinales": true,
+          "reutiliza_metodo": null,
+          "texto": "6 fotos por recorrido: 4 panorámicas N-S-E-O al inicio + 1 semipanorámica representativa durante el recorrido + 1 panorámica al final."
+        },
+        "metodologicas": {
+          "minimo": 2,
+          "texto": "2 por recorrido/estación, semipanorámicas laterales/oblicuas: especialista utilizando la red entomológica en acción."
+        }
+      },
+      "campos_ejecucion": [],
+      "campos": [
+        {
+          "clave": "habitats_evaluados",
+          "etiqueta": "Hábitats evaluados",
+          "tipo": "texto",
+          "requerido": true
+        }
+      ],
+      "registros": {
+        "etiqueta": "Especies registradas",
+        "campos": [
+          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true }
+        ]
+      },
+      "validaciones": [
+        {
+          "tipo": "horario",
+          "ventanas": [{ "inicio": "09:00", "fin": "15:00" }],
+          "tipo_control": "obligatorio",
+          "texto": "Validar horario."
+        },
+        {
+          "tipo": "duracion_unidad_min",
+          "minutos": 60,
+          "minutos_za_ef": 120,
+          "tipo_control": "obligatorio",
+          "texto": "Validar 1 h / 2 h ZA-EF."
+        },
+        { "tipo": "geometria", "tipo_control": "obligatorio", "texto": "Validar inicio/fin." },
+        { "tipo": "track", "tipo_control": "obligatorio", "texto": "Validar track." },
+        {
+          "tipo": "fotos_contexto",
+          "cantidad_por_unidad": 6,
+          "tipo_control": "obligatorio",
+          "texto": "Validar fotos."
+        },
+        {
+          "tipo": "campos_obligatorios",
+          "tipo_control": "obligatorio",
+          "texto": "Validar hábitats recorridos."
+        },
+        {
+          "tipo": "fotos_metodologicas",
+          "minimo": 2,
+          "tipo_control": "obligatorio",
+          "texto": "2 por recorrido/estación."
+        }
+      ],
+      "vinculo": {
+        "texto": "El track documenta el recorrido y el tiempo efectivo.",
+        "metodos": []
+      },
+      "fuente": {
+        "estado": "CERRADO",
+        "origen": "Geometría fuente + track/fotos funcionales.",
+        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad."
+      }
+    },
+    {
+      "codigo": "artropodos.intercepcion_vuelo",
+      "nombre": "TRAMPAS DE INTERCEPCIÓN DE VUELO",
+      "especialidad": "artropodos",
+      "clase": "condicional",
+      "aplicacion": {
+        "texto": "Estaciones de muestreo de artrópodos de la región selva.",
+        "condicion": { "tipo": "region", "regiones": ["SELVA"] }
+      },
+      "unidad": {
+        "tipo": "trampa",
+        "tipos_adicionales": [],
+        "texto": "Una trampa de intercepción de vuelo."
+      },
+      "esfuerzo": {
+        "estandar": {
+          "cantidad": 1,
+          "unidad": "trampa durante un día",
+          "texto": "Una trampa durante un día, de 09:00 a 15:00 h."
+        },
+        "za_ef": {
+          "cantidad": 1,
+          "texto": "Una trampa durante dos días, de 09:00 a 15:00 h en cada día. (El plan de trabajo del IGA desistido establece 24 horas de exposición; se adopta el horario diurno del plan de Walsh y de la tabla 3 de su OT de SERFOR para dirigir la evaluación a artrópodos de actividad diurna y evitar la captura durante la noche.)"
+        }
+      },
+      "horario": { "ventanas": [{ "inicio": "09:00", "fin": "15:00" }], "texto": "09:00–15:00" },
+      "geometria": {
+        "tipo": "punto",
+        "texto": "Punto georreferenciado en la app de instalación",
+        "vinculo_metodo": null,
+        "detalle": null
+      },
+      "track": false,
+      "fotos": {
+        "contexto": {
+          "cantidad_por_unidad": 4,
+          "cardinales": true,
+          "reutiliza_metodo": null,
+          "texto": "4 panorámicas N-S-E-O desde el punto de instalación."
+        },
+        "metodologicas": {
+          "minimo": 2,
+          "texto": "2 por estación/método, semipanorámicas laterales/oblicuas: instalación del panel + trampa completamente instalada/operativa mostrando panel, recipiente y entorno."
+        }
+      },
+      "campos_ejecucion": [],
+      "campos": [
+        {
+          "clave": "habitat",
+          "etiqueta": "Hábitat de instalación",
+          "tipo": "texto",
+          "requerido": true
+        },
+        {
+          "clave": "hora_instalacion",
+          "etiqueta": "Hora de instalación",
+          "tipo": "hora",
+          "requerido": true
+        },
+        { "clave": "hora_retiro", "etiqueta": "Hora de retiro", "tipo": "hora", "requerido": true },
+        {
+          "clave": "dias_exposicion",
+          "etiqueta": "Días de exposición",
+          "tipo": "entero",
+          "requerido": true,
+          "ayuda": "1; 2 en ZA/EF"
+        },
+        { "clave": "fallas", "etiqueta": "Fallas", "tipo": "texto", "requerido": false }
+      ],
+      "registros": {
+        "etiqueta": "Capturas",
+        "campos": [
+          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "n_individuos",
+            "etiqueta": "Número de individuos capturados",
+            "tipo": "entero",
+            "requerido": true
+          }
+        ]
+      },
+      "validaciones": [
+        { "tipo": "geometria", "tipo_control": "obligatorio", "texto": "Validar ubicación." },
+        {
+          "tipo": "horario",
+          "ventanas": [{ "inicio": "09:00", "fin": "15:00" }],
+          "tipo_control": "obligatorio",
+          "texto": "Validar horario 09:00–15:00, exposición por día(s)."
+        },
+        {
+          "tipo": "fotos_contexto",
+          "cantidad_por_unidad": 4,
+          "tipo_control": "obligatorio",
+          "texto": "Validar fotos."
+        },
+        {
+          "tipo": "campos_obligatorios",
+          "tipo_control": "obligatorio",
+          "texto": "Validar instalación/retiro y fallas."
+        },
+        {
+          "tipo": "cantidad_unidades",
+          "minimo": 1,
+          "minimo_za_ef": 1,
+          "tipo_control": "obligatorio",
+          "texto": "Una trampa; en ZA/EF dos días."
+        },
+        {
+          "tipo": "fotos_metodologicas",
+          "minimo": 2,
+          "tipo_control": "obligatorio",
+          "texto": "2 por estación/método."
+        }
+      ],
+      "vinculo": {
+        "texto": "No generar línea adicional: la unidad es un punto de instalación.",
+        "metodos": []
+      },
+      "fuente": {
+        "estado": "CERRADO",
+        "origen": "Geometría fuente + regla fotográfica funcional Walsh.",
+        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición."
+      }
+    },
+    {
+      "codigo": "mamiferos_menores_terrestres.sherman",
+      "nombre": "TRAMPAS DE CAPTURA VIVA SHERMAN",
+      "especialidad": "mamiferos_menores_terrestres",
+      "clase": "todas",
+      "aplicacion": {
+        "texto": "Todas las estaciones de muestreo de mastozoología.",
+        "condicion": null
+      },
+      "unidad": {
+        "tipo": "trampa",
+        "tipos_adicionales": ["transecto"],
+        "texto": "Una trampa Sherman, en una línea ≥ 300 m."
+      },
+      "esfuerzo": {
+        "estandar": {
+          "cantidad": 60,
+          "unidad": "trampas durante 24 horas",
+          "texto": "60 trampas durante 24 horas, distribuidas en 30 puntos con dos trampas cada uno."
+        },
+        "za_ef": { "cantidad": 60, "texto": "60 trampas durante 48 horas." }
+      },
+      "horario": null,
+      "geometria": {
+        "tipo": "punto_opcional",
+        "texto": "Línea ≥300 m; inicio + fin georreferenciados en la app",
+        "vinculo_metodo": null,
+        "por_tipo": { "transecto": "inicio_fin" },
+        "detalle": null
+      },
+      "track": false,
+      "fotos": {
+        "contexto": {
+          "cantidad_por_unidad": null,
+          "por_tipo": { "transecto": 8 },
+          "cardinales": true,
+          "reutiliza_metodo": null,
+          "texto": "8 panorámicas por transecto: 4 N-S-E-O al inicio + 4 N-S-E-O al final."
+        },
+        "metodologicas": {
+          "minimo": 2,
+          "texto": "2 por estación/método, semipanorámicas laterales/oblicuas: instalación/cebado de Sherman + revisión/manipulación de una trampa."
+        }
+      },
+      "campos_ejecucion": [],
+      "campos": [
+        {
+          "clave": "punto_colocacion",
+          "etiqueta": "Punto de colocación (1–30)",
+          "tipo": "entero",
+          "requerido": true
+        },
+        { "clave": "cebo", "etiqueta": "Cebo", "tipo": "texto", "requerido": true },
+        {
+          "clave": "hora_instalacion",
+          "etiqueta": "Hora de instalación",
+          "tipo": "hora",
+          "requerido": true
+        },
+        { "clave": "hora_retiro", "etiqueta": "Hora de retiro", "tipo": "hora", "requerido": true },
+        {
+          "clave": "interrupciones",
+          "etiqueta": "Interrupciones",
+          "tipo": "texto",
+          "requerido": false
+        },
+        {
+          "clave": "habitat_captura",
+          "etiqueta": "Hábitat de captura",
+          "tipo": "texto",
+          "requerido": false
+        }
+      ],
+      "registros": {
+        "etiqueta": "Capturas",
+        "campos": [
+          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "n_capturas",
+            "etiqueta": "Número de capturas",
+            "tipo": "entero",
+            "requerido": true
+          },
+          {
+            "clave": "sexo",
+            "etiqueta": "Sexo",
+            "tipo": "opcion",
+            "opciones": ["macho", "hembra", "indeterminado"],
+            "requerido": false
+          },
+          { "clave": "edad", "etiqueta": "Edad", "tipo": "texto", "requerido": false },
+          {
+            "clave": "condicion_reproductiva",
+            "etiqueta": "Condición reproductiva",
+            "tipo": "texto",
+            "requerido": false
+          },
+          {
+            "clave": "medidas_corporales",
+            "etiqueta": "Medidas corporales para identificación",
+            "tipo": "texto",
+            "requerido": false
+          }
+        ]
+      },
+      "validaciones": [
+        {
+          "tipo": "cantidad_unidades",
+          "minimo": 60,
+          "minimo_za_ef": 60,
+          "tipo_control": "obligatorio",
+          "texto": "Validar 60 trampas/30 puntos."
+        },
+        { "tipo": "geometria", "tipo_control": "obligatorio", "texto": "Validar inicio/fin." },
+        {
+          "tipo": "campos_obligatorios",
+          "tipo_control": "obligatorio",
+          "texto": "Validar cebo, horas, interrupciones."
+        },
+        {
+          "tipo": "fotos_contexto",
+          "cantidad_por_unidad": 8,
+          "tipo_control": "obligatorio",
+          "texto": "Validar fotos (8 por transecto)."
+        },
+        {
+          "tipo": "separacion_minima_m",
+          "metros": 10,
+          "tipo_control": "advertencia",
+          "texto": "Mostrar advertencia no bloqueante recordando una separación de 10–15 m entre puntos de colocación."
+        },
+        {
+          "tipo": "fotos_metodologicas",
+          "minimo": 2,
+          "tipo_control": "obligatorio",
+          "texto": "2 por estación/método."
+        }
+      ],
+      "vinculo": {
+        "texto": "El mismo transecto aporta contexto a Tomahawk.",
+        "metodos": ["mamiferos_menores_terrestres.tomahawk"]
+      },
+      "fuente": {
+        "estado": "CERRADO",
+        "origen": "Geometría fuente + regla fotográfica funcional Walsh.",
+        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad."
+      }
+    },
+    {
+      "codigo": "mamiferos_menores_terrestres.tomahawk",
+      "nombre": "TRAMPAS DE CAPTURA VIVA TOMAHAWK",
+      "especialidad": "mamiferos_menores_terrestres",
+      "clase": "todas",
+      "aplicacion": {
+        "texto": "Todas las estaciones de muestreo de mastozoología.",
+        "condicion": null
+      },
+      "unidad": { "tipo": "trampa", "tipos_adicionales": [], "texto": "Una trampa Tomahawk." },
+      "esfuerzo": {
+        "estandar": {
+          "cantidad": 10,
+          "unidad": "trampas durante 24 horas",
+          "texto": "10 trampas durante 24 horas."
+        },
+        "za_ef": { "cantidad": 10, "texto": "10 trampas durante 48 horas." }
+      },
+      "horario": null,
+      "geometria": {
+        "tipo": "vinculada",
+        "texto": "Mismo transecto y coordenadas inicio/fin de Sherman",
+        "vinculo_metodo": "mamiferos_menores_terrestres.sherman",
+        "detalle": null
+      },
+      "track": false,
+      "fotos": {
+        "contexto": {
+          "cantidad_por_unidad": null,
+          "cardinales": false,
+          "reutiliza_metodo": "mamiferos_menores_terrestres.sherman",
+          "texto": "Reutiliza panorámicas del transecto Sherman."
+        },
+        "metodologicas": {
+          "minimo": 2,
+          "texto": "2 por estación/método, semipanorámicas laterales/oblicuas: instalación + revisión."
+        }
+      },
+      "campos_ejecucion": [],
+      "campos": [
+        { "clave": "cebo", "etiqueta": "Cebo", "tipo": "texto", "requerido": true },
+        {
+          "clave": "hora_instalacion",
+          "etiqueta": "Hora de instalación",
+          "tipo": "hora",
+          "requerido": true
+        },
+        { "clave": "hora_retiro", "etiqueta": "Hora de retiro", "tipo": "hora", "requerido": true },
+        {
+          "clave": "interrupciones",
+          "etiqueta": "Interrupciones",
+          "tipo": "texto",
+          "requerido": false
+        },
+        {
+          "clave": "posicion_elevada",
+          "etiqueta": "Posición elevada",
+          "tipo": "booleano",
+          "requerido": false
+        },
+        {
+          "clave": "habitat_captura",
+          "etiqueta": "Hábitat de captura",
+          "tipo": "texto",
+          "requerido": false
+        }
+      ],
+      "registros": {
+        "etiqueta": "Capturas",
+        "campos": [
+          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "n_capturas",
+            "etiqueta": "Número de capturas",
+            "tipo": "entero",
+            "requerido": true
+          },
+          {
+            "clave": "sexo",
+            "etiqueta": "Sexo",
+            "tipo": "opcion",
+            "opciones": ["macho", "hembra", "indeterminado"],
+            "requerido": false
+          },
+          { "clave": "edad", "etiqueta": "Edad", "tipo": "texto", "requerido": false },
+          {
+            "clave": "condicion_reproductiva",
+            "etiqueta": "Condición reproductiva",
+            "tipo": "texto",
+            "requerido": false
+          },
+          {
+            "clave": "medidas_corporales",
+            "etiqueta": "Medidas corporales para identificación",
+            "tipo": "texto",
+            "requerido": false
+          }
+        ]
+      },
+      "validaciones": [
+        {
+          "tipo": "cantidad_unidades",
+          "minimo": 10,
+          "minimo_za_ef": 10,
+          "tipo_control": "obligatorio",
+          "texto": "Validar 10 trampas."
+        },
+        {
+          "tipo": "campos_obligatorios",
+          "tipo_control": "obligatorio",
+          "texto": "Validar cebo, horas, interrupciones."
+        },
+        {
+          "tipo": "vinculo_unidad",
+          "metodo": "mamiferos_menores_terrestres.sherman",
+          "tipo_control": "obligatorio",
+          "texto": "Vincular Tomahawk al transecto Sherman; no crear geometría paralela."
+        },
+        {
+          "tipo": "mensaje",
+          "tipo_control": "informativo",
+          "texto": "En coberturas arbóreas, mostrar un mensaje informativo recordando que pueden incluirse posiciones elevadas; no exigir ni bloquear por esta condición."
+        },
+        {
+          "tipo": "fotos_metodologicas",
+          "minimo": 2,
+          "tipo_control": "obligatorio",
+          "texto": "2 por estación/método."
+        }
+      ],
+      "vinculo": {
+        "texto": "Vincular Tomahawk al transecto Sherman; no crear geometría paralela.",
+        "metodos": ["mamiferos_menores_terrestres.sherman"]
+      },
+      "fuente": {
+        "estado": "CERRADO",
+        "origen": "Reutilización espacial fuente + regla fotográfica funcional Walsh.",
+        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad."
+      }
+    },
+    {
+      "codigo": "mamiferos_menores_voladores.acustico_murcielagos",
+      "nombre": "REGISTRO ACÚSTICO PASIVO DE MURCIÉLAGOS",
+      "especialidad": "mamiferos_menores_voladores",
+      "clase": "todas",
+      "aplicacion": {
+        "texto": "Todas las estaciones de muestreo de mastozoología.",
+        "condicion": null
+      },
+      "unidad": {
+        "tipo": "detector",
+        "tipos_adicionales": [],
+        "texto": "Un detector acústico instalado en un punto de registro."
+      },
+      "esfuerzo": {
+        "estandar": {
+          "cantidad": 1,
+          "unidad": "detector durante una noche de 12 horas",
+          "texto": "Un detector durante una noche de 12 horas."
+        },
+        "za_ef": {
+          "cantidad": 1,
+          "texto": "Un detector durante dos noches de 12 horas cada una. (Duplicación indicada en la OT SERFOR, literal b, opinión i, aunque la tabla 3 consigna 12 horas.)"
+        }
+      },
+      "horario": { "ventanas": [{ "inicio": "18:00", "fin": "06:00" }], "texto": "18:00–06:00" },
+      "geometria": {
+        "tipo": "punto",
+        "texto": "Punto georreferenciado en la app de instalación del detector",
+        "vinculo_metodo": null,
+        "detalle": null
+      },
+      "track": false,
+      "fotos": {
+        "contexto": {
+          "cantidad_por_unidad": 4,
+          "cardinales": true,
+          "reutiliza_metodo": null,
+          "texto": "4 panorámicas N-S-E-O desde el punto de instalación."
+        },
+        "metodologicas": {
+          "minimo": 2,
+          "texto": "2 por estación/método, semipanorámicas laterales/oblicuas: instalación/configuración + detector instalado y orientado en su hábitat."
+        }
+      },
+      "campos_ejecucion": [],
+      "campos": [
+        {
+          "clave": "habitat",
+          "etiqueta": "Hábitat de registro",
+          "tipo": "texto",
+          "requerido": true
+        },
+        {
+          "clave": "fecha_inicio",
+          "etiqueta": "Fecha de inicio",
+          "tipo": "fecha",
+          "requerido": true
+        },
+        { "clave": "hora_inicio", "etiqueta": "Hora de inicio", "tipo": "hora", "requerido": true },
+        { "clave": "hora_fin", "etiqueta": "Hora de fin", "tipo": "hora", "requerido": true },
+        {
+          "clave": "noches",
+          "etiqueta": "Noches de registro",
+          "tipo": "entero",
+          "requerido": true,
+          "ayuda": "1; 2 en ZA/EF"
+        },
+        {
+          "clave": "archivos",
+          "etiqueta": "Archivos generados",
+          "tipo": "texto",
+          "requerido": true
+        },
+        { "clave": "fallas", "etiqueta": "Fallas", "tipo": "texto", "requerido": false }
+      ],
+      "registros": {
+        "etiqueta": "Señales / especies",
+        "campos": [
+          {
+            "clave": "especie",
+            "etiqueta": "Especie identificada",
+            "tipo": "texto",
+            "requerido": false
+          },
+          {
+            "clave": "senales",
+            "etiqueta": "Señales de ecolocación registradas",
+            "tipo": "texto",
+            "requerido": false
+          }
+        ]
+      },
+      "validaciones": [
+        { "tipo": "geometria", "tipo_control": "obligatorio", "texto": "Validar punto." },
+        {
+          "tipo": "parametros_tecnicos",
+          "parametros": ["10–80 kHz", "WAV", "384 kHz", "1 min cada 5 min", "18:00–06:00"],
+          "tipo_control": "obligatorio",
+          "texto": "Validar 10–80 kHz, WAV, 384 kHz, 1 min cada 5 min, 18:00–06:00 (T-12)."
+        },
+        {
+          "tipo": "horario",
+          "ventanas": [{ "inicio": "18:00", "fin": "06:00" }],
+          "tipo_control": "obligatorio",
+          "texto": "18:00–06:00."
+        },
+        {
+          "tipo": "campos_obligatorios",
+          "tipo_control": "obligatorio",
+          "texto": "Validar fechas/horas, archivos y fallas."
+        },
+        {
+          "tipo": "fotos_contexto",
+          "cantidad_por_unidad": 4,
+          "tipo_control": "obligatorio",
+          "texto": "4 panorámicas."
+        },
+        {
+          "tipo": "cantidad_unidades",
+          "minimo": 1,
+          "minimo_za_ef": 1,
+          "tipo_control": "obligatorio",
+          "texto": "Un detector; una noche (dos en ZA/EF)."
+        },
+        {
+          "tipo": "fotos_metodologicas",
+          "minimo": 2,
+          "tipo_control": "obligatorio",
+          "texto": "2 por estación/método."
+        }
+      ],
+      "vinculo": {
+        "texto": "La segunda noche ZA/EF reutiliza el mismo punto si el equipo permanece en la ubicación.",
+        "metodos": []
+      },
+      "fuente": {
+        "estado": "CERRADO",
+        "origen": "Configuración técnica literal de la metodología + fotos funcionales.",
+        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad."
+      }
+    },
+    {
+      "codigo": "mamiferos_menores_voladores.redes_neblina",
+      "nombre": "REDES DE NEBLINA PARA MURCIÉLAGOS",
+      "especialidad": "mamiferos_menores_voladores",
+      "clase": "todas",
+      "aplicacion": {
+        "texto": "Todas las estaciones de muestreo de mastozoología.",
+        "condicion": null
+      },
+      "unidad": {
+        "tipo": "red",
+        "tipos_adicionales": ["transecto"],
+        "texto": "Una red de neblina de 12 × 2,5 m, en dos líneas/transectos de instalación."
+      },
+      "esfuerzo": {
+        "estandar": {
+          "cantidad": 10,
+          "unidad": "redes durante una noche",
+          "texto": "10 redes durante una noche."
+        },
+        "za_ef": { "cantidad": 10, "texto": "10 redes durante dos noches consecutivas." }
+      },
+      "horario": { "ventanas": [{ "inicio": "17:30", "fin": "00:00" }], "texto": "17:30–00:00" },
+      "geometria": {
+        "tipo": "punto_opcional",
+        "texto": "Dos líneas/transectos de instalación; registrar inicio y fin en la app. Cada red conserva su código y ubicación asociada.",
+        "vinculo_metodo": null,
+        "por_tipo": { "transecto": "inicio_fin" },
+        "detalle": null
+      },
+      "track": false,
+      "fotos": {
+        "contexto": {
+          "cantidad_por_unidad": 1,
+          "cardinales": false,
+          "reutiliza_metodo": null,
+          "texto": "1 foto georreferenciada por cada una de las 10 redes, mostrando la red instalada y el hábitat inmediato."
+        },
+        "metodologicas": {
+          "minimo": 2,
+          "texto": "Mínimo 2 por estación/método, semipanorámicas laterales/oblicuas: instalación de una red + revisión/extracción de ejemplar. Si se usa dosel, incluir evidencia de esa configuración."
+        }
+      },
+      "campos_ejecucion": [],
+      "campos": [
+        {
+          "clave": "linea",
+          "etiqueta": "Línea/transecto de instalación (1–2)",
+          "tipo": "entero",
+          "requerido": true
+        },
+        {
+          "clave": "estrato",
+          "etiqueta": "Estrato",
+          "tipo": "opcion",
+          "opciones": ["sotobosque", "dosel"],
+          "requerido": true
+        },
+        { "clave": "habitat", "etiqueta": "Hábitat", "tipo": "texto", "requerido": true },
+        {
+          "clave": "hora_apertura",
+          "etiqueta": "Hora de apertura",
+          "tipo": "hora",
+          "requerido": true
+        },
+        { "clave": "hora_cierre", "etiqueta": "Hora de cierre", "tipo": "hora", "requerido": true },
+        {
+          "clave": "interrupciones",
+          "etiqueta": "Interrupciones",
+          "tipo": "texto",
+          "requerido": false
+        }
+      ],
+      "registros": {
+        "etiqueta": "Capturas",
+        "campos": [
+          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "n_capturas",
+            "etiqueta": "Número de capturas",
+            "tipo": "entero",
+            "requerido": true
+          },
+          {
+            "clave": "sexo",
+            "etiqueta": "Sexo",
+            "tipo": "opcion",
+            "opciones": ["macho", "hembra", "indeterminado"],
+            "requerido": false
+          },
+          {
+            "clave": "condicion_reproductiva",
+            "etiqueta": "Condición reproductiva",
+            "tipo": "texto",
+            "requerido": false
+          },
+          {
+            "clave": "medidas_corporales",
+            "etiqueta": "Medidas corporales para identificación",
+            "tipo": "texto",
+            "requerido": false
+          },
+          {
+            "clave": "estrato_captura",
+            "etiqueta": "Estrato de captura",
+            "tipo": "texto",
+            "requerido": false
+          }
+        ]
+      },
+      "validaciones": [
+        {
+          "tipo": "cantidad_unidades",
+          "minimo": 10,
+          "minimo_za_ef": 10,
+          "tipo_control": "obligatorio",
+          "texto": "Validar la instalación de 10 redes."
+        },
+        {
+          "tipo": "fotos_contexto",
+          "cantidad_por_unidad": 1,
+          "tipo_control": "obligatorio",
+          "texto": "Una foto por red."
+        },
+        {
+          "tipo": "horario",
+          "ventanas": [{ "inicio": "17:30", "fin": "00:00" }],
+          "tipo_control": "obligatorio",
+          "texto": "Validar horario."
+        },
+        {
+          "tipo": "campos_obligatorios",
+          "tipo_control": "obligatorio",
+          "texto": "Validar estrato, horas de apertura/cierre e interrupciones."
+        },
+        {
+          "tipo": "geometria",
+          "tipo_control": "obligatorio",
+          "texto": "Registrar inicio y fin de las líneas de instalación."
+        },
+        {
+          "tipo": "separacion_minima_m",
+          "metros": 20,
+          "tipo_control": "advertencia",
+          "texto": "Mostrar advertencia no bloqueante recordando el distanciamiento aproximado de 20 m entre redes; no bloquear por distancia."
+        },
+        {
+          "tipo": "fotos_metodologicas",
+          "minimo": 2,
+          "tipo_control": "obligatorio",
+          "texto": "Mínimo 2 por estación/método."
+        }
+      ],
+      "vinculo": {
+        "texto": "Segunda noche no requiere repetir contexto si se mantienen los mismos transectos.",
+        "metodos": []
+      },
+      "fuente": {
+        "estado": "CERRADO",
+        "origen": "Esfuerzo y distribución fuente + decisión funcional aprobada: obligación de 10 redes y foto individual por red; distanciamiento tratado como advertencia no bloqueante.",
+        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad."
+      }
+    },
+    {
+      "codigo": "mamiferos_mayores.transectos_lineales",
+      "nombre": "RECORRIDOS POR TRANSECTOS LINEALES",
+      "especialidad": "mamiferos_mayores",
+      "clase": "todas",
+      "aplicacion": {
+        "texto": "Todas las estaciones de muestreo de mastozoología.",
+        "condicion": null
+      },
+      "unidad": {
+        "tipo": "transecto",
+        "tipos_adicionales": [],
+        "texto": "Un transecto lineal de 2 km."
+      },
+      "esfuerzo": {
+        "estandar": {
+          "cantidad": 2,
+          "unidad": "transectos (uno diurno y uno nocturno)",
+          "texto": "Un transecto diurno y un transecto nocturno."
+        },
+        "za_ef": { "cantidad": 4, "texto": "Dos transectos diurnos y dos nocturnos." }
+      },
+      "horario": {
+        "ventanas": [
+          { "inicio": "05:00", "fin": "10:00" },
+          { "inicio": "18:00", "fin": "00:00" }
+        ],
+        "texto": "05:00–10:00; 18:00–00:00"
+      },
+      "geometria": {
+        "tipo": "inicio_fin",
+        "texto": "Línea de 2 km; inicio + fin georreferenciados en la app + track",
+        "vinculo_metodo": null,
+        "detalle": null
+      },
+      "track": true,
+      "fotos": {
+        "contexto": {
+          "cantidad_por_unidad": 10,
+          "cardinales": true,
+          "reutiliza_metodo": null,
+          "texto": "10 fotos por transecto: 4 cardinales al inicio + 2 panorámicas intermedias representativas + 4 cardinales al final."
+        },
+        "metodologicas": {
+          "minimo": 2,
+          "texto": "2 por evaluación, semipanorámicas laterales/oblicuas: búsqueda/observación con binoculares + inspección/documentación de evidencia. Diferenciar evaluación diurna/nocturna."
+        }
+      },
+      "campos_ejecucion": [],
+      "campos": [
+        {
+          "clave": "periodo",
+          "etiqueta": "Periodo",
+          "tipo": "opcion",
+          "opciones": ["diurno", "nocturno"],
+          "requerido": true
+        },
+        { "clave": "habitat", "etiqueta": "Hábitat", "tipo": "texto", "requerido": true },
+        {
+          "clave": "distancia_km",
+          "etiqueta": "Distancia recorrida (km)",
+          "tipo": "decimal",
+          "requerido": false
+        }
+      ],
+      "registros": {
+        "etiqueta": "Registros y evidencias",
+        "campos": [
+          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "n_individuos",
+            "etiqueta": "Número de individuos observados",
+            "tipo": "entero",
+            "requerido": false
+          },
+          {
+            "clave": "tipo_evidencia",
+            "etiqueta": "Tipo de evidencia",
+            "tipo": "texto",
+            "requerido": true
+          },
+          {
+            "clave": "n_evidencias",
+            "etiqueta": "Número de evidencias",
+            "tipo": "entero",
+            "requerido": false
+          },
+          {
+            "clave": "ubicacion_deteccion",
+            "etiqueta": "Ubicación de la detección",
+            "tipo": "punto",
+            "requerido": true
+          },
+          { "clave": "sexo", "etiqueta": "Sexo", "tipo": "texto", "requerido": false },
+          { "clave": "edad", "etiqueta": "Edad", "tipo": "texto", "requerido": false }
+        ]
+      },
+      "validaciones": [
+        {
+          "tipo": "geometria",
+          "tipo_control": "obligatorio",
+          "texto": "Validar 2 km, inicio/fin, distancia."
+        },
+        {
+          "tipo": "horario",
+          "ventanas": [
+            { "inicio": "05:00", "fin": "10:00" },
+            { "inicio": "18:00", "fin": "00:00" }
+          ],
+          "tipo_control": "obligatorio",
+          "texto": "Validar horario."
+        },
+        {
+          "tipo": "track",
+          "tipo_control": "obligatorio",
+          "texto": "Track obligatorio en la app para comprobar distancia y recorrido efectivo."
+        },
+        {
+          "tipo": "campos_obligatorios",
+          "tipo_control": "obligatorio",
+          "texto": "Validar evidencia y ubicación de detecciones."
+        },
+        {
+          "tipo": "fotos_contexto",
+          "cantidad_por_unidad": 10,
+          "tipo_control": "obligatorio",
+          "texto": "Validar fotos."
+        },
+        {
+          "tipo": "cantidad_unidades",
+          "minimo": 2,
+          "minimo_za_ef": 4,
+          "tipo_control": "obligatorio",
+          "texto": "Un transecto diurno y uno nocturno; dos y dos en ZA/EF."
+        },
+        {
+          "tipo": "fotos_metodologicas",
+          "minimo": 2,
+          "tipo_control": "obligatorio",
+          "texto": "2 por evaluación."
+        }
+      ],
+      "vinculo": {
+        "texto": "Track obligatorio en la app para comprobar distancia y recorrido efectivo.",
+        "metodos": []
+      },
+      "fuente": {
+        "estado": "CERRADO",
+        "origen": "Geometría fuente + track/fotos funcionales.",
+        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad."
+      }
+    },
+    {
+      "codigo": "mamiferos_mayores.camaras_trampa",
+      "nombre": "CÁMARAS TRAMPA",
+      "especialidad": "mamiferos_mayores",
+      "clase": "todas",
+      "aplicacion": {
+        "texto": "Todas las estaciones de muestreo de mastozoología.",
+        "condicion": null
+      },
+      "unidad": { "tipo": "camara", "tipos_adicionales": [], "texto": "Una cámara trampa." },
+      "esfuerzo": {
+        "estandar": {
+          "cantidad": 6,
+          "unidad": "cámaras durante 72 horas",
+          "texto": "6 cámaras durante 72 horas como esfuerzo base. La app debe permitir continuar instalando cámaras adicionales sin límite automático."
+        },
+        "za_ef": {
+          "cantidad": 6,
+          "texto": "En ZA/EF, alertar que deben instalarse como mínimo 6 cámaras. Si se registran exactamente 6, solicitar confirmación de que permanecerán 144 horas (6 días). Si se registran más de 6, permitir continuar sin bloqueo; mostrar como referencia metodológica 12 cámaras durante 72 horas cuando exista espacio."
+        }
+      },
+      "horario": null,
+      "geometria": {
+        "tipo": "punto",
+        "texto": "Punto georreferenciado en la app individual por cámara",
+        "vinculo_metodo": null,
+        "detalle": null
+      },
+      "track": false,
+      "fotos": {
+        "contexto": {
+          "cantidad_por_unidad": 1,
+          "cardinales": false,
+          "reutiliza_metodo": null,
+          "texto": "1 semipanorámica por cámara tomada desde su ubicación hacia el sector cubierto por el sensor, mostrando hábitat/campo de detección."
+        },
+        "metodologicas": {
+          "minimo": 2,
+          "texto": "2 por estación/método, semipanorámicas laterales/oblicuas: instalación/configuración + cámara instalada mostrando orientación y entorno."
+        }
+      },
+      "campos_ejecucion": [],
+      "campos": [
+        {
+          "clave": "fecha_instalacion",
+          "etiqueta": "Fecha de instalación",
+          "tipo": "fecha",
+          "requerido": true
+        },
+        {
+          "clave": "hora_instalacion",
+          "etiqueta": "Hora de instalación",
+          "tipo": "hora",
+          "requerido": true
+        },
+        {
+          "clave": "fecha_retiro",
+          "etiqueta": "Fecha de retiro",
+          "tipo": "fecha",
+          "requerido": false
+        },
+        {
+          "clave": "hora_retiro",
+          "etiqueta": "Hora de retiro",
+          "tipo": "hora",
+          "requerido": false
+        },
+        {
+          "clave": "duracion_prevista_h",
+          "etiqueta": "Duración prevista (h)",
+          "tipo": "entero",
+          "requerido": true
+        },
+        {
+          "clave": "duracion_ejecutada_h",
+          "etiqueta": "Duración ejecutada (h)",
+          "tipo": "entero",
+          "requerido": false
+        },
+        { "clave": "habitat", "etiqueta": "Hábitat", "tipo": "texto", "requerido": true },
+        { "clave": "orientacion", "etiqueta": "Orientación", "tipo": "texto", "requerido": true },
+        {
+          "clave": "funcionamiento",
+          "etiqueta": "Funcionamiento",
+          "tipo": "texto",
+          "requerido": false
+        },
+        { "clave": "archivos", "etiqueta": "Archivos", "tipo": "texto", "requerido": false },
+        { "clave": "fallas", "etiqueta": "Fallas", "tipo": "texto", "requerido": false }
+      ],
+      "registros": {
+        "etiqueta": "Especies registradas",
+        "campos": [
+          { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+          {
+            "clave": "n_individuos",
+            "etiqueta": "Número de individuos observables",
+            "tipo": "entero",
+            "requerido": false
+          },
+          {
+            "clave": "comportamiento",
+            "etiqueta": "Comportamiento",
+            "tipo": "texto",
+            "requerido": false
+          }
+        ]
+      },
+      "validaciones": [
+        {
+          "tipo": "cantidad_unidades",
+          "minimo": 6,
+          "minimo_za_ef": 6,
+          "tipo_control": "obligatorio",
+          "texto": "Alertar si se registran menos de 6 cámaras. Si el total es mayor de 6, no bloquear por cantidad; registrar número instalado y duración de cada cámara."
+        },
+        {
+          "tipo": "confirmacion",
+          "condicion": "za_ef_cantidad_exacta",
+          "cantidad": 6,
+          "mensaje": "Las 6 cámaras permanecerán 6 días (144 h)",
+          "tipo_control": "obligatorio",
+          "texto": "En ZA/EF, si el total es exactamente 6, exigir confirmación del mensaje «las 6 cámaras permanecerán 6 días (144 h)»."
+        },
+        {
+          "tipo": "referencia_esfuerzo",
+          "tipo_control": "referencia",
+          "texto": "Mostrar como referencia metodológica 12 cámaras durante 72 horas cuando exista espacio."
+        },
+        {
+          "tipo": "geometria",
+          "tipo_control": "obligatorio",
+          "texto": "Punto individual por cámara."
+        },
+        {
+          "tipo": "fotos_contexto",
+          "cantidad_por_unidad": 1,
+          "tipo_control": "obligatorio",
+          "texto": "1 semipanorámica por cámara."
+        },
+        {
+          "tipo": "campos_obligatorios",
+          "tipo_control": "obligatorio",
+          "texto": "Registrar número instalado y duración de cada cámara."
+        },
+        {
+          "tipo": "fotos_metodologicas",
+          "minimo": 2,
+          "tipo_control": "obligatorio",
+          "texto": "2 por estación/método."
+        }
+      ],
+      "vinculo": {
+        "texto": "Cada cámara conserva código y punto propios; no sustituir por una foto general de estación.",
+        "metodos": []
+      },
+      "fuente": {
+        "estado": "CERRADO",
+        "origen": "Metodología fuente + decisión funcional aprobada: la app no restringe cantidades mayores a 6; 6 cámaras en ZA/EF requieren confirmación de permanencia por 144 h.",
+        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad."
+      }
+    },
+    {
+      "codigo": "mamiferos_mayores.registros_oportunos",
+      "nombre": "REGISTROS OPORTUNOS",
+      "especialidad": "mamiferos_mayores",
+      "clase": "evento",
+      "aplicacion": {
+        "texto": "Observaciones de mamíferos y evidencias de su presencia no obtenidas mediante los métodos estandarizados de evaluación.",
+        "condicion": null
+      },
+      "unidad": { "tipo": "evento", "tipos_adicionales": [], "texto": null },
+      "esfuerzo": { "estandar": null, "za_ef": null },
+      "horario": null,
+      "geometria": {
+        "tipo": "punto_opcional",
+        "texto": "Evento puntual; coordenada cuando esté disponible",
+        "vinculo_metodo": null,
+        "detalle": null
+      },
+      "track": false,
+      "fotos": {
+        "contexto": {
+          "cantidad_por_unidad": null,
+          "cardinales": false,
+          "reutiliza_metodo": null,
+          "texto": "Sin panorámicas sistemáticas. Fotografiar evidencias cuando sea posible."
+        },
+        "metodologicas": { "minimo": 0, "texto": "No exigir foto metodológica del especialista." }
+      },
+      "campos_ejecucion": [],
+      "campos": [
+        { "clave": "especie", "etiqueta": "Especie", "tipo": "texto", "requerido": true },
+        {
+          "clave": "tipo_evidencia",
+          "etiqueta": "Tipo de evidencia",
+          "tipo": "texto",
+          "requerido": true
+        },
+        { "clave": "habitat", "etiqueta": "Hábitat", "tipo": "texto", "requerido": true },
+        {
+          "clave": "comportamiento",
+          "etiqueta": "Comportamiento, cuando sea observable",
+          "tipo": "texto",
+          "requerido": false
+        },
+        { "clave": "fecha", "etiqueta": "Fecha", "tipo": "fecha", "requerido": true },
+        { "clave": "hora", "etiqueta": "Hora", "tipo": "hora", "requerido": true }
+      ],
+      "registros": null,
+      "validaciones": [
+        {
+          "tipo": "campos_obligatorios",
+          "tipo_control": "obligatorio",
+          "texto": "Registrar fecha/hora, tipo de evidencia, hábitat, localidad/coordenada disponible y fotografía cuando exista."
+        }
+      ],
+      "vinculo": { "texto": "No contabilizar como esfuerzo de transectos/cámaras.", "metodos": [] },
+      "fuente": {
+        "estado": "CERRADO COMO EVENTO",
+        "origen": "Regla funcional para evento incidental.",
+        "pendiente": "No requiere matriz estación–método previa; solo mantener disponible el evento."
+      }
+    },
+    {
+      "codigo": "fauna_transversal.abs",
+      "nombre": "IDENTIFICACIÓN Y CARACTERIZACIÓN DE ÁREAS BIOLÓGICAMENTE SENSIBLES (ABS)",
+      "especialidad": "fauna_transversal",
+      "clase": "transversal",
+      "aplicacion": {
+        "texto": "Todas las estaciones de muestreo de fauna, por cada grupo de fauna evaluado.",
+        "condicion": null
+      },
+      "unidad": {
+        "tipo": "abs",
+        "tipos_adicionales": ["recorrido"],
+        "texto": "Recorrido complementario de búsqueda activa de ABS por estación y grupo de fauna; cada ABS identificado se registra como un sitio/evento georreferenciado."
+      },
+      "esfuerzo": {
+        "estandar": {
+          "cantidad": 2,
+          "unidad": "horas de búsqueda complementaria por estación y grupo",
+          "texto": "2 horas de búsqueda complementaria por estación y grupo de fauna."
+        },
+        "za_ef": {
+          "cantidad": null,
+          "texto": "No presenta una regla adicional específica por ZA/EF. La búsqueda puede reducirse a 1 hora únicamente cuando las evaluaciones y recorridos hayan cubierto ampliamente los distintos sectores y ambientes de la estación, se hayan identificado ABS y se registren los sectores/sitios que sustentan la reducción; un sitio aislado no es suficiente."
+        }
+      },
+      "horario": null,
+      "geometria": {
+        "tipo": "punto",
+        "texto": "Track obligatorio registrado por la app del recorrido de búsqueda complementaria + coordenada individual de cada ABS identificado",
+        "vinculo_metodo": null,
+        "por_tipo": { "recorrido": "inicio_fin" },
+        "detalle": null
+      },
+      "track": true,
+      "fotos": {
+        "contexto": {
+          "cantidad_por_unidad": 2,
+          "cardinales": false,
+          "reutiliza_metodo": null,
+          "texto": "Por cada ABS: mínimo 2 fotos, una panorámica/semipanorámica del sitio y una de la evidencia, recurso o elemento que sustenta su función."
+        },
+        "metodologicas": {
+          "minimo": 2,
+          "texto": "Mínimo 2 por estación y grupo de fauna, semipanorámicas laterales/oblicuas: especialista realizando búsqueda activa o inspeccionando un ABS."
+        }
+      },
+      "campos_ejecucion": [
+        {
+          "clave": "grupo_fauna",
+          "etiqueta": "Grupo de fauna evaluado",
+          "tipo": "opcion",
+          "opciones": ["aves", "anfibios y reptiles", "artrópodos", "mamíferos"],
+          "requerido": true
+        },
+        { "clave": "hora_inicio", "etiqueta": "Hora de inicio", "tipo": "hora", "requerido": true },
+        { "clave": "hora_fin", "etiqueta": "Hora de término", "tipo": "hora", "requerido": true },
+        {
+          "clave": "tiempo_efectivo_min",
+          "etiqueta": "Tiempo efectivo de búsqueda (min)",
+          "tipo": "entero",
+          "requerido": true,
+          "ayuda": "Excluir el tiempo de otros métodos, las pausas y los traslados sin búsqueda activa"
+        },
+        {
+          "clave": "sectores_cubiertos",
+          "etiqueta": "Sectores y ambientes cubiertos",
+          "tipo": "texto",
+          "requerido": false
+        },
+        {
+          "clave": "sustento_reduccion",
+          "etiqueta": "Sustento de la reducción a 1 hora (sectores/sitios)",
+          "tipo": "texto",
+          "requerido": false
+        }
+      ],
+      "campos": [
+        { "clave": "tipo_sitio", "etiqueta": "Tipo de sitio", "tipo": "texto", "requerido": true },
+        {
+          "clave": "funcion",
+          "etiqueta": "Función",
+          "tipo": "opcion",
+          "opciones": [
+            "reproducción",
+            "alimentación",
+            "consumo de agua/minerales",
+            "baño",
+            "descanso",
+            "refugio",
+            "congregación",
+            "desplazamiento"
+          ],
+          "requerido": true
+        },
+        {
+          "clave": "especie_evidencia",
+          "etiqueta": "Especie / evidencia",
+          "tipo": "texto",
+          "requerido": true
+        },
+        { "clave": "ambiente", "etiqueta": "Ambiente", "tipo": "texto", "requerido": true },
+        {
+          "clave": "recurso_utilizado",
+          "etiqueta": "Recurso utilizado",
+          "tipo": "texto",
+          "requerido": false
+        },
+        {
+          "clave": "tipo_sustento",
+          "etiqueta": "Tipo de sustento",
+          "tipo": "opcion",
+          "opciones": ["directo", "indirecto", "información local", "potencial sustentado"],
+          "requerido": true
+        },
+        { "clave": "fecha", "etiqueta": "Fecha", "tipo": "fecha", "requerido": true }
+      ],
+      "registros": null,
+      "validaciones": [
+        { "tipo": "track", "tipo_control": "obligatorio", "texto": "Validar track." },
+        {
+          "tipo": "tiempo_efectivo",
+          "minutos": 120,
+          "reducible_a_min": 60,
+          "condicion_reduccion": "Para reducir de 2 h a 1 h, exigir registro de cobertura amplia de sectores/ambientes + ABS identificadas + sectores/sitios que sustentan la reducción. No contabilizar tiempo de otros métodos ni aceptar un sitio aislado como sustento suficiente.",
+          "tipo_control": "obligatorio",
+          "texto": "Validar horas."
+        },
+        {
+          "tipo": "campos_obligatorios",
+          "tipo_control": "obligatorio",
+          "texto": "Validar campos obligatorios."
+        },
+        { "tipo": "geometria", "tipo_control": "obligatorio", "texto": "Coordenada de cada ABS." },
+        {
+          "tipo": "fotos_contexto",
+          "cantidad_por_unidad": 2,
+          "tipo_control": "obligatorio",
+          "texto": "Fotos de cada ABS."
+        },
+        {
+          "tipo": "fotos_metodologicas",
+          "minimo": 2,
+          "tipo_control": "obligatorio",
+          "texto": "Mínimo 2 por estación y grupo de fauna."
+        }
+      ],
+      "vinculo": {
+        "texto": "Las ABS pueden detectarse durante otros métodos, pero ese tiempo no integra el esfuerzo complementario. Integrar los sitios registrados por todos los grupos de fauna.",
+        "metodos": []
+      },
+      "fuente": {
+        "estado": "CERRADO",
+        "origen": "Metodología fuente de ABS + reglas funcionales y fotográficas aprobadas por Walsh.",
+        "pendiente": "Confirmar nominalmente las estaciones correspondientes a cada grupo de fauna; la transversalidad, el track y el esfuerzo complementario quedan definidos."
+      }
+    }
+  ]
+}

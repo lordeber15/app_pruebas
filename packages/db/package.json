@@ -12,11 +12,13 @@
     "typecheck": "tsc -p tsconfig.json",
     "db:migrate": "node --env-file-if-exists=../../.env src/migrar.ts",
     "db:codegen": "kysely-codegen --env-file ../../.env --url 'env(DATABASE_URL_MIGRATIONS)' --default-schema app --include-pattern 'app.*' --exclude-pattern 'app.kysely_*' --out-file src/tipos.generados.ts",
-    "test:integration": "vitest run --config vitest.integration.config.ts"
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "db:toce": "node --env-file-if-exists=../../.env src/cargar-toce.ts"
   },
   "dependencies": {
     "kysely": "0.29.8",
-    "pg": "8.23.1"
+    "pg": "8.23.1",
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@campo/config": "workspace:*",

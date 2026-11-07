@@ -27,8 +27,8 @@ export const proyectosVisibles = (db: Db, usuarioId: string, esSupervisor: boole
     q = q.where((eb) =>
       eb.exists(
         eb
-          .selectFrom('cuadrilla as c')
-          .leftJoin('miembro_cuadrilla as m', 'm.cuadrilla_id', 'c.id')
+          .selectFrom('brigada as c')
+          .leftJoin('miembro_brigada as m', 'm.brigada_id', 'c.id')
           .select('c.id')
           .whereRef('c.proyecto_id', '=', 'proyecto.id')
           .where((w) =>
@@ -46,18 +46,18 @@ export const proyectosVisibles = (db: Db, usuarioId: string, esSupervisor: boole
 export const buscarProyecto = (db: Db, id: string) =>
   db.selectFrom('proyecto').select(columnasProyecto).where('id', '=', id).executeTakeFirst();
 
-export const cuadrillasDeProyecto = (db: Db, proyectoId: string) =>
+export const brigadasDeProyecto = (db: Db, proyectoId: string) =>
   db
-    .selectFrom('cuadrilla')
-    .leftJoin('usuario as jefe', 'jefe.id', 'cuadrilla.jefe_id')
-    .select(['cuadrilla.id', 'cuadrilla.nombre', 'cuadrilla.jefe_id', 'jefe.nombre as jefe_nombre'])
-    .where('cuadrilla.proyecto_id', '=', proyectoId)
-    .orderBy('cuadrilla.nombre')
+    .selectFrom('brigada')
+    .leftJoin('usuario as jefe', 'jefe.id', 'brigada.jefe_id')
+    .select(['brigada.id', 'brigada.nombre', 'brigada.jefe_id', 'jefe.nombre as jefe_nombre'])
+    .where('brigada.proyecto_id', '=', proyectoId)
+    .orderBy('brigada.nombre')
     .execute();
 
-export const miembrosDeCuadrilla = (db: Db, cuadrillaId: string) =>
+export const miembrosDeBrigada = (db: Db, brigadaId: string) =>
   db
-    .selectFrom('miembro_cuadrilla as m')
+    .selectFrom('miembro_brigada as m')
     .innerJoin('usuario as u', 'u.id', 'm.usuario_id')
     .select([
       'm.id',
@@ -68,7 +68,7 @@ export const miembrosDeCuadrilla = (db: Db, cuadrillaId: string) =>
       'u.tipo_documento',
       'u.num_documento',
     ])
-    .where('m.cuadrilla_id', '=', cuadrillaId)
+    .where('m.brigada_id', '=', brigadaId)
     .orderBy('u.nombre')
     .execute();
 

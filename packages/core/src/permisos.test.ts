@@ -15,7 +15,7 @@ import {
  */
 const DOC_01: Readonly<Record<Accion, readonly [string, string, string, string, string]>> = {
   configurar_proyecto: ['✔', '✖', '✖', '✖', '✖'],
-  gestionar_cuadrillas: ['✔', '✖', '✖', '✖', '✖'],
+  gestionar_brigadas: ['✔', '✖', '✖', '✖', '✖'],
   gestionar_cuadernos_tareas: ['✔', '◐', '✖', '✖', '✖'],
   reasignar_tarea: ['✔', '◐', '✖', '✖', '✖'],
   revocar_asignacion: ['✔', '◐', '✖', '✖', '✖'],

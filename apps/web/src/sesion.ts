@@ -8,5 +8,5 @@ export const useYo = () =>
 export const puede = (yo: Yo | undefined) => ({
   supervisor: yo?.rol_global === 'supervisor',
   administrar: yo?.rol_global === 'supervisor' || yo?.rol_global === 'admin',
-  gestionarTareas: yo?.rol_global === 'supervisor' || (yo?.cuadrillas_jefe.length ?? 0) > 0,
+  gestionarTareas: yo?.rol_global === 'supervisor' || (yo?.brigadas_jefe.length ?? 0) > 0,
 });

@@ -24,7 +24,7 @@ export const listarDisponibles = (db: Db, usuarioId: string, limite: number, des
       'tarea.tipo',
       'tarea.origen',
       'tarea.cuaderno_id',
-      'cuaderno.cuadrilla_id',
+      'cuaderno.brigada_id',
       'cuaderno.titulo as cuaderno_titulo',
       'proyecto.id as proyecto_id',
       'proyecto.nombre as proyecto_nombre',
@@ -37,7 +37,7 @@ export const listarDisponibles = (db: Db, usuarioId: string, limite: number, des
 /** Bloquea la tarea para descargarla (evita que dos descargas compitan). */
 export const tareaParaDescargar = (db: Db, usuarioId: string, tareaId: string) =>
   tareasAsignadasA(db, usuarioId)
-    .select(['tarea.id', 'tarea.estado', 'tarea.tipo', 'cuaderno.cuadrilla_id'])
+    .select(['tarea.id', 'tarea.estado', 'tarea.tipo', 'cuaderno.brigada_id'])
     .where('tarea.id', '=', tareaId)
     .forUpdate('tarea')
     .executeTakeFirst();

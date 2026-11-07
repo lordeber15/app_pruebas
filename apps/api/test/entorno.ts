@@ -137,7 +137,7 @@ export const usuarioConDispositivo = async (e: Entorno) => {
 
 export interface Escenario {
   readonly proyectoId: string;
-  readonly cuadrillaId: string;
+  readonly brigadaId: string;
   readonly estacionId: string;
   readonly metodologiaId: string;
   readonly estacionMetodologiaId: string;
@@ -148,7 +148,7 @@ let secuenciaEscenario = 0;
 export const nuevoEscenario = async (e: Entorno): Promise<Escenario> => {
   const n = String(secuenciaEscenario++);
   const proyectoId = generarId();
-  const cuadrillaId = generarId();
+  const brigadaId = generarId();
   const estacionId = generarId();
   const metodologiaId = generarId();
   const estacionMetodologiaId = generarId();
@@ -157,8 +157,8 @@ export const nuevoEscenario = async (e: Entorno): Promise<Escenario> => {
     .values({ id: proyectoId, nombre: `Proyecto sintético ${n}`, validacion_activa: false })
     .execute();
   await e.admin
-    .insertInto('cuadrilla')
-    .values({ id: cuadrillaId, proyecto_id: proyectoId, nombre: `Cuadrilla ${n}` })
+    .insertInto('brigada')
+    .values({ id: brigadaId, proyecto_id: proyectoId, nombre: `Brigada ${n}` })
     .execute();
   await e.admin
     .insertInto('estacion')
@@ -182,7 +182,7 @@ export const nuevoEscenario = async (e: Entorno): Promise<Escenario> => {
       meta_esfuerzo: '40',
     })
     .execute();
-  return { proyectoId, cuadrillaId, estacionId, metodologiaId, estacionMetodologiaId };
+  return { proyectoId, brigadaId, estacionId, metodologiaId, estacionMetodologiaId };
 };
 
 export const agregarMiembro = (
@@ -192,8 +192,8 @@ export const agregarMiembro = (
   rol: 'especialista' | 'logistico' = 'especialista',
 ) =>
   e.admin
-    .insertInto('miembro_cuadrilla')
-    .values({ id: generarId(), cuadrilla_id: esc.cuadrillaId, usuario_id: usuarioId, rol })
+    .insertInto('miembro_brigada')
+    .values({ id: generarId(), brigada_id: esc.brigadaId, usuario_id: usuarioId, rol })
     .execute();
 
 export const nuevoCuaderno = async (e: Entorno, esc: Escenario, responsableId: string) => {
@@ -203,7 +203,7 @@ export const nuevoCuaderno = async (e: Entorno, esc: Escenario, responsableId: s
     .values({
       id,
       proyecto_id: esc.proyectoId,
-      cuadrilla_id: esc.cuadrillaId,
+      brigada_id: esc.brigadaId,
       responsable_id: responsableId,
       titulo: 'Cuaderno sintético',
     })
@@ -237,7 +237,7 @@ export const nuevaTarea = async (
   return id;
 };
 
-/** Especialista de la cuadrilla con dispositivo activado y un cuaderno propio. */
+/** Especialista de la brigada con dispositivo activado y un cuaderno propio. */
 export const especialistaEnCampo = async (e: Entorno, esc: Escenario) => {
   const d = await usuarioConDispositivo(e);
   await agregarMiembro(e, esc, d.usuario.id);
@@ -279,15 +279,15 @@ export const persona = async (
 };
 
 /**
- * Proyecto con dos cuadrillas (A y B). En A: jefe, especialista con cuaderno propio y logístico.
+ * Proyecto con dos brigadas (A y B). En A: jefe, especialista con cuaderno propio y logístico.
  * En B: otro jefe y otro especialista. Sirve para las pruebas horizontales y verticales.
  */
 export const organizacion = async (e: Entorno) => {
   const esc = await nuevoEscenario(e);
-  const cuadrillaB = generarId();
+  const brigadaB = generarId();
   await e.admin
-    .insertInto('cuadrilla')
-    .values({ id: cuadrillaB, proyecto_id: esc.proyectoId, nombre: 'Cuadrilla B' })
+    .insertInto('brigada')
+    .values({ id: brigadaB, proyecto_id: esc.proyectoId, nombre: 'Brigada B' })
     .execute();
   const [supervisor, admin, jefeA, jefeB, especialista, especialistaB, logistico] =
     await Promise.all([
@@ -300,23 +300,23 @@ export const organizacion = async (e: Entorno) => {
       persona(e),
     ]);
   await e.admin
-    .updateTable('cuadrilla')
+    .updateTable('brigada')
     .set({ jefe_id: jefeA.id })
-    .where('id', '=', esc.cuadrillaId)
+    .where('id', '=', esc.brigadaId)
     .execute();
   await e.admin
-    .updateTable('cuadrilla')
+    .updateTable('brigada')
     .set({ jefe_id: jefeB.id })
-    .where('id', '=', cuadrillaB)
+    .where('id', '=', brigadaB)
     .execute();
   await agregarMiembro(e, esc, especialista.id);
   await agregarMiembro(e, esc, logistico.id, 'logistico');
-  await agregarMiembro(e, { ...esc, cuadrillaId: cuadrillaB }, especialistaB.id);
+  await agregarMiembro(e, { ...esc, brigadaId: brigadaB }, especialistaB.id);
   const cuadernoA = await nuevoCuaderno(e, esc, especialista.id);
-  const cuadernoB = await nuevoCuaderno(e, { ...esc, cuadrillaId: cuadrillaB }, especialistaB.id);
+  const cuadernoB = await nuevoCuaderno(e, { ...esc, brigadaId: brigadaB }, especialistaB.id);
   return {
     esc,
-    cuadrillaB,
+    brigadaB,
     supervisor,
     admin,
     jefeA,

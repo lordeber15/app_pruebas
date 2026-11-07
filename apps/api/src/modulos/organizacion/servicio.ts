@@ -9,7 +9,7 @@ import {
   exigirAdministracion,
   exigirSupervisor,
   noEncontrado,
-  rolEnCuadrilla,
+  rolEnBrigada,
 } from '../alcance/autorizacion.ts';
 import { crearUsuario } from '../usuarios/servicio.ts';
 import { punto } from '../sync/repositorio.ts';
@@ -115,9 +115,9 @@ export const verProyecto = async (db: Db, actor: Actor, id: string) => {
   return p;
 };
 
-// ── Cuadrillas y miembros ───────────────────────────────────────────────────
+// ── Brigadas y miembros ───────────────────────────────────────────────────
 
-export const crearCuadrilla = async (
+export const crearBrigada = async (
   db: Db,
   actor: Actor,
   proyectoId: string,
@@ -128,7 +128,7 @@ export const crearCuadrilla = async (
   if ((await repo.buscarProyecto(db, proyectoId)) === undefined) throw noEncontrado('El proyecto');
   const id = generarId();
   await db
-    .insertInto('cuadrilla')
+    .insertInto('brigada')
     .values({
       id,
       proyecto_id: proyectoId,
@@ -141,7 +141,7 @@ export const crearCuadrilla = async (
   return id;
 };
 
-export const actualizarCuadrilla = async (
+export const actualizarBrigada = async (
   db: Db,
   actor: Actor,
   id: string,
@@ -149,7 +149,7 @@ export const actualizarCuadrilla = async (
 ) => {
   exigirSupervisor(actor);
   const r = await db
-    .updateTable('cuadrilla')
+    .updateTable('brigada')
     .set({
       ...(d.nombre === undefined ? {} : { nombre: d.nombre }),
       ...(d.jefeId === undefined ? {} : { jefe_id: d.jefeId }),
@@ -157,28 +157,28 @@ export const actualizarCuadrilla = async (
     })
     .where('id', '=', id)
     .executeTakeFirst();
-  if (r.numUpdatedRows === 0n) throw noEncontrado('La cuadrilla');
+  if (r.numUpdatedRows === 0n) throw noEncontrado('La brigada');
 };
 
-export const listarCuadrillas = async (db: Db, actor: Actor, proyectoId: string) => {
+export const listarBrigadas = async (db: Db, actor: Actor, proyectoId: string) => {
   await verProyecto(db, actor, proyectoId);
-  const todas = await repo.cuadrillasDeProyecto(db, proyectoId);
+  const todas = await repo.brigadasDeProyecto(db, proyectoId);
   const visibles: (typeof todas)[number][] = [];
-  for (const c of todas) if ((await rolEnCuadrilla(db, actor, c.id)) !== null) visibles.push(c);
+  for (const c of todas) if ((await rolEnBrigada(db, actor, c.id)) !== null) visibles.push(c);
   return visibles;
 };
 
-export const listarMiembros = async (db: Db, actor: Actor, cuadrillaId: string) => {
-  const rol = await rolEnCuadrilla(db, actor, cuadrillaId);
+export const listarMiembros = async (db: Db, actor: Actor, brigadaId: string) => {
+  const rol = await rolEnBrigada(db, actor, brigadaId);
   // Los miembros solo los ven el supervisor y el jefe (RN-25: nada de terceros al especialista).
-  if (rol !== 'supervisor' && rol !== 'jefe') throw noEncontrado('La cuadrilla');
-  return repo.miembrosDeCuadrilla(db, cuadrillaId);
+  if (rol !== 'supervisor' && rol !== 'jefe') throw noEncontrado('La brigada');
+  return repo.miembrosDeBrigada(db, brigadaId);
 };
 
 export const agregarMiembro = async (
   db: Db,
   actor: Actor,
-  cuadrillaId: string,
+  brigadaId: string,
   usuarioId: string,
   rol: 'especialista' | 'logistico',
 ) => {
@@ -186,10 +186,10 @@ export const agregarMiembro = async (
   const id = generarId();
   try {
     await db
-      .insertInto('miembro_cuadrilla')
+      .insertInto('miembro_brigada')
       .values({
         id,
-        cuadrilla_id: cuadrillaId,
+        brigada_id: brigadaId,
         usuario_id: usuarioId,
         rol,
         creado_por: actor.usuarioId,
@@ -197,7 +197,7 @@ export const agregarMiembro = async (
       })
       .execute();
   } catch (e) {
-    unico(e, 'MIEMBRO_EXISTE', 'Esa persona ya está en la cuadrilla.');
+    unico(e, 'MIEMBRO_EXISTE', 'Esa persona ya está en la brigada.');
   }
   return id;
 };
@@ -210,7 +210,7 @@ export const cambiarMiembro = async (
 ) => {
   exigirSupervisor(actor);
   const r = await db
-    .updateTable('miembro_cuadrilla')
+    .updateTable('miembro_brigada')
     .set({ estado, actualizado_por: actor.usuarioId })
     .where('id', '=', miembroId)
     .executeTakeFirst();
@@ -335,7 +335,7 @@ export const altaUsuario = async (
 };
 
 export const listarUsuarios = (db: Db, actor: Actor) => {
-  // El supervisor necesita la lista para armar cuadrillas; el administrador, para gestionarlos.
+  // El supervisor necesita la lista para armar brigadas; el administrador, para gestionarlos.
   exigirAdministracion(actor);
   return db
     .selectFrom('usuario')

@@ -148,7 +148,7 @@ export const Usuarios = () => {
           </Campo>
           <Campo
             etiqueta="Rol"
-            ayuda="Jefes, especialistas y logísticos son personal de campo: su rol se fija al sumarlos a una cuadrilla."
+            ayuda="Jefes, especialistas y logísticos son personal de campo: su rol se fija al sumarlos a una brigada."
           >
             {(id) => (
               <select

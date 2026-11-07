@@ -8,7 +8,7 @@ const accionValida: Readonly<Record<TipoAccionTarea, AccionTarea>> = {
   reasignar: { tipo: 'reasignar' },
   descargar: { tipo: 'descargar' },
   devolver: { tipo: 'devolver' },
-  revocar: { tipo: 'revocar', motivo: 'Cambio de cuadrilla' },
+  revocar: { tipo: 'revocar', motivo: 'Cambio de brigada' },
   completar: { tipo: 'completar', fotosAnunciadas: 1 },
   verificar_evidencia: { tipo: 'verificar_evidencia', fotosVerificadas: 1 },
   validar: { tipo: 'validar', validacionActiva: true },

@@ -2,12 +2,12 @@ import { ESTADOS_TAREA, type EstadoTarea, type Rol } from '@campo/core';
 import type { Db } from '@campo/db';
 import { sql } from 'kysely';
 import type { Actor } from '../../plataforma/sesion.ts';
-import { cuadrillasVisibles, noEncontrado, soloLoSuyo } from '../alcance/autorizacion.ts';
+import { brigadasVisibles, noEncontrado, soloLoSuyo } from '../alcance/autorizacion.ts';
 import { tareaVisible } from './servicio.ts';
 
 /**
  * Lecturas de la web: centro de tareas, detalle, avance y mapa. Todas filtran por alcance en la
- * consulta (doc. 02 §11.1, IDOR): supervisor todo el proyecto, jefe sus cuadrillas,
+ * consulta (doc. 02 §11.1, IDOR): supervisor todo el proyecto, jefe sus brigadas,
  * especialista y logístico solo lo suyo.
  */
 
@@ -16,9 +16,9 @@ interface Alcance {
   readonly propias: readonly string[];
 }
 
-/** Cuadrillas con acceso total (supervisor/jefe) y cuadrillas donde solo ve lo propio. */
+/** Brigadas con acceso total (supervisor/jefe) y brigadas donde solo ve lo propio. */
 const alcanceEn = async (db: Db, actor: Actor, proyectoId: string): Promise<Alcance> => {
-  const mapa = await cuadrillasVisibles(db, actor, proyectoId);
+  const mapa = await brigadasVisibles(db, actor, proyectoId);
   const todas: string[] = [];
   const propias: string[] = [];
   for (const [id, rol] of mapa) (soloLoSuyo(rol) ? propias : todas).push(id);
@@ -28,21 +28,21 @@ const alcanceEn = async (db: Db, actor: Actor, proyectoId: string): Promise<Alca
 export interface FiltrosTareas {
   readonly proyectoId: string;
   readonly estado?: EstadoTarea | undefined;
-  readonly cuadrillaId?: string | undefined;
+  readonly brigadaId?: string | undefined;
   readonly origen?: 'manual' | 'regla' | undefined;
   readonly tipo?: 'tecnica' | 'logistica' | undefined;
   readonly despuesDe?: string | undefined;
   readonly limite: number;
 }
 
-/** Centro de tareas (RF-W03, CP-042): filtros por estado, cuadrilla, origen y tipo; cursor por id. */
+/** Centro de tareas (RF-W03, CP-042): filtros por estado, brigada, origen y tipo; cursor por id. */
 export const listarTareas = async (db: Db, actor: Actor, f: FiltrosTareas) => {
   const a = await alcanceEn(db, actor, f.proyectoId);
   if (a.todas.length === 0 && a.propias.length === 0) return { tareas: [], siguiente: null };
   const filas = await db
     .selectFrom('tarea')
     .innerJoin('cuaderno', 'cuaderno.id', 'tarea.cuaderno_id')
-    .innerJoin('cuadrilla', 'cuadrilla.id', 'cuaderno.cuadrilla_id')
+    .innerJoin('brigada', 'brigada.id', 'cuaderno.brigada_id')
     .innerJoin('usuario as r', 'r.id', 'cuaderno.responsable_id')
     .select([
       'tarea.id',
@@ -54,8 +54,8 @@ export const listarTareas = async (db: Db, actor: Actor, f: FiltrosTareas) => {
       'tarea.creado_en',
       'cuaderno.id as cuaderno_id',
       'cuaderno.titulo as cuaderno_titulo',
-      'cuadrilla.id as cuadrilla_id',
-      'cuadrilla.nombre as cuadrilla_nombre',
+      'brigada.id as brigada_id',
+      'brigada.nombre as brigada_nombre',
       'r.nombre as responsable_nombre',
       sql<number | null>`ST_Y(ST_PointOnSurface(tarea.geom))`.as('lat'),
       sql<number | null>`ST_X(ST_PointOnSurface(tarea.geom))`.as('lon'),
@@ -63,11 +63,11 @@ export const listarTareas = async (db: Db, actor: Actor, f: FiltrosTareas) => {
     .where('tarea.proyecto_id', '=', f.proyectoId)
     .where((eb) => {
       const ramas = [];
-      if (a.todas.length > 0) ramas.push(eb('cuaderno.cuadrilla_id', 'in', a.todas));
+      if (a.todas.length > 0) ramas.push(eb('cuaderno.brigada_id', 'in', a.todas));
       if (a.propias.length > 0) {
         ramas.push(
           eb.and([
-            eb('cuaderno.cuadrilla_id', 'in', a.propias),
+            eb('cuaderno.brigada_id', 'in', a.propias),
             eb('cuaderno.responsable_id', '=', actor.usuarioId),
           ]),
         );
@@ -75,8 +75,8 @@ export const listarTareas = async (db: Db, actor: Actor, f: FiltrosTareas) => {
       return eb.or(ramas);
     })
     .$if(f.estado !== undefined, (q) => q.where('tarea.estado', '=', f.estado ?? ''))
-    .$if(f.cuadrillaId !== undefined, (q) =>
-      q.where('cuaderno.cuadrilla_id', '=', f.cuadrillaId ?? ''),
+    .$if(f.brigadaId !== undefined, (q) =>
+      q.where('cuaderno.brigada_id', '=', f.brigadaId ?? ''),
     )
     .$if(f.origen !== undefined, (q) => q.where('tarea.origen', '=', f.origen ?? ''))
     .$if(f.tipo !== undefined, (q) => q.where('tarea.tipo', '=', f.tipo ?? ''))
@@ -95,7 +95,7 @@ export const detalleTarea = async (db: Db, actor: Actor, tareaId: string) => {
   const tarea = await db
     .selectFrom('tarea')
     .innerJoin('cuaderno', 'cuaderno.id', 'tarea.cuaderno_id')
-    .innerJoin('cuadrilla', 'cuadrilla.id', 'cuaderno.cuadrilla_id')
+    .innerJoin('brigada', 'brigada.id', 'cuaderno.brigada_id')
     .innerJoin('proyecto', 'proyecto.id', 'tarea.proyecto_id')
     .innerJoin('usuario as r', 'r.id', 'cuaderno.responsable_id')
     .leftJoin('estacion', 'estacion.id', 'tarea.estacion_id')
@@ -114,8 +114,8 @@ export const detalleTarea = async (db: Db, actor: Actor, tareaId: string) => {
       'proyecto.nombre as proyecto_nombre',
       'cuaderno.id as cuaderno_id',
       'cuaderno.titulo as cuaderno_titulo',
-      'cuadrilla.id as cuadrilla_id',
-      'cuadrilla.nombre as cuadrilla_nombre',
+      'brigada.id as brigada_id',
+      'brigada.nombre as brigada_nombre',
       'r.nombre as responsable_nombre',
       'estacion.codigo as estacion_codigo',
       'm.nombre as metodologia_nombre',
@@ -211,35 +211,35 @@ const permisosDe = (rol: Rol) => ({
   comentar: true,
 });
 
-/** Avance del proyecto (RF-W07): tareas por estado y cuadrilla, y esfuerzo contra la meta. */
+/** Avance del proyecto (RF-W07): tareas por estado y brigada, y esfuerzo contra la meta. */
 export const avance = async (db: Db, actor: Actor, proyectoId: string) => {
   const a = await alcanceEn(db, actor, proyectoId);
   if (a.todas.length === 0 && a.propias.length === 0) throw noEncontrado('El proyecto');
   const porEstado = await db
     .selectFrom('tarea')
     .innerJoin('cuaderno', 'cuaderno.id', 'tarea.cuaderno_id')
-    .innerJoin('cuadrilla', 'cuadrilla.id', 'cuaderno.cuadrilla_id')
+    .innerJoin('brigada', 'brigada.id', 'cuaderno.brigada_id')
     .select([
-      'cuadrilla.id as cuadrilla_id',
-      'cuadrilla.nombre as cuadrilla_nombre',
+      'brigada.id as brigada_id',
+      'brigada.nombre as brigada_nombre',
       'tarea.estado',
       (eb) => eb.fn.countAll<string>().as('n'),
     ])
     .where('tarea.proyecto_id', '=', proyectoId)
     .where((eb) => {
       const ramas = [];
-      if (a.todas.length > 0) ramas.push(eb('cuaderno.cuadrilla_id', 'in', a.todas));
+      if (a.todas.length > 0) ramas.push(eb('cuaderno.brigada_id', 'in', a.todas));
       if (a.propias.length > 0) {
         ramas.push(
           eb.and([
-            eb('cuaderno.cuadrilla_id', 'in', a.propias),
+            eb('cuaderno.brigada_id', 'in', a.propias),
             eb('cuaderno.responsable_id', '=', actor.usuarioId),
           ]),
         );
       }
       return eb.or(ramas);
     })
-    .groupBy(['cuadrilla.id', 'cuadrilla.nombre', 'tarea.estado'])
+    .groupBy(['brigada.id', 'brigada.nombre', 'tarea.estado'])
     .execute();
 
   // RN-19: el esfuerzo es la suma de las filas de todos los usuarios.
@@ -262,22 +262,22 @@ export const avance = async (db: Db, actor: Actor, proyectoId: string) => {
     .orderBy('e.codigo')
     .execute();
 
-  const cuadrillas = new Map<
+  const brigadas = new Map<
     string,
     { id: string; nombre: string; estados: Partial<Record<EstadoTarea, number>> }
   >();
   for (const f of porEstado) {
-    const c = cuadrillas.get(f.cuadrilla_id) ?? {
-      id: f.cuadrilla_id,
-      nombre: f.cuadrilla_nombre,
+    const c = brigadas.get(f.brigada_id) ?? {
+      id: f.brigada_id,
+      nombre: f.brigada_nombre,
       estados: {},
     };
     const estado = ESTADOS_TAREA.find((e) => e === f.estado);
     if (estado !== undefined) c.estados[estado] = Number(f.n);
-    cuadrillas.set(f.cuadrilla_id, c);
+    brigadas.set(f.brigada_id, c);
   }
   return {
-    cuadrillas: [...cuadrillas.values()],
+    brigadas: [...brigadas.values()],
     esfuerzo: esfuerzo.map((e) => ({
       ...e,
       total: Number(e.total),
@@ -308,7 +308,7 @@ export const mapa = async (db: Db, actor: Actor, proyectoId: string) => {
             id: t.id,
             titulo: t.titulo,
             estado: t.estado,
-            cuadrilla: t.cuadrilla_nombre,
+            brigada: t.brigada_nombre,
           },
         })),
       ...estaciones.map((e) => ({

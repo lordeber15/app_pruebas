@@ -87,7 +87,7 @@ export const crearAuth = (pool: pg.Pool, config: Config) =>
     },
     // Límite por IP del login; el límite por cuenta lo aplica la ruta (plataforma/rutas-auth.ts).
     // Se reemplaza la regla por defecto de Better Auth (3 cada 10 s por IP), que bloquearía a
-    // cuadrillas que comparten la IP del operador móvil.
+    // brigadas que comparten la IP del operador móvil.
     rateLimit: {
       enabled: true,
       window: 60,

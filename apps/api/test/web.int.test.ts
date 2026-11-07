@@ -63,7 +63,7 @@ describe('proyectos (RF-W11)', () => {
       .execute();
   });
 
-  it('el jefe ve solo los proyectos donde tiene cuadrilla; el administrador no ve proyectos', async () => {
+  it('el jefe ve solo los proyectos donde tiene brigada; el administrador no ve proyectos', async () => {
     const jefe = (await pedir(e, o.jefeA.token, 'GET', '/proyectos')).json<{
       proyectos: { id: string }[];
     }>();
@@ -76,7 +76,7 @@ describe('proyectos (RF-W11)', () => {
 });
 
 describe('cuadernos y tareas', () => {
-  it('el jefe crea tareas en su cuadrilla y nacen asignadas', async () => {
+  it('el jefe crea tareas en su brigada y nacen asignadas', async () => {
     const r = await pedir(e, o.jefeA.token, 'POST', '/tareas', {
       cuaderno_id: o.cuadernoA,
       titulo: 'Evaluar trampas',
@@ -85,9 +85,9 @@ describe('cuadernos y tareas', () => {
     expect(await estadoDe(r.json<{ id: string }>().id)).toBe('asignada');
   });
 
-  it('RN-01 el responsable del cuaderno debe ser miembro de la cuadrilla', async () => {
+  it('RN-01 el responsable del cuaderno debe ser miembro de la brigada', async () => {
     const r = await pedir(e, o.supervisor.token, 'POST', '/cuadernos', {
-      cuadrilla_id: o.esc.cuadrillaId,
+      brigada_id: o.esc.brigadaId,
       responsable_id: o.especialistaB.id,
       titulo: 'Cuaderno inválido',
     });
@@ -106,7 +106,7 @@ describe('cuadernos y tareas', () => {
 
   it('CP-042 el especialista solo ve sus propias tareas en el centro de tareas', async () => {
     const propia = await nuevaTarea(e, o.esc, o.cuadernoA);
-    const deOtro = await nuevaTarea(e, { ...o.esc, cuadrillaId: o.cuadrillaB }, o.cuadernoB);
+    const deOtro = await nuevaTarea(e, { ...o.esc, brigadaId: o.brigadaB }, o.cuadernoB);
     const r = await pedir(
       e,
       o.especialista.token,
@@ -165,7 +165,7 @@ describe('reasignación y revocación (RN-07)', () => {
     expect(a).toEqual({ estado: 'revocada', motivo_revocacion: 'Cambio de zona' });
     const otroCuaderno = (
       await pedir(e, o.supervisor.token, 'POST', '/cuadernos', {
-        cuadrilla_id: o.esc.cuadrillaId,
+        brigada_id: o.esc.brigadaId,
         responsable_id: o.logistico.id,
         titulo: 'Logística',
       })
@@ -179,7 +179,7 @@ describe('reasignación y revocación (RN-07)', () => {
     ).toBe(200);
   });
 
-  it('SEG-01 el jefe no reasigna a un cuaderno de otra cuadrilla', async () => {
+  it('SEG-01 el jefe no reasigna a un cuaderno de otra brigada', async () => {
     const t = await nuevaTarea(e, o.esc, o.cuadernoA);
     const r = await pedir(e, o.jefeA.token, 'POST', `/tareas/${t}/reasignar`, {
       cuaderno_id: o.cuadernoB,
@@ -199,7 +199,7 @@ describe('validación (RN-06)', () => {
   it('CP-036 CP-037 con validación en el cuaderno se valida y la segunda validación queda ya aplicada', async () => {
     const cuaderno = (
       await pedir(e, o.supervisor.token, 'POST', '/cuadernos', {
-        cuadrilla_id: o.esc.cuadrillaId,
+        brigada_id: o.esc.brigadaId,
         responsable_id: o.especialista.id,
         titulo: 'Con validación',
         validacion_activa: true,
@@ -227,7 +227,7 @@ describe('validación (RN-06)', () => {
   it('observar devuelve la tarea al mismo celular con una asignación nueva y un comentario', async () => {
     const cuaderno = (
       await pedir(e, o.supervisor.token, 'POST', '/cuadernos', {
-        cuadrilla_id: o.esc.cuadrillaId,
+        brigada_id: o.esc.brigadaId,
         responsable_id: o.especialista.id,
         titulo: 'Obs',
         validacion_activa: true,
@@ -256,7 +256,7 @@ describe('validación (RN-06)', () => {
     const yo = await especialistaEnCampo(e, o.esc);
     const cuaderno = (
       await pedir(e, o.supervisor.token, 'POST', '/cuadernos', {
-        cuadrilla_id: o.esc.cuadrillaId,
+        brigada_id: o.esc.brigadaId,
         responsable_id: yo.usuario.id,
         titulo: 'Obs celular',
         validacion_activa: true,
@@ -374,9 +374,9 @@ describe('archivos, avance y mapa', () => {
   const archivoVerificado = async (
     cuaderno: string,
     usuarioId: string,
-    cuadrillaId = o.esc.cuadrillaId,
+    brigadaId = o.esc.brigadaId,
   ) => {
-    const t = await nuevaTarea(e, { ...o.esc, cuadrillaId }, cuaderno);
+    const t = await nuevaTarea(e, { ...o.esc, brigadaId }, cuaderno);
     const id = generarId();
     await e.admin
       .insertInto('archivo')
@@ -408,7 +408,7 @@ describe('archivos, avance y mapa', () => {
     expect(url.searchParams.get('X-Amz-Expires')).toBe('900');
   });
 
-  it('SEG-03 RN-21 el jefe de otra cuadrilla y otro especialista no obtienen la URL', async () => {
+  it('SEG-03 RN-21 el jefe de otra brigada y otro especialista no obtienen la URL', async () => {
     const id = await archivoVerificado(o.cuadernoA, o.especialista.id);
     expect((await pedir(e, o.jefeB.token, 'GET', `/archivos/${id}/url`)).statusCode).toBe(404);
     expect((await pedir(e, o.especialistaB.token, 'GET', `/archivos/${id}/url`)).statusCode).toBe(
@@ -427,10 +427,10 @@ describe('archivos, avance y mapa', () => {
   it('RN-19 el avance suma el esfuerzo de todos y cuenta tareas por estado', async () => {
     const r = await pedir(e, o.supervisor.token, 'GET', `/proyectos/${o.esc.proyectoId}/avance`);
     const cuerpo = r.json<{
-      cuadrillas: { id: string }[];
+      brigadas: { id: string }[];
       esfuerzo: { id: string; meta: number | null }[];
     }>();
-    expect(cuerpo.cuadrillas.map((c) => c.id)).toContain(o.esc.cuadrillaId);
+    expect(cuerpo.brigadas.map((c) => c.id)).toContain(o.esc.brigadaId);
     expect(cuerpo.esfuerzo).toContainEqual(
       expect.objectContaining({ id: o.esc.estacionMetodologiaId, meta: 40 }),
     );
@@ -446,7 +446,7 @@ describe('archivos, avance y mapa', () => {
 });
 
 describe('revisiones (RN-08)', () => {
-  it('el jefe ve y resuelve un evento en revisión de su cuadrilla', async () => {
+  it('el jefe ve y resuelve un evento en revisión de su brigada', async () => {
     const t = await nuevaTarea(e, o.esc, o.cuadernoA);
     const ev = generarId();
     await e.admin
