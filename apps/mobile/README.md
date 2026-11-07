@@ -1,28 +1,23 @@
 # App de campo (Android)
 
-App móvil offline-first para el personal de campo: descarga sus tareas, trabaja sin señal (fotos, puntos de evidencia, esfuerzo, comentarios) y sincroniza cuando hay conexión.
+App móvil offline-first para el personal de campo del proyecto TOCE. Sigue el modelo visible de D02: **Estación → Especialidad → Método → Unidad → Ejecución**. Trabaja sin señal y sincroniza cuando hay conexión.
 
 ## Qué hace esta versión (demo)
 
 - **Primer ingreso:** pide la dirección del servidor (`https://…`), el documento y la contraseña. Activa el celular con un par de llaves propio y pide un PIN de 6 dígitos.
-- **Sin señal:** el PIN abre la app. Todo se guarda primero en el celular y se envía después. La barra superior muestra siempre si hay conexión y cuánto falta enviar.
-- **Jornada:** se abre y se cierra a mano.
-- **Tareas nuevas:** se descargan con conexión. Usted elige cuáles; quedan reservadas en este celular.
-- **En cada tarea:**
-  - fotos con la cámara de la app, a 2 048 px, con hash y ubicación (no hay acceso a la galería);
-  - puntos de evidencia;
-  - esfuerzo, si la tarea tiene metodología;
-  - comentarios.
-- **Completar:** exige al menos una foto. La tarea queda en tránsito hasta que el servidor verifica la foto.
-- **Sincronizar:** al volver la conexión y cada 2 minutos. Envía primero los eventos, luego las fotos de las tareas completadas y después las demás. Cada foto se borra del celular solo cuando el servidor confirmó su hash.
-- **Cambios desde la web:**
-  - una tarea reasignada a otra persona se marca como revocada;
-  - una tarea observada vuelve para corregirla, con los comentarios del supervisor;
-  - una baja remota borra los datos del celular.
+- **Paquete de campo:** con conexión, descarga lo de la brigada del usuario: cronograma vigente, estaciones con sus atributos de A01, métodos con su configuración D01 y la matriz estación–método. Se actualiza en cada sincronización.
+- **Inicio:** las estaciones de hoy, después las próximas fechas; las anteriores siguen disponibles. Cada estación muestra UV, AID/AII, ZA/EF y lo que usted ya hizo en ella.
+- **Estación:** sus atributos de A01, que nunca se piden (CA-20), y los métodos habilitados por especialidad. Los registros oportunos van aparte. Los condicionales por confirmar se listan sin poder iniciarse.
+- **Inicio de método:** lo que D01 define, agrupado por tipo de control. «Se exige» (cuadrado lleno) agrupa lo obligatorio. «Advertencias» (triángulo) no impiden cerrar. «Referencias y criterio de campo» (círculo) orientan, y la información va al final.
+- **Ejecución:** avance contra el objetivo aplicable (estándar, ZA/EF o por región). Lista las unidades con lo primero que les falta y las fotos metodológicas.
+- **Unidad:** la geometría exacta del método: punto, inicio y fin, vértices o parcela forestal con subparcelas. También hora de inicio y fin, track en los métodos que lo exigen, fotos de contexto guiadas N-S-E-O, campos de D01, filas de registros, vínculo con otro método y parámetros del detector.
+- **Revisar y cerrar:** el mismo motor de reglas del servidor (`core`). Si falta algo obligatorio, solo se cierra declarando una desviación con explicación. Incluye la confirmación ZA/EF de cámaras trampa y el número final de unidades en bofedales.
+- **Sincronizar:** al volver la conexión y cada 2 minutos. Primero envía los eventos y después las fotos, empezando por las de ejecuciones cerradas. Cada foto se borra del celular solo cuando el servidor confirmó su hash.
 
-## Pendiente para la siguiente versión
+## Limitaciones conocidas
 
-Mapa sin conexión, aviso de cercanía y transectos (probados en PoC-01 a PoC-04), notas de voz, fichas, checklist logístico, fotos originales con WiFi y bloqueo a los 15 días sin sincronizar.
+- ⚑ **Track con la pantalla apagada:** el track se graba solo con la pantalla de la unidad abierta. Para grabar en segundo plano (CA-10) falta aprobar `expo-task-manager` y compilar un binario nuevo.
+- Mapa sin conexión, aviso de cercanía (P-16), alertas desde campo, vista del Jefe de Brigada, notas de voz, fichas, checklist logístico y fotos originales con WiFi.
 
 ## Compilar el APK
 

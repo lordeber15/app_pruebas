@@ -2,6 +2,7 @@ import { File } from 'expo-file-system';
 import { Upload } from 'tus-js-client';
 import { borrarTodo, consultar, ejecutar, guardarEstadoSync, leerEstadoSync } from './bd.ts';
 import { actualizarPendientes, avisarCambio, useApp } from './estado.ts';
+import { descargarPaqueteCampo, leerPaquete } from './campo.ts';
 import { ErrorServidor, olvidarSesion, pedir, servidor, tokenActual } from './sesion.ts';
 
 /**
@@ -15,6 +16,7 @@ const LOTE = 500;
 const TROZO = 5 * 1024 * 1024;
 const SIN_AVANCE_MS = 30_000;
 const SIETE_DIAS = 7 * 24 * 60 * 60 * 1000;
+const TREINTA_MIN = 30 * 60 * 1000;
 
 interface FilaOutbox {
   id: string;
@@ -100,12 +102,14 @@ const subirArchivo = async (base: string, token: string, a: FilaArchivo): Promis
 
 const subirArchivos = async (): Promise<void> => {
   const base = await servidor();
-  // RN-18: fotos de tareas completadas primero.
+  // RN-18: primero las fotos de ejecuciones cerradas (y de tareas completadas), luego el resto.
   const pendientes = await consultar<FilaArchivo>(
     `SELECT a.id, a.uri, a.sha256, a.url_subida FROM archivo_local a
        LEFT JOIN paquete_tarea t ON t.id = a.tarea_id
+       LEFT JOIN ejecucion_local x ON x.id = a.ejecucion_id
       WHERE a.estado = 'pendiente'
-      ORDER BY CASE WHEN t.estado_local = 'completada' THEN 0 ELSE 1 END, a.capturado_en`,
+      ORDER BY CASE WHEN t.estado_local = 'completada' OR x.estado_local = 'cerrada' THEN 0 ELSE 1 END,
+               a.capturado_en`,
   );
   for (const a of pendientes) {
     const sesionActual = (await tokenActual()) ?? '';
@@ -218,7 +222,7 @@ const bajarCambios = async (): Promise<boolean> => {
 let enCurso: Promise<void> | null = null;
 
 /** Sincroniza todo lo pendiente. Si ya hay una sincronización en curso, espera esa. */
-export const sincronizar = (): Promise<void> => {
+export const sincronizar = (opciones: { paquete?: boolean } = {}): Promise<void> => {
   if (enCurso !== null) return enCurso;
   enCurso = (async () => {
     useApp.setState({ sincronizando: true, ultimoError: null });
@@ -233,6 +237,20 @@ export const sincronizar = (): Promise<void> => {
           ultimoError: 'Este celular fue dado de baja. Sus datos locales se borraron.',
         });
         return;
+      }
+      // Cronograma vigente y configuración al día (CA-15), a lo más cada 30 min para no gastar
+      // datos móviles; «Actualizar» en el inicio lo fuerza. Un usuario sin brigada no tiene paquete.
+      const local = await leerPaquete();
+      if (
+        opciones.paquete ||
+        local === null ||
+        Date.now() - Date.parse(local.descargado_en) > TREINTA_MIN
+      ) {
+        try {
+          await descargarPaqueteCampo();
+        } catch (e) {
+          if (!(e instanceof ErrorServidor) || e.estado !== 403) throw e;
+        }
       }
       useApp.setState({ ultimaSync: new Date().toISOString() });
     } catch (e) {

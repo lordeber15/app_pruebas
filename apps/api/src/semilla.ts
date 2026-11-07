@@ -2,6 +2,7 @@
 import { crearDb, crearPool } from '@campo/db';
 import { randomBytes } from 'node:crypto';
 import { crearUsuario } from './modulos/usuarios/servicio.ts';
+import { generarId } from './plataforma/ids.ts';
 
 if (process.env['NODE_ENV'] !== 'development') {
   console.error('La semilla solo corre con NODE_ENV=development.');
@@ -36,6 +37,41 @@ for (const u of usuarios) {
   const contrasena = randomBytes(9).toString('base64url');
   await crearUsuario(db, { tipoDocumento: 'DNI', ...u, contrasena, creadoPor: null });
   console.log(`DNI ${u.numDocumento} (${u.rolGlobal}): contraseña ${contrasena}`);
+}
+
+// Si ya se cargó TOCE (`pnpm --filter @campo/db db:toce`), el especialista entra a SELVA 2 para
+// poder descargar su paquete de campo en el celular.
+const especialista = await db
+  .selectFrom('usuario')
+  .select('id')
+  .where('tipo_documento', '=', 'DNI')
+  .where('num_documento', '=', '70000002')
+  .executeTakeFirst();
+const selva2 = await db
+  .selectFrom('brigada')
+  .select(['id', 'nombre'])
+  .where('codigo', '=', 'SELVA 2')
+  .orderBy('creado_en', 'desc')
+  .executeTakeFirst();
+if (especialista !== undefined && selva2 !== undefined) {
+  const yaEs = await db
+    .selectFrom('miembro_brigada')
+    .select('id')
+    .where('brigada_id', '=', selva2.id)
+    .where('usuario_id', '=', especialista.id)
+    .executeTakeFirst();
+  if (yaEs === undefined) {
+    await db
+      .insertInto('miembro_brigada')
+      .values({
+        id: generarId(),
+        brigada_id: selva2.id,
+        usuario_id: especialista.id,
+        rol: 'especialista',
+      })
+      .execute();
+  }
+  console.log(`DNI 70000002: especialista de la brigada ${selva2.nombre}`);
 }
 
 await db.destroy();

@@ -31,22 +31,21 @@ export default function Raiz() {
           contentStyle: { backgroundColor: C.papel },
         }}
       >
-        <Stack.Screen name="index" options={{ title: 'Mis tareas' }} />
+        <Stack.Screen name="index" options={{ title: 'Campo' }} />
         <Stack.Screen name="servidor" options={{ title: 'Servidor' }} />
         <Stack.Screen name="entrar" options={{ title: 'Ingresar', headerBackVisible: false }} />
         <Stack.Screen
           name="desbloquear"
           options={{ title: 'Desbloquear', headerBackVisible: false }}
         />
-        <Stack.Screen name="disponibles" options={{ title: 'Tareas nuevas' }} />
-        <Stack.Screen name="tarea/[id]" options={{ title: 'Tarea' }} />
+        <Stack.Screen name="estacion/[id]" options={{ title: 'Estación' }} />
+        <Stack.Screen name="metodo" options={{ title: 'Método' }} />
+        <Stack.Screen name="ejecucion/[id]" options={{ title: 'Ejecución' }} />
+        <Stack.Screen name="unidad/[id]" options={{ title: 'Unidad' }} />
+        <Stack.Screen name="cierre/[id]" options={{ title: 'Revisar y cerrar' }} />
         <Stack.Screen
           name="camara"
-          options={{
-            title: 'Foto de evidencia',
-            presentation: 'fullScreenModal',
-            headerShown: false,
-          }}
+          options={{ title: 'Cámara', presentation: 'fullScreenModal', headerShown: false }}
         />
       </Stack>
     </SafeAreaProvider>

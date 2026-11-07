@@ -36,12 +36,42 @@ const ESQUEMA = [
      estado TEXT NOT NULL DEFAULT 'pendiente', url_subida TEXT, prioridad INTEGER NOT NULL DEFAULT 3)`,
   `CREATE TABLE IF NOT EXISTS sync_estado (clave TEXT PRIMARY KEY, valor TEXT)`,
   `CREATE TABLE IF NOT EXISTS jornada_local (id TEXT PRIMARY KEY, abierta_en TEXT NOT NULL, cerrada_en TEXT)`,
+  // Modelo TOCE: el paquete de campo se guarda entero (JSON) y lo trabajado en campo, por filas.
+  `CREATE TABLE IF NOT EXISTS paquete_campo (clave TEXT PRIMARY KEY, contenido TEXT NOT NULL, descargado_en TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS ejecucion_local (
+     id TEXT PRIMARY KEY, tarea_id TEXT, estacion_id TEXT NOT NULL, metodo_id TEXT NOT NULL,
+     estado_local TEXT NOT NULL DEFAULT 'en_curso', abierta_en TEXT NOT NULL, cerrada_en TEXT,
+     datos TEXT NOT NULL DEFAULT '{}', desviacion_tipo TEXT NOT NULL DEFAULT 'ninguna', desviacion_explicacion TEXT,
+     confirmaciones TEXT NOT NULL DEFAULT '[]', objetivo_campo REAL, incumplimientos INTEGER, advertencias INTEGER)`,
+  `CREATE TABLE IF NOT EXISTS unidad_local (
+     id TEXT PRIMARY KEY, ejecucion_id TEXT NOT NULL, codigo TEXT NOT NULL, tipo_unidad TEXT NOT NULL,
+     orden INTEGER NOT NULL, estado TEXT NOT NULL DEFAULT 'abierta', geometria TEXT, inicio TEXT, fin TEXT,
+     datos TEXT NOT NULL DEFAULT '{}', registros TEXT NOT NULL DEFAULT '[]', unidad_vinculada_id TEXT,
+     parametros TEXT NOT NULL DEFAULT '[]', evento_id TEXT, actualizado_en TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS track_local (
+     id TEXT PRIMARY KEY, ejecucion_id TEXT NOT NULL, unidad_id TEXT NOT NULL, puntos TEXT NOT NULL DEFAULT '[]',
+     enviado INTEGER NOT NULL DEFAULT 0)`,
+];
+
+/** Columnas agregadas después de la primera versión (SQLite no tiene ADD COLUMN IF NOT EXISTS). */
+const COLUMNAS: readonly [tabla: string, columna: string, definicion: string][] = [
+  ['archivo_local', 'ejecucion_id', 'TEXT'],
+  ['archivo_local', 'unidad_id', 'TEXT'],
+  ['archivo_local', 'tipo_foto', 'TEXT'],
+  ['archivo_local', 'orientacion', 'TEXT'],
+  ['archivo_local', 'candidata', 'INTEGER NOT NULL DEFAULT 0'],
 ];
 
 export const abrirBd = async (): Promise<DB> => {
   if (bd !== null) return bd;
   const nueva = open({ name: 'campo.sqlite' });
   for (const sql of ESQUEMA) await nueva.execute(sql);
+  for (const [tabla, columna, definicion] of COLUMNAS) {
+    const r = await nueva.execute(`PRAGMA table_info(${tabla})`);
+    if (!r.rows.some((c) => c['name'] === columna)) {
+      await nueva.execute(`ALTER TABLE ${tabla} ADD COLUMN ${columna} ${definicion}`);
+    }
+  }
   bd = nueva;
   return nueva;
 };
@@ -82,6 +112,10 @@ export const borrarTodo = async (): Promise<void> => {
     'archivo_local',
     'sync_estado',
     'jornada_local',
+    'paquete_campo',
+    'ejecucion_local',
+    'unidad_local',
+    'track_local',
   ]) {
     await b.execute(`DELETE FROM ${t}`);
   }
