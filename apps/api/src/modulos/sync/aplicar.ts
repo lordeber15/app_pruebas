@@ -8,6 +8,13 @@ import {
 } from '@campo/core';
 import type { Db } from '@campo/db';
 import type { ActorDispositivo } from '../../plataforma/sesion.ts';
+import {
+  ejecucionAbierta,
+  ejecucionCerrada,
+  ejecucionDeFoto,
+  trackRegistrado,
+  unidadGuardada,
+} from './ejecucion.ts';
 import * as repo from './repositorio.ts';
 
 /**
@@ -128,11 +135,14 @@ const archivoCapturado = async (
   e: EventoDe<'archivo_capturado'>,
 ) => {
   const p = e.payload;
-  // Comprobantes (gastos) y archivos sin tarea son de la Fase 2.
-  if (p.tipo === 'comprobante' || p.tarea_id === null) return noAplicado('NO_IMPLEMENTADO');
+  if (p.tipo === 'comprobante') return noAplicado('NO_IMPLEMENTADO');
   if (e.entidad.tipo !== 'archivo' || e.entidad.id !== p.archivo_id) {
     return noAplicado('ENTIDAD_INCONSISTENTE');
   }
+  const ejecucionId = p.ejecucion_id ?? null;
+  if (ejecucionId !== null) return archivoDeEjecucion(tx, actor, e, ejecucionId);
+  // Archivos sin tarea ni ejecución (gastos) son de la Fase 2.
+  if (p.tarea_id === null) return noAplicado('NO_IMPLEMENTADO');
   const ctx = await contextoTarea(tx, actor, p.tarea_id, e.asignacion_id);
   if (esDecision(ctx)) return ctx;
 
@@ -189,6 +199,65 @@ const archivoCapturado = async (
       })
       .execute();
   });
+};
+
+/** Foto del modelo TOCE (F-02): ligada a la ejecución, la unidad, su tipo y orientación. */
+const archivoDeEjecucion = async (
+  tx: Db,
+  actor: ActorDispositivo,
+  e: EventoDe<'archivo_capturado'>,
+  ejecucionId: string,
+): Promise<Decision> => {
+  const p = e.payload;
+  const existe = await tx
+    .selectFrom('archivo')
+    .select(['usuario_id', 'ejecucion_id'])
+    .where('id', '=', p.archivo_id)
+    .executeTakeFirst();
+  if (existe !== undefined) {
+    return existe.usuario_id === actor.usuarioId && existe.ejecucion_id === ejecucionId
+      ? yaAplicado()
+      : noAplicado('ENTIDAD_DUPLICADA');
+  }
+  const ej = await ejecucionDeFoto(tx, actor, ejecucionId, p.unidad_id ?? null);
+  if (ej === null) return noAplicado('EJECUCION_AJENA');
+  // La unidad puede no haber llegado aún: la foto se guarda sin unidad y queda en revisión.
+  const unidadId = ej.unidadPendiente ? null : (p.unidad_id ?? null);
+  const u = e.ubicacion;
+  const efectos: NonNullable<Decision['efectos']> = async (t) => {
+    await t
+      .insertInto('archivo')
+      .values({
+        id: p.archivo_id,
+        proyecto_id: ej.proyecto_id,
+        usuario_id: actor.usuarioId,
+        tarea_id: null,
+        ejecucion_id: ejecucionId,
+        unidad_id: unidadId,
+        estacion_id: ej.estacion_id,
+        metodo_id: ej.metodo_id,
+        tipo_foto: p.tipo_foto ?? null,
+        orientacion: p.orientacion ?? null,
+        candidata_reporte: p.candidata_reporte ?? false,
+        evidencia_item_id: null,
+        tipo: p.tipo,
+        categoria_foto_id: null,
+        hash_preview: p.hash_preview,
+        hash_original: p.hash_original,
+        tamano_preview: p.tamanos.preview,
+        tamano_original: p.tamanos.original,
+        geom: u === null ? null : repo.punto(u.lon, u.lat),
+        precision_m: u?.precision_m ?? null,
+        altitud_m: u?.altitud_m ?? null,
+        capturado_en: new Date(p.capturado_en),
+        creado_por: actor.usuarioId,
+        actualizado_por: actor.usuarioId,
+      })
+      .execute();
+  };
+  return ej.unidadPendiente
+    ? { estado: 'en_revision', motivo: 'UNIDAD_PENDIENTE', efectos }
+    : aplicado(efectos);
 };
 
 const comentario = async (tx: Db, actor: ActorDispositivo, e: EventoDe<'comentario_creado'>) => {
@@ -371,6 +440,14 @@ const jornadaCerrada = async (tx: Db, actor: ActorDispositivo, e: EventoDe<'jorn
 
 export const decidir = async (tx: Db, actor: ActorDispositivo, e: Evento): Promise<Decision> => {
   switch (e.tipo) {
+    case 'ejecucion_abierta':
+      return ejecucionAbierta(tx, actor, e);
+    case 'unidad_guardada':
+      return unidadGuardada(tx, actor, e);
+    case 'track_registrado':
+      return trackRegistrado(tx, actor, e);
+    case 'ejecucion_cerrada':
+      return ejecucionCerrada(tx, actor, e);
     case 'evidencia_item_creado':
       return evidenciaItem(tx, actor, e);
     case 'archivo_capturado':

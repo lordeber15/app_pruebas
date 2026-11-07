@@ -4,6 +4,10 @@ import { z } from 'zod';
 import type { Config } from '../../config.ts';
 import type { Auth } from '../../plataforma/auth.ts';
 import { actorDispositivo, requiereDispositivo } from '../../plataforma/sesion.ts';
+import { puedeIntentar } from '@campo/core';
+import { noAutorizado } from '../../plataforma/errores.ts';
+import { rolesDeCampo } from '../alcance/repositorio.ts';
+import { paqueteCampo } from './campo.ts';
 import { contenidoPaquete } from './repositorio.ts';
 import * as servicio from './servicio.ts';
 
@@ -15,6 +19,17 @@ interface Opciones {
 
 export const rutasPaquete: FastifyPluginAsyncZod<Opciones> = (app, { auth, db, config }) => {
   const soloDispositivo = requiereDispositivo(auth, db);
+
+  /**
+   * Paquete de campo TOCE de las brigadas activas del usuario (RF-M01). No retiene nada: cada
+   * especialista registra su propia ejecución y el esfuerzo del método es la suma (RN-19).
+   */
+  app.get('/paquete/campo', { preHandler: soloDispositivo }, async (request) => {
+    const actor = actorDispositivo(request);
+    const roles = await rolesDeCampo(db, actor.usuarioId);
+    if (![...roles.values()].some((r) => puedeIntentar(r, 'ejecutar_tareas'))) throw noAutorizado();
+    return paqueteCampo(db, actor.usuarioId);
+  });
 
   app.get('/paquete/disponible', { preHandler: soloDispositivo }, async (request) => {
     const tareas = await servicio.disponibles(

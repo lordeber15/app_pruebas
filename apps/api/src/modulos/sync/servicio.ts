@@ -116,7 +116,11 @@ const procesarEvento = async (
         estado: d.estado,
         motivo: d.motivo,
       });
-      if (d.estado === 'aplicado' && d.efectos !== undefined) await d.efectos(tx, e.id);
+      // Un evento en revisión puede traer efectos que conservan evidencia (p. ej. una foto cuya
+      // unidad aún no llegó); los demás estados nunca los ejecutan.
+      if ((d.estado === 'aplicado' || d.estado === 'en_revision') && d.efectos !== undefined) {
+        await d.efectos(tx, e.id);
+      }
       return resultado(e.id, d.estado, d.motivo);
     });
   } catch (err) {

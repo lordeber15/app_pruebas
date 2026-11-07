@@ -314,6 +314,7 @@ export interface Ejecucion {
   actualizado_en: Generated<Timestamp>;
   actualizado_por: string | null;
   cerrada_en: Timestamp | null;
+  confirmaciones: Generated<Json>;
   creado_en: Generated<Timestamp>;
   creado_por: string | null;
   datos: Generated<Json>;
@@ -326,10 +327,11 @@ export interface Ejecucion {
   estado: Generated<string>;
   id: string;
   metodo_id: string;
+  objetivo_campo: Numeric | null;
   proyecto_id: string;
   qa_evaluado_en: Timestamp | null;
   resultado_qa: Json | null;
-  tarea_id: string;
+  tarea_id: string | null;
   usuario_id: string;
   version: Generated<number>;
 }
@@ -583,6 +585,8 @@ export interface Unidad {
   id: string;
   inicio: Timestamp | null;
   orden: Generated<number>;
+  parametros_confirmados: Generated<Json>;
+  registros: Generated<Json>;
   tipo_unidad: string;
   unidad_vinculada_id: string | null;
 }

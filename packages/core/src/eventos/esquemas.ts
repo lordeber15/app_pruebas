@@ -1,5 +1,13 @@
 import { z } from 'zod';
-import { TIPOS_ARCHIVO, type EstadoEvento } from '../estados.ts';
+import { TIPOS_UNIDAD } from '../configuracion/metodo.ts';
+import {
+  ESTADOS_UNIDAD,
+  ORIENTACIONES,
+  TIPOS_ARCHIVO,
+  TIPOS_DESVIACION,
+  TIPOS_FOTO,
+  type EstadoEvento,
+} from '../estados.ts';
 
 /**
  * Contrato de sincronización v1 (doc. 03 §9). Lo usan la app al generar eventos y la API al
@@ -39,6 +47,10 @@ export const TIPOS_ENTIDAD = [
   'estacion_metodologia',
   'articulo',
   'comentario',
+  // Modelo TOCE (ERS v4.0): ejecución de un método en una estación, sus unidades y tracks.
+  'ejecucion',
+  'unidad',
+  'track',
 ] as const;
 
 const sobreBase = z.object({
@@ -76,6 +88,16 @@ const archivoCapturado = z
       original: z.number().int().positive().nullable(),
     }),
     capturado_en: hora,
+    /**
+     * Modelo TOCE (F-02): la foto se asocia a la ejecución y, si corresponde, a la unidad, con su
+     * tipo (contexto, metodológica…) y orientación cardinal. Si viene `ejecucion_id`, `tarea_id`
+     * es nulo: la ejecución ya identifica estación y método.
+     */
+    ejecucion_id: id.nullable().optional(),
+    unidad_id: id.nullable().optional(),
+    tipo_foto: z.enum(TIPOS_FOTO).nullable().optional(),
+    orientacion: z.enum(ORIENTACIONES).nullable().optional(),
+    candidata_reporte: z.boolean().optional(),
   })
   .refine((p) => p.tipo === 'foto' || p.hash_original === null, {
     message: 'Fichas, audios y comprobantes solo tienen la variante preview (doc. 03 §10)',
@@ -85,6 +107,112 @@ const archivoCapturado = z
     message: 'hash_original y tamanos.original van juntos',
     path: ['tamanos', 'original'],
   });
+
+const coordenada = z.object({ lat: latitud, lon: longitud });
+
+/** Geometría de una unidad tal como la captura la app (RN-30); la evalúa `core/reglas`. */
+export const geometriaCapturadaSchema = z.discriminatedUnion('tipo', [
+  z.object({ tipo: z.literal('punto'), punto: coordenada }),
+  z.object({ tipo: z.literal('inicio_fin'), inicio: coordenada, fin: coordenada }),
+  z.object({ tipo: z.literal('vertices'), vertices: z.array(coordenada).min(1).max(200) }),
+  z.object({
+    tipo: z.literal('parcela_forestal'),
+    principal: z.array(coordenada).max(200),
+    subparcelas: z
+      .array(z.object({ tipo: textoCorto, vertices: z.array(coordenada).max(200) }))
+      .max(50),
+  }),
+]);
+
+/** Valores de formulario: claves de `metodo.campos` y valores simples o un punto. */
+const valorCampo = z.union([z.string().max(2000), z.number(), z.boolean(), z.null(), coordenada]);
+const datosFormulario = z.record(z.string().regex(/^[a-z][a-z0-9_]*$/), valorCampo);
+
+const ejecucionAbierta = z.object({
+  ejecucion_id: id,
+  /** Reserva interna estación × método; nula en EVENTOS, que no tienen reserva (RN-40). */
+  tarea_id: id.nullable(),
+  estacion_id: id,
+  metodo_id: id,
+  abierta_en: hora,
+});
+
+/**
+ * Estado completo de una unidad (punto, transecto, trampa, ABS…). Se reenvía entero cada vez que
+ * cambia: el servidor conserva el último por `hora_servidor` y el historial queda en `evento`.
+ */
+const unidadGuardada = z
+  .object({
+    unidad_id: id,
+    ejecucion_id: id,
+    codigo: textoCorto,
+    tipo_unidad: z.enum(TIPOS_UNIDAD),
+    orden: z.number().int().nonnegative(),
+    estado: z.enum(ESTADOS_UNIDAD),
+    geometria: geometriaCapturadaSchema.nullable(),
+    inicio: hora.nullable(),
+    fin: hora.nullable(),
+    datos: datosFormulario,
+    registros: z.array(datosFormulario).max(2000),
+    unidad_vinculada_id: id.nullable(),
+    parametros_confirmados: z.array(textoCorto).max(50),
+  })
+  .refine((p) => p.inicio === null || p.fin === null || Date.parse(p.fin) >= Date.parse(p.inicio), {
+    message: 'El fin no puede ser anterior al inicio',
+    path: ['fin'],
+  });
+
+/** Track del recorrido de una unidad (RN-24): solo en métodos con track en D01. */
+const trackRegistrado = z
+  .object({
+    track_id: id,
+    ejecucion_id: id,
+    unidad_id: id.nullable(),
+    puntos: z
+      .array(
+        z.object({
+          lat: latitud,
+          lon: longitud,
+          altitud_m: z.number().nullable(),
+          precision_m: z.number().nonnegative().nullable(),
+          hora,
+        }),
+      )
+      .min(2)
+      .max(20_000),
+  })
+  .refine(
+    (p) => {
+      const [a] = p.puntos;
+      const b = p.puntos.at(-1);
+      return a === undefined || b === undefined || Date.parse(b.hora) >= Date.parse(a.hora);
+    },
+    { message: 'El track debe estar en orden cronológico', path: ['puntos'] },
+  );
+
+/** Cierre local de la ejecución (RN-05, RF-M11): queda pendiente de sincronización. */
+const ejecucionCerrada = z
+  .object({
+    ejecucion_id: id,
+    cerrada_en: hora,
+    datos: datosFormulario,
+    desviacion: z.object({
+      tipo: z.enum(TIPOS_DESVIACION),
+      explicacion: z.string().trim().max(2000).nullable(),
+    }),
+    /** Condiciones confirmadas por el usuario (p. ej. `za_ef_cantidad_exacta`, cámaras trampa). */
+    confirmaciones: z.array(z.string().min(1).max(100)).max(20),
+    /** Objetivo final definido en campo (bofedales, RN-38). */
+    objetivo_campo: z.number().positive().nullable(),
+    /** Fotos anunciadas de la ejecución, para verificar sus hashes (RN-05). */
+    archivo_ids: z.array(id).max(2000),
+  })
+  .refine(
+    (p) =>
+      p.desviacion.tipo === 'ninguna' ||
+      (p.desviacion.explicacion !== null && p.desviacion.explicacion.trim().length > 0),
+    { message: 'Una desviación declarada requiere explicación', path: ['desviacion'] },
+  );
 
 const transectoFinalizado = z
   .object({
@@ -109,6 +237,10 @@ const transectoFinalizado = z
   });
 
 export const eventoSchema = z.discriminatedUnion('tipo', [
+  evento('ejecucion_abierta', ejecucionAbierta),
+  evento('unidad_guardada', unidadGuardada),
+  evento('track_registrado', trackRegistrado),
+  evento('ejecucion_cerrada', ejecucionCerrada),
   evento('jornada_iniciada', sinPayload),
   evento('jornada_cerrada', sinPayload),
   evento(

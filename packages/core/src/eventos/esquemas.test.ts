@@ -178,3 +178,147 @@ describe('lote y respuesta (doc. 03 §9.3)', () => {
     expect(r.success).toBe(true);
   });
 });
+
+describe('eventos de ejecución TOCE (RN-05, RN-24, RN-30, RF-M11)', () => {
+  const base = { ...sobre, asignacion_id: null };
+  const unidad = {
+    ...base,
+    tipo: 'unidad_guardada',
+    entidad: { tipo: 'unidad', id: ID },
+    payload: {
+      unidad_id: ID,
+      ejecucion_id: ID,
+      codigo: 'P-01',
+      tipo_unidad: 'punto',
+      orden: 0,
+      estado: 'cerrada',
+      geometria: { tipo: 'punto', punto: { lat: -12, lon: -77 } },
+      inicio: '2026-12-05T06:10:00-05:00',
+      fin: '2026-12-05T06:20:00-05:00',
+      datos: { habitat: 'Matorral', n: 3, en_vuelo: false, ubicacion: { lat: -12, lon: -77 } },
+      registros: [{ especie: 'Zonotrichia capensis', n_individuos: 2 }],
+      unidad_vinculada_id: null,
+      parametros_confirmados: [],
+    },
+  };
+  const cierre = {
+    ...base,
+    tipo: 'ejecucion_cerrada',
+    entidad: { tipo: 'ejecucion', id: ID },
+    payload: {
+      ejecucion_id: ID,
+      cerrada_en: '2026-12-05T11:00:00-05:00',
+      datos: {},
+      desviacion: { tipo: 'ninguna', explicacion: null },
+      confirmaciones: ['za_ef_cantidad_exacta'],
+      objetivo_campo: null,
+      archivo_ids: [ID],
+    },
+  };
+
+  it('acepta abrir, guardar unidad, track y cerrar con sus formatos', () => {
+    expect(
+      eventoSchema.safeParse({
+        ...base,
+        tipo: 'ejecucion_abierta',
+        entidad: { tipo: 'ejecucion', id: ID },
+        payload: {
+          ejecucion_id: ID,
+          tarea_id: null,
+          estacion_id: ID,
+          metodo_id: ID,
+          abierta_en: '2026-12-05T06:00:00-05:00',
+        },
+      }).success,
+    ).toBe(true);
+    expect(eventoSchema.safeParse(unidad).success).toBe(true);
+    expect(eventoSchema.safeParse(cierre).success).toBe(true);
+    const punto = (hora: string) => ({ lat: -12, lon: -77, altitud_m: null, precision_m: 5, hora });
+    expect(
+      eventoSchema.safeParse({
+        ...base,
+        tipo: 'track_registrado',
+        entidad: { tipo: 'track', id: ID },
+        payload: {
+          track_id: ID,
+          ejecucion_id: ID,
+          unidad_id: null,
+          puntos: [punto('2026-12-05T06:00:00Z'), punto('2026-12-05T06:05:00Z')],
+        },
+      }).success,
+    ).toBe(true);
+  });
+
+  it('RN-30 rechaza geometrías mal formadas y RN-24 un track desordenado o de un solo punto', () => {
+    const geo = (g: unknown) =>
+      eventoSchema.safeParse({ ...unidad, payload: { ...unidad.payload, geometria: g } }).success;
+    expect(geo({ tipo: 'inicio_fin', inicio: { lat: -12, lon: -77 } })).toBe(false);
+    expect(geo({ tipo: 'punto', punto: { lat: -120, lon: -77 } })).toBe(false);
+    expect(geo({ tipo: 'vertices', vertices: [] })).toBe(false);
+    expect(geo({ tipo: 'parcela_forestal', principal: [], subparcelas: [] })).toBe(true);
+    const punto = (hora: string) => ({
+      lat: -12,
+      lon: -77,
+      altitud_m: null,
+      precision_m: null,
+      hora,
+    });
+    const track = (puntos: unknown[]) =>
+      eventoSchema.safeParse({
+        ...base,
+        tipo: 'track_registrado',
+        entidad: { tipo: 'track', id: ID },
+        payload: { track_id: ID, ejecucion_id: ID, unidad_id: null, puntos },
+      }).success;
+    expect(track([punto('2026-12-05T06:00:00Z')])).toBe(false);
+    expect(track([punto('2026-12-05T06:05:00Z'), punto('2026-12-05T06:00:00Z')])).toBe(false);
+  });
+
+  it('una unidad no termina antes de empezar y sus claves de datos son de formulario', () => {
+    expect(
+      eventoSchema.safeParse({
+        ...unidad,
+        payload: { ...unidad.payload, fin: '2026-12-05T06:00:00-05:00' },
+      }).success,
+    ).toBe(false);
+    expect(
+      eventoSchema.safeParse({
+        ...unidad,
+        payload: { ...unidad.payload, datos: { 'Mal Clave': 1 } },
+      }).success,
+    ).toBe(false);
+    expect(
+      eventoSchema.safeParse({
+        ...unidad,
+        payload: { ...unidad.payload, datos: { x: { anidado: true } } },
+      }).success,
+    ).toBe(false);
+  });
+
+  it('RF-M11 una desviación declarada exige explicación', () => {
+    const con = (desviacion: unknown) =>
+      eventoSchema.safeParse({ ...cierre, payload: { ...cierre.payload, desviacion } }).success;
+    expect(con({ tipo: 'parcial', explicacion: 'Crecida del río' })).toBe(true);
+    expect(con({ tipo: 'parcial', explicacion: '  ' })).toBe(false);
+    expect(con({ tipo: 'imposibilidad', explicacion: null })).toBe(false);
+  });
+
+  it('F-02 una foto puede ir ligada a ejecución y unidad, con tipo y orientación', () => {
+    const p = {
+      ...fotoCapturada.payload,
+      tarea_id: null,
+      ejecucion_id: ID,
+      unidad_id: ID,
+      tipo_foto: 'contexto',
+      orientacion: 'N',
+      candidata_reporte: true,
+    };
+    expect(eventoSchema.safeParse({ ...fotoCapturada, payload: p }).success).toBe(true);
+    expect(
+      eventoSchema.safeParse({ ...fotoCapturada, payload: { ...p, orientacion: 'NE' } }).success,
+    ).toBe(false);
+    expect(
+      eventoSchema.safeParse({ ...fotoCapturada, payload: { ...p, tipo_foto: 'selfie' } }).success,
+    ).toBe(false);
+  });
+});
