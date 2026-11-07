@@ -1,3 +1,4 @@
+import { transicionarTarea } from '@campo/core';
 import type { Db } from '@campo/db';
 import { sql } from 'kysely';
 import { ProblemaHttp } from '../../plataforma/errores.ts';
@@ -34,7 +35,7 @@ export const leerCursor = (cursor: string | undefined): Date => {
 export interface Cambio {
   readonly entidad: 'tarea' | 'comentario' | 'dispositivo' | 'archivo';
   readonly id: string;
-  readonly operacion: 'disponible' | 'revocada' | 'estado' | 'creado' | 'baja';
+  readonly operacion: 'disponible' | 'revocada' | 'estado' | 'creado' | 'baja' | 'observada';
   readonly datos: Record<string, unknown>;
 }
 
@@ -81,6 +82,35 @@ export const cambiosDesde = async (
       id: a.tarea_id,
       operacion: 'revocada',
       datos: { asignacion_id: a.id, motivo: a.motivo_revocacion },
+    });
+  }
+
+  // Tareas observadas que vuelven a este celular con una asignación nueva (doc. 02 §7.1 y §7.2):
+  // al bajarlas pasan de "observada" a "descargada" y el celular recibe su nueva asignación.
+  const observadas = await db
+    .selectFrom('tarea')
+    .innerJoin('asignacion', 'asignacion.tarea_id', 'tarea.id')
+    .select(['tarea.id', 'asignacion.id as asignacion_id'])
+    .where('tarea.estado', '=', 'observada')
+    .where('asignacion.estado', '=', 'vigente')
+    .where('asignacion.usuario_id', '=', actor.usuarioId)
+    .where('asignacion.dispositivo_id', '=', actor.dispositivoId)
+    .limit(LIMITE)
+    .execute();
+  for (const o of observadas) {
+    const r = transicionarTarea('observada', { tipo: 'redescargar' });
+    if (!r.ok) continue;
+    await db
+      .updateTable('tarea')
+      .set((eb) => ({ estado: r.valor, version: eb('version', '+', 1) }))
+      .where('id', '=', o.id)
+      .where('estado', '=', 'observada')
+      .execute();
+    cambios.push({
+      entidad: 'tarea',
+      id: o.id,
+      operacion: 'observada',
+      datos: { asignacion_id: o.asignacion_id, estado: r.valor },
     });
   }
 

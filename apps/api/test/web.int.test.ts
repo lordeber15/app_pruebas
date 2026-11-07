@@ -3,6 +3,7 @@ import { generarId } from '../src/plataforma/ids.ts';
 import {
   completada,
   entrar,
+  especialistaEnCampo,
   forzarEstado,
   iniciarEntorno,
   nuevaTarea,
@@ -249,6 +250,51 @@ describe('validación (RN-06)', () => {
       comentarios: { texto: string }[];
     }>();
     expect(det.comentarios.map((c) => c.texto)).toContain('Falta la foto de la trampa 3');
+  });
+
+  it('la tarea observada llega al celular con su nueva asignación y vuelve a descargada', async () => {
+    const yo = await especialistaEnCampo(e, o.esc);
+    const cuaderno = (
+      await pedir(e, o.supervisor.token, 'POST', '/cuadernos', {
+        cuadrilla_id: o.esc.cuadrillaId,
+        responsable_id: yo.usuario.id,
+        titulo: 'Obs celular',
+        validacion_activa: true,
+      })
+    ).json<{ id: string }>().id;
+    const t = await nuevaTarea(e, o.esc, cuaderno);
+    await e.admin
+      .insertInto('asignacion')
+      .values({
+        id: generarId(),
+        tarea_id: t,
+        usuario_id: yo.usuario.id,
+        dispositivo_id: yo.dispositivoId,
+        descargada_en: new Date(),
+        estado: 'finalizada',
+        finalizada_en: new Date(),
+      })
+      .execute();
+    await forzarEstado(e, t, 'completada');
+    await pedir(e, o.supervisor.token, 'POST', `/tareas/${t}/observar`, {
+      comentario: 'Repita la foto',
+    });
+    const cambios = (await pedir(e, yo.token, 'GET', '/sync/cambios')).json<{
+      cambios: {
+        id: string;
+        operacion: string;
+        datos: { asignacion_id?: string; estado?: string };
+      }[];
+    }>().cambios;
+    const obs = cambios.find((c) => c.id === t && c.operacion === 'observada');
+    const vigente = await e.admin
+      .selectFrom('asignacion')
+      .select('id')
+      .where('tarea_id', '=', t)
+      .where('estado', '=', 'vigente')
+      .executeTakeFirstOrThrow();
+    expect(obs?.datos).toEqual({ asignacion_id: vigente.id, estado: 'descargada' });
+    expect(await estadoDe(t)).toBe('descargada');
   });
 
   it('RN-13 reabrir exige motivo y deja la tarea asignada', async () => {
