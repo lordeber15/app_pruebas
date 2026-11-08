@@ -65,7 +65,7 @@ export const nuevoUsuario = async (
   rolGlobal: ValorRolGlobal = 'ninguno',
 ): Promise<{ id: string; username: string; contrasena: string }> => {
   const numDocumento = String(secuenciaDocumento++);
-  const contrasena = randomBytes(12).toString('base64url');
+  const contrasena = `Aa1${randomBytes(12).toString('base64url')}`;
   const id = await crearUsuario(e.db, {
     tipoDocumento: 'DNI',
     numDocumento,
@@ -73,6 +73,8 @@ export const nuevoUsuario = async (
     rolGlobal,
     contrasena,
     creadoPor: null,
+    // Las pruebas en general usan usuarios que ya cambiaron su contraseña temporal.
+    debeCambiarContrasena: false,
   });
   return { id, username: `dni.${numDocumento}`, contrasena };
 };

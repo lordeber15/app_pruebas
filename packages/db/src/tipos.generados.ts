@@ -598,6 +598,7 @@ export interface Usuario {
   celular: string | null;
   creado_en: Generated<Timestamp>;
   creado_por: string | null;
+  debe_cambiar_contrasena: Generated<boolean>;
   estado: Generated<string>;
   id: string;
   nombre: string;

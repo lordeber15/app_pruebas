@@ -274,6 +274,12 @@ export default function Inicio() {
                 ocupado={app.sincronizando || descargando}
                 alPresionar={() => void sincronizar({ paquete: true })}
               />
+              <Boton
+                variante="secundario"
+                texto="Cambiar contraseña"
+                deshabilitado={!app.conectado}
+                alPresionar={() => router.push('/contrasena')}
+              />
             </View>
           </>
         )}

@@ -16,6 +16,8 @@ export interface Actor {
   readonly rolGlobal: ValorRolGlobal;
   readonly dispositivoId: string | null;
   readonly estadoDispositivo: 'activo' | 'baja_pendiente' | 'baja' | null;
+  /** Entró con una contraseña temporal: hasta cambiarla solo puede ver su perfil y cambiarla. */
+  readonly debeCambiarContrasena: boolean;
 }
 
 declare module 'fastify' {
@@ -50,6 +52,7 @@ export const resolverActor = async (
     .select([
       'usuario.estado',
       'usuario.rol_global',
+      'usuario.debe_cambiar_contrasena',
       'auth_session.dispositivo_id',
       'dispositivo.estado as estado_dispositivo',
       'dispositivo.usuario_id as dueno_dispositivo',
@@ -67,15 +70,32 @@ export const resolverActor = async (
     rolGlobal: comoRolGlobal(fila.rol_global),
     dispositivoId: fila.dispositivo_id,
     estadoDispositivo: comoEstadoDispositivo(fila.estado_dispositivo),
+    debeCambiarContrasena: fila.debe_cambiar_contrasena,
   };
 };
 
-/** preHandler: exige una sesión válida de un usuario activo. */
+const cambioRequerido = (): ProblemaHttp =>
+  new ProblemaHttp(
+    403,
+    'CAMBIO_CONTRASENA_REQUERIDO',
+    'Cambie su contraseña temporal para continuar.',
+  );
+
+/**
+ * preHandler: exige una sesión válida de un usuario activo. Con una contraseña temporal solo
+ * pasan las rutas `exentas` (ver su perfil y cambiarla).
+ */
 export const requiereSesion =
-  (auth: Auth, db: Db) =>
+  (auth: Auth, db: Db, opciones: { exentas?: ReadonlySet<string> } = {}) =>
   async (request: FastifyRequest): Promise<void> => {
     request.actor = await resolverActor(auth, db, request.headers);
     if (request.actor === null) throw noAutenticado();
+    if (
+      request.actor.debeCambiarContrasena &&
+      !(opciones.exentas?.has(request.routeOptions.url ?? '') ?? false)
+    ) {
+      throw cambioRequerido();
+    }
   };
 
 /**

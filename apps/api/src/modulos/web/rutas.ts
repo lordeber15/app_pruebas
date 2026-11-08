@@ -1,4 +1,4 @@
-import { ROLES_BRIGADA, VALORES_ROL_GLOBAL } from '@campo/core';
+import { cambioContrasenaSchema, ROLES_BRIGADA, VALORES_ROL_GLOBAL } from '@campo/core';
 import type { Db } from '@campo/db';
 import type { FastifyPluginAsyncZod } from '@fastify/type-provider-zod';
 import type { FastifyRequest } from 'fastify';
@@ -9,6 +9,7 @@ import { noAutenticado } from '../../plataforma/errores.ts';
 import { requiereSesion, type Actor } from '../../plataforma/sesion.ts';
 import { noEncontrado, rolEnBrigada } from '../alcance/autorizacion.ts';
 import { rutaParaDescarga } from '../archivos/servicio.ts';
+import { cambiarContrasena } from '../cuenta/servicio.ts';
 import * as revisiones from '../ejecuciones/revisiones.ts';
 import * as org from '../organizacion/servicio.ts';
 
@@ -40,13 +41,24 @@ const actor = (request: FastifyRequest): Actor => {
 
 /** API de la web (doc. 03 §8). Todas las rutas exigen sesión y autorizan por rol + alcance. */
 export const rutasWeb: FastifyPluginAsyncZod<Opciones> = (app, { auth, db, firmador }) => {
-  app.addHook('preHandler', requiereSesion(auth, db));
+  // Con una contraseña temporal solo se puede ver el perfil y cambiarla (primer ingreso).
+  app.addHook(
+    'preHandler',
+    requiereSesion(auth, db, { exentas: new Set(['/api/v1/yo', '/api/v1/yo/contrasena']) }),
+  );
 
   app.get('/yo', async (request) => {
     const a = actor(request);
     const u = await db
       .selectFrom('usuario')
-      .select(['id', 'nombre', 'tipo_documento', 'num_documento', 'rol_global'])
+      .select([
+        'id',
+        'nombre',
+        'tipo_documento',
+        'num_documento',
+        'rol_global',
+        'debe_cambiar_contrasena',
+      ])
       .where('id', '=', a.usuarioId)
       .executeTakeFirstOrThrow();
     const miembro = await db
@@ -57,6 +69,21 @@ export const rutasWeb: FastifyPluginAsyncZod<Opciones> = (app, { auth, db, firma
       .execute();
     return { ...u, membresias: miembro };
   });
+
+  // Cambio de la propia contraseña (web y celular). Límite propio contra intentos de adivinar la
+  // actual: 10 cada 15 minutos.
+  app.post(
+    '/yo/contrasena',
+    {
+      config: { rateLimit: { max: 10, timeWindow: '15 minutes' } },
+      schema: { body: cambioContrasenaSchema },
+    },
+    async (request, reply) => {
+      const a = actor(request);
+      await cambiarContrasena(db, a, request.body.actual, request.body.nueva);
+      return reply.status(204).send();
+    },
+  );
 
   // ── Proyectos ──
   const datosProyecto = z.object({

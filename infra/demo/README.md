@@ -90,11 +90,11 @@ El dominio debe ser exactamente el de `preparar.sh`. Las URL firmadas de las fot
 
    Muestra cuántos métodos, estaciones, brigadas, filas del cronograma y reservas cargó. Volver a ejecutarlo con `--proyecto <id>` no duplica nada.
 
-3. Entre a `https://demo.suempresa.pe` con el DNI y la contraseña del paso 1.
+3. Entre a `https://demo.suempresa.pe` con el DNI y la contraseña temporal del paso 1. Le pedirá crear una propia: al menos 8 caracteres con mayúscula, minúscula y número.
 
 ## Circuito de la demo
 
-1. **Usuarios**: cree a los especialistas (rol *Personal de campo*). Cada alta muestra su contraseña temporal una sola vez.
+1. **Usuarios**: cree a los especialistas (rol *Personal de campo*). Cada alta muestra su contraseña temporal una sola vez; la persona crea la suya en su primer ingreso, en la web o en el celular.
 2. **Proyectos → TOCE → Brigadas**: agregue a cada especialista a su brigada, por ejemplo SELVA 2, con el rol *Especialista* o *Supervisor de campo*. El *Jefe de Brigada* es el rol logístico y no ejecuta métodos.
 3. **Proyectos → TOCE → Estaciones**: revise las estaciones de A01 con sus atributos (región, UV, AID/AII, ZA/EF) en el mapa y en la tabla.
 4. En el celular: instale el APK, escriba `https://demo.suempresa.pe` como servidor e ingrese con el especialista. La app descarga el paquete de campo de su brigada.
@@ -116,6 +116,7 @@ Las migraciones se aplican solas y no borran nada:
 
 - **Datos del modelo anterior** (cuadernos, tareas y asignaciones): quedan guardados sin uso.
 - **Roles:** el supervisor pasa a Coordinación y el logístico o jefe de cada brigada pasa a Jefe de Brigada.
+- **Contraseñas:** todos los usuarios existentes deberán crear una contraseña propia en su próximo ingreso.
 
 Después cargue TOCE con el paso 2 de *Primer ingreso* si aún no lo hizo.
 

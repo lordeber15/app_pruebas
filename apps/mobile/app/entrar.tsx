@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useApp } from '../src/estado.ts';
 import { definirPin, PIN_VALIDO } from '../src/pin.ts';
-import { activarDispositivo, entrar, ErrorServidor } from '../src/sesion.ts';
+import { FormularioContrasena } from '../src/contrasena.tsx';
+import { activarDispositivo, debeCambiarContrasena, entrar, ErrorServidor } from '../src/sesion.ts';
 import { sincronizar } from '../src/sync.ts';
 import { Aviso, Boton, C, Campo, e, Texto, Titulo } from '../src/ui.tsx';
 
@@ -14,9 +15,12 @@ const TIPOS = [
   { valor: 'PAS', texto: 'Pasaporte' },
 ];
 
-/** Primer ingreso en línea (RF-M01): documento y contraseña, activación del celular y PIN. */
+/**
+ * Primer ingreso en línea (RF-M01): documento y contraseña; si es la temporal, crear una propia;
+ * activación del celular y PIN.
+ */
 export default function Entrar() {
-  const [paso, setPaso] = useState<'credenciales' | 'pin'>('credenciales');
+  const [paso, setPaso] = useState<'credenciales' | 'contrasena' | 'pin'>('credenciales');
   const [tipo, setTipo] = useState('DNI');
   const [numero, setNumero] = useState('');
   const [clave, setClave] = useState('');
@@ -30,8 +34,11 @@ export default function Entrar() {
     setOcupado(true);
     try {
       await entrar(tipo, numero, clave);
-      await activarDispositivo(Constants.expoConfig?.version ?? '0.1.0');
-      setPaso('pin');
+      if (await debeCambiarContrasena()) {
+        setPaso('contrasena');
+        return;
+      }
+      await activar();
     } catch (err) {
       setError(
         err instanceof ErrorServidor
@@ -41,6 +48,11 @@ export default function Entrar() {
     } finally {
       setOcupado(false);
     }
+  };
+
+  const activar = async () => {
+    await activarDispositivo(Constants.expoConfig?.version ?? '0.1.0');
+    setPaso('pin');
   };
 
   const guardarPin = async () => {
@@ -58,6 +70,29 @@ export default function Entrar() {
     void sincronizar();
     router.replace('/');
   };
+
+  if (paso === 'contrasena') {
+    return (
+      <ScrollView
+        style={e.pantalla}
+        contentContainerStyle={e.contenido}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Titulo>Cree su contraseña</Titulo>
+        <Texto suave>
+          Entró con una contraseña temporal. Elija una propia para continuar; la temporal deja de
+          servir.
+        </Texto>
+        <FormularioContrasena
+          actualConocida={clave}
+          alTerminar={async () => {
+            setClave('');
+            await activar();
+          }}
+        />
+      </ScrollView>
+    );
+  }
 
   if (paso === 'pin') {
     return (
@@ -98,7 +133,8 @@ export default function Entrar() {
     >
       <Titulo>Ingrese con su documento</Titulo>
       <Texto suave>
-        El primer ingreso necesita conexión. Use la contraseña que le entregó el administrador.
+        El primer ingreso necesita conexión. Use la contraseña temporal que le entregaron: luego
+        creará una propia.
       </Texto>
       <View style={{ gap: 6 }}>
         <Text style={e.etiqueta}>Tipo de documento</Text>

@@ -4,6 +4,7 @@
 //     node src/crear-coordinacion.ts DNI 12345678 "Nombre Apellido"
 // La contraseña se muestra una sola vez en la terminal y no queda guardada en ningún archivo.
 import { crearDb, crearPool } from '@campo/db';
+import { generarContrasenaTemporal } from '@campo/core';
 import { randomBytes } from 'node:crypto';
 import { crearUsuario } from './modulos/usuarios/servicio.ts';
 
@@ -16,10 +17,7 @@ if (tipo === undefined || numero === undefined || nombre.length === 0 || url ===
   process.exit(1);
 }
 
-const alfabeto = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
-const contrasena = Array.from(randomBytes(14), (b) => alfabeto[b % alfabeto.length] ?? 'x').join(
-  '',
-);
+const contrasena = generarContrasenaTemporal((n) => randomBytes(n), 14);
 const pool = crearPool(url, 1);
 try {
   await crearUsuario(crearDb(pool), {
@@ -31,7 +29,7 @@ try {
     creadoPor: null,
   });
   console.log(
-    `Usuario de Coordinación creado. Ingrese con ${tipo.toUpperCase()} ${numero} y la contraseña temporal: ${contrasena}`,
+    `Usuario de Coordinación creado. Ingrese con ${tipo.toUpperCase()} ${numero} y la contraseña temporal: ${contrasena} (al entrar le pedirá cambiarla)`,
   );
 } catch (e) {
   console.error(e instanceof Error ? e.message : 'No se pudo crear el usuario.');

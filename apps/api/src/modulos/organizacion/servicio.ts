@@ -1,4 +1,4 @@
-import type { RolBrigada, ValorRolGlobal } from '@campo/core';
+import { generarContrasenaTemporal, type RolBrigada, type ValorRolGlobal } from '@campo/core';
 import type { Db } from '@campo/db';
 import { sql } from 'kysely';
 import { randomBytes } from 'node:crypto';
@@ -221,11 +221,11 @@ export const listarEstaciones = async (db: Db, actor: Actor, proyectoId: string)
 
 // ── Usuarios (administración) ──────────────────────────────────────────────
 
-/** Contraseña temporal legible (sin caracteres ambiguos), se muestra una sola vez. */
-const contrasenaTemporal = (): string => {
-  const alfabeto = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
-  return Array.from(randomBytes(12), (b) => alfabeto[b % alfabeto.length] ?? 'x').join('');
-};
+/**
+ * Contraseña temporal legible (sin caracteres ambiguos) que cumple la política; se muestra una
+ * sola vez y la persona la cambia en su primer ingreso.
+ */
+const contrasenaTemporal = (): string => generarContrasenaTemporal((n) => randomBytes(n));
 
 export const altaUsuario = async (
   db: Db,
@@ -293,6 +293,12 @@ export const restablecerContrasena = async (db: Db, actor: Actor, id: string) =>
     .where('provider_id', '=', 'credential')
     .executeTakeFirst();
   if (r.numUpdatedRows === 0n) throw noEncontrado('El usuario');
+  // Con la temporal, la persona debe cambiarla al entrar.
+  await db
+    .updateTable('usuario')
+    .set({ debe_cambiar_contrasena: true, actualizado_por: actor.usuarioId })
+    .where('id', '=', id)
+    .execute();
   await db.deleteFrom('auth_session').where('user_id', '=', id).execute();
   return contrasena;
 };

@@ -181,3 +181,11 @@ export const olvidarSesion = async (): Promise<void> => {
   ])
     await llavero.borrar(c);
 };
+
+/** ¿Entró con una contraseña temporal? Entonces debe crear una propia antes de seguir. */
+export const debeCambiarContrasena = async (): Promise<boolean> =>
+  (await pedir<{ debe_cambiar_contrasena: boolean }>('GET', '/api/v1/yo')).debe_cambiar_contrasena;
+
+/** Cambio de la propia contraseña (requiere conexión). La API valida la misma política de core. */
+export const cambiarContrasena = (actual: string, nueva: string): Promise<void> =>
+  pedir<undefined>('POST', '/api/v1/yo/contrasena', { actual, nueva });

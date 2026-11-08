@@ -66,7 +66,8 @@ export const Entrar = () => {
         >
           <h1 className="text-2xl font-bold">Ingrese a la plataforma</h1>
           <p className="text-sm text-tinta-suave">
-            Use su documento y la contraseña que le entregó el administrador.
+            Use su documento y su contraseña. Si es su primer ingreso, use la contraseña temporal
+            que le entregaron: le pedirá crear una propia.
           </p>
           <Campo etiqueta="Tipo de documento">
             {(id) => (
