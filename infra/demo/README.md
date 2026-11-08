@@ -81,16 +81,16 @@ El dominio debe ser exactamente el de `preparar.sh`. Las URL firmadas de las fot
      node src/crear-coordinacion.ts DNI 12345678 "Nombre Apellido"
    ```
 
-2. Cargue la configuración TOCE (D01 por método y A01 con estaciones, brigadas y cronograma) en un proyecto nuevo:
+2. Entre a `https://demo.suempresa.pe` con el DNI y la contraseña temporal del paso 1. Le pedirá crear una propia: al menos 8 caracteres con mayúscula, minúscula y número.
+
+3. Cree el proyecto con **Nuevo proyecto** y, dentro de él, en **Estaciones**, pulse **Cargar configuración TOCE (D01 y A01)**. Crea los 33 métodos, las 102 estaciones, las brigadas, el cronograma base y las reservas, y muestra el resumen. Repetirla no duplica nada.
+
+   También puede hacerse por consola:
 
    ```
    docker compose -f infra/demo/docker-compose.demo.yml run --rm api \
      node ../../packages/db/src/cargar-toce.ts --crear "TOCE"
    ```
-
-   Muestra cuántos métodos, estaciones, brigadas, filas del cronograma y reservas cargó. Volver a ejecutarlo con `--proyecto <id>` no duplica nada.
-
-3. Entre a `https://demo.suempresa.pe` con el DNI y la contraseña temporal del paso 1. Le pedirá crear una propia: al menos 8 caracteres con mayúscula, minúscula y número.
 
 ## Circuito de la demo
 
@@ -99,9 +99,12 @@ El dominio debe ser exactamente el de `preparar.sh`. Las URL firmadas de las fot
 3. **Proyectos → TOCE → Estaciones**: revise las estaciones de A01 con sus atributos (región, UV, AID/AII, ZA/EF) en el mapa y en la tabla.
 4. En el celular: instale el APK, escriba `https://demo.suempresa.pe` como servidor e ingrese con el especialista. La app descarga el paquete de campo de su brigada.
 5. En el celular, siga el flujo **Estación → Especialidad → Método → Unidad → Ejecución**: vea lo que D01 exige al iniciar el método, registre unidades con su geometría, fotos de contexto y datos, y use **Revisar y cerrar**. Funciona sin señal; sincronice al volver.
-6. En la web, **Revisiones** muestra lo que llegó tarde a una ejecución ya cerrada para conservarlo o descartarlo.
-
-⚑ En construcción: tablero de avance por brigada, estación y método; alertas; cronograma vigente y aprobación de cambios; galería; y la validación post-sincronización contra D01. Hasta entonces, una ejecución cerrada queda en *evidencia pendiente*.
+6. En la web, **Ejecuciones**: unos segundos después de sincronizar, el worker revisa cada ejecución contra lo obligatorio de D01 y la deja *completa* o *parcial*. El detalle muestra en el mapa las geometrías y tracks, el resultado regla por regla con su tipo de control y las fotos.
+7. **Alertas**: cada regla obligatoria incumplida genera una alerta post-sincronización. Desde el celular (**Registrar alerta**, también sin señal) el especialista registra alertas técnicas y el Jefe de Brigada, logísticas. En la web, Coordinación y JdP consultan, cierran o reabren; la brigada responde o complementa.
+8. **Seguimiento**: avance por brigada × estación × método (ejecutado sobre objetivo, sumando el esfuerzo de todos). Lo que no se sincronizó aparece «Sin datos sincronizados», nunca como 0 %, junto con la última sincronización.
+9. **Cronograma**: compare el *base* con el *vigente*. Coordinación selecciona filas, propone una nueva fecha o brigada con un motivo y el JdP aprueba, rechaza o pide ajuste. Al aprobar nace una versión vigente nueva y las reservas se mueven: el celular de la brigada las recibe al sincronizar.
+10. **Galería**: fotos verificadas con filtros; marque candidatas y, Coordinación o JdP, seleccione las del reporte del día. El reporte diario en sí espera la plantilla del cliente (P-13).
+11. **Revisiones** muestra lo que llegó tarde a una ejecución ya cerrada para conservarlo o descartarlo.
 
 ## Actualizar una demo existente
 
@@ -118,14 +121,21 @@ Las migraciones se aplican solas y no borran nada:
 - **Roles:** el supervisor pasa a Coordinación y el logístico o jefe de cada brigada pasa a Jefe de Brigada.
 - **Contraseñas:** todos los usuarios existentes deberán crear una contraseña propia en su próximo ingreso.
 
-Después cargue TOCE con el paso 2 de *Primer ingreso* si aún no lo hizo.
+Después cargue TOCE con el paso 3 de *Primer ingreso* si aún no lo hizo.
 
-## Mapa base (opcional)
+## Mapa base
 
-Sin mapa base, la web muestra las estaciones sobre un fondo neutro. Para ver el terreno, copie un archivo PMTiles con el nombre `base.pmtiles` en `infra/demo/mapa/`. No hace falta reiniciar.
+Sin mapa base, la web muestra las estaciones sobre un fondo neutro. Para ver el terreno, copie el archivo `base.pmtiles` en `infra/demo/mapa/` de la VPS. No hace falta reiniciar ni reconstruir.
 
-- El de PoC-01 cubre Lima (19 MB): `poc/poc-01-mapa/assets/mapa/base.pmtiles`.
-- Para otra zona, genérelo con `poc/poc-01-mapa/scripts/generar-datos.sh` (vea su README).
+El archivo no está en git (pesa 210 MB). Se genera en cualquier equipo con Docker, desde la raíz del repositorio. Este comando extrae todo el Perú hasta el zoom 13 desde el mapa público de Protomaps (OpenStreetMap):
+
+```
+docker run --rm -v "$PWD/infra/demo/mapa:/out" protomaps/go-pmtiles extract \
+  https://build.protomaps.com/20261106.pmtiles /out/base.pmtiles \
+  --bbox=-81.4,-18.4,-68.6,-0.0 --maxzoom=13
+```
+
+Si esa fecha ya no existe, use una reciente con el formato `AAAAMMDD`. Luego súbalo a la VPS, por ejemplo con `scp infra/demo/mapa/base.pmtiles usuario@su-vps:/ruta/del/repo/infra/demo/mapa/`.
 
 ## Operación
 

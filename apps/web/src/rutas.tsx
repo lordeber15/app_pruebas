@@ -12,10 +12,15 @@ import { useEffect } from 'react';
 import { api, ErrorApi } from './api.ts';
 import { Cargando } from './componentes/Ui.tsx';
 import { Dispositivos, Usuarios } from './paginas/Administracion.tsx';
+import { Alertas } from './paginas/Alertas.tsx';
 import { CambiarContrasena } from './paginas/Contrasena.tsx';
+import { EjecucionDetalle, Ejecuciones } from './paginas/Ejecuciones.tsx';
 import { Entrar } from './paginas/Entrar.tsx';
 import { Equipo, Estaciones, MarcoProyecto, Proyectos } from './paginas/Proyectos.tsx';
+import { Cronograma } from './paginas/Cronograma.tsx';
+import { Galeria } from './paginas/Galeria.tsx';
 import { Revisiones } from './paginas/Revisiones.tsx';
+import { Seguimiento } from './paginas/Seguimiento.tsx';
 import { puede, useYo } from './sesion.ts';
 
 const enlaceMenu =
@@ -147,6 +152,36 @@ const revisiones = createRoute({
   path: '/revisiones',
   component: Revisiones,
 });
+const ejecuciones = createRoute({
+  getParentRoute: () => proyecto,
+  path: '/ejecuciones',
+  component: Ejecuciones,
+});
+const ejecucion = createRoute({
+  getParentRoute: () => proyecto,
+  path: '/ejecuciones/$ejecucionId',
+  component: EjecucionDetalle,
+});
+const alertas = createRoute({
+  getParentRoute: () => proyecto,
+  path: '/alertas',
+  component: Alertas,
+});
+const seguimiento = createRoute({
+  getParentRoute: () => proyecto,
+  path: '/seguimiento',
+  component: Seguimiento,
+});
+const cronograma = createRoute({
+  getParentRoute: () => proyecto,
+  path: '/cronograma',
+  component: Cronograma,
+});
+const galeria = createRoute({
+  getParentRoute: () => proyecto,
+  path: '/galeria',
+  component: Galeria,
+});
 const cuenta = createRoute({
   getParentRoute: () => raiz,
   path: '/cuenta',
@@ -167,7 +202,17 @@ export const router = createRouter({
   routeTree: raiz.addChildren([
     entrar,
     inicio,
-    proyecto.addChildren([estaciones, equipo, revisiones]),
+    proyecto.addChildren([
+      estaciones,
+      equipo,
+      seguimiento,
+      ejecuciones,
+      ejecucion,
+      alertas,
+      cronograma,
+      galeria,
+      revisiones,
+    ]),
     cuenta,
     usuarios,
     dispositivos,

@@ -70,6 +70,8 @@ export interface Paquete {
     nombre: string;
     region: string | null;
     tipo: string;
+    /** Rol del usuario en esa brigada (solo el suyo, RN-25). */
+    rol: string;
   }[];
   cronograma: ItemCronogramaPaquete[];
   estaciones: EstacionPaquete[];

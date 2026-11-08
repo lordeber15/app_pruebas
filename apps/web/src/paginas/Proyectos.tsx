@@ -183,6 +183,11 @@ export const Proyectos = () => {
 
 const PESTANAS = [
   { a: '/p/$proyectoId', texto: 'Estaciones', exacto: true },
+  { a: '/p/$proyectoId/seguimiento', texto: 'Seguimiento' },
+  { a: '/p/$proyectoId/ejecuciones', texto: 'Ejecuciones' },
+  { a: '/p/$proyectoId/alertas', texto: 'Alertas' },
+  { a: '/p/$proyectoId/cronograma', texto: 'Cronograma' },
+  { a: '/p/$proyectoId/galeria', texto: 'Galería' },
   { a: '/p/$proyectoId/equipo', texto: 'Brigadas' },
   { a: '/p/$proyectoId/revisiones', texto: 'Revisiones' },
 ] as const;
@@ -411,8 +416,56 @@ export const Equipo = () => {
 
 const atributo = (v: string | null): string => (v === null || v === '' ? 'Sin dato' : v);
 
+interface ResumenCarga {
+  metodos: number;
+  estaciones: number;
+  brigadas: number;
+  cronograma_items: number;
+  reservas: number;
+  estacion_metodo_pendientes: number;
+}
+
+/** Carga D01 + A01 en el proyecto (Coordinación y JdP). Repetirla no duplica nada. */
+const CargarConfiguracion = ({
+  proyectoId,
+  hayDatos,
+}: {
+  proyectoId: string;
+  hayDatos: boolean;
+}) => {
+  const qc = useQueryClient();
+  const cargar = useMutation({
+    mutationFn: () =>
+      api.post<{ resumen: ResumenCarga }>(`/proyectos/${proyectoId}/configuracion/toce`),
+    onSuccess: () => qc.invalidateQueries(),
+  });
+  const r = cargar.data?.resumen;
+  return (
+    <div className="flex flex-col items-end gap-2">
+      <Boton
+        variante={hayDatos ? 'secundario' : 'principal'}
+        ocupado={cargar.isPending}
+        onClick={() => cargar.mutate()}
+      >
+        {hayDatos ? 'Volver a cargar D01 y A01' : 'Cargar configuración TOCE (D01 y A01)'}
+      </Boton>
+      <AvisoError error={cargar.error} />
+      {r === undefined ? null : (
+        <p role="status" className="max-w-md text-right text-sm text-liquen-oscuro">
+          Cargados: {r.metodos} métodos, {r.estaciones} estaciones, {r.brigadas} brigadas,{' '}
+          {r.cronograma_items} filas del cronograma y {r.reservas} reservas.
+          {r.estacion_metodo_pendientes > 0
+            ? ` ${String(r.estacion_metodo_pendientes)} combinaciones estación–método esperan confirmación (P-01).`
+            : ''}
+        </p>
+      )}
+    </div>
+  );
+};
+
 export const Estaciones = () => {
   const proyectoId = useProyectoId();
+  const yo = useYo();
   const est = useQuery({
     queryKey: ['estaciones', proyectoId],
     queryFn: () => api.get<{ estaciones: Estacion[] }>(`/proyectos/${proyectoId}/estaciones`),
@@ -421,7 +474,11 @@ export const Estaciones = () => {
 
   return (
     <>
-      <Encabezado titulo="Estaciones de muestreo" />
+      <Encabezado titulo="Estaciones de muestreo">
+        {puede(yo.data).gestionar && est.data !== undefined ? (
+          <CargarConfiguracion proyectoId={proyectoId} hayDatos={lista.length > 0} />
+        ) : null}
+      </Encabezado>
       <p className="-mt-3 mb-4 max-w-prose text-sm text-tinta-suave">
         Atributos precargados desde A01: nunca se piden al especialista. El anillo ocre marca las
         estaciones en zona de amortiguamiento o ecosistema frágil (ZA/EF).
@@ -430,7 +487,9 @@ export const Estaciones = () => {
       <AvisoError error={est.error} />
       {est.data !== undefined && lista.length === 0 ? (
         <Vacio titulo="Aún no hay estaciones">
-          Las estaciones llegan con la carga de A01 del proyecto.
+          {puede(yo.data).gestionar
+            ? 'Use el botón «Cargar configuración TOCE» para crear las 102 estaciones de A01, las brigadas, el cronograma y las reservas.'
+            : 'Las estaciones llegan con la carga de A01 del proyecto.'}
         </Vacio>
       ) : null}
       {lista.length > 0 ? (

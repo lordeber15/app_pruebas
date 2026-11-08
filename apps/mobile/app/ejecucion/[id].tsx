@@ -221,6 +221,13 @@ export default function Ejecucion() {
             )}
           </View>
         ) : null}
+        <Boton
+          variante="secundario"
+          texto="Registrar alerta de esta ejecución"
+          alPresionar={() =>
+            router.push({ pathname: '/alerta/nueva', params: { ejecucionId: id } })
+          }
+        />
       </ScrollView>
       {cerrada ? null : (
         <AccionInferior abajo={insets.bottom}>

@@ -3,16 +3,24 @@ import pg from 'pg';
 import { PgBoss } from 'pg-boss';
 import type { Logger } from 'pino';
 import type { Almacenamiento } from './almacenamiento.ts';
+import { ejecucionDeArchivo, ejecucionesListas, evaluarEjecucionQa } from './qa.ts';
 import { archivosPendientes, verificarArchivo } from './verificar.ts';
 
 /**
  * Colas del worker (ADR-007, doc. 03 §7.2). La API no encola: solo avisa con NOTIFY
  * `archivo_subido`; el worker encola. Una revisión cada minuto recoge lo que quedó pendiente si
  * se perdió un aviso (por ejemplo, con el worker detenido).
+ *
+ * QA post-sincronización (RN-05, RN-31): al terminar la verificación de una foto, y al recibir el
+ * aviso `ejecucion_cerrada` de la API, se encola la evaluación de su ejecución; una revisión cada
+ * minuto recoge las ejecuciones en `evidencia_pendiente` que ya no esperan fotos.
  */
 export const COLA_VERIFICAR = 'verificar_archivo';
 export const COLA_PENDIENTES = 'buscar_archivos_pendientes';
+export const COLA_QA = 'evaluar_ejecucion';
+export const COLA_QA_PENDIENTES = 'buscar_ejecuciones_listas';
 const CANAL = 'archivo_subido';
+const CANAL_CIERRE = 'ejecucion_cerrada';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 export interface Worker {
@@ -34,22 +42,50 @@ export const iniciarTrabajos = async (
   // stately: como máximo un trabajo en cola y uno en curso por archivo.
   await boss.createQueue(COLA_VERIFICAR, { policy: 'stately', retryLimit: 5, retryBackoff: true });
   await boss.createQueue(COLA_PENDIENTES, { policy: 'singleton' });
+  await boss.createQueue(COLA_QA, { policy: 'stately', retryLimit: 5, retryBackoff: true });
+  await boss.createQueue(COLA_QA_PENDIENTES, { policy: 'singleton' });
 
   const encolar = async (archivoId: string): Promise<void> => {
     await boss.send(COLA_VERIFICAR, { archivo_id: archivoId }, { singletonKey: archivoId });
   };
 
+  const encolarQa = async (ejecucionId: string): Promise<void> => {
+    await boss.send(COLA_QA, { ejecucion_id: ejecucionId }, { singletonKey: ejecucionId });
+  };
+
   await boss.work<{ archivo_id: string }>(COLA_VERIFICAR, async (trabajos) => {
     for (const t of trabajos) {
       // Una foto puede tener la preview y el original pendientes: se verifican en orden.
+      let verifico = false;
       for (let i = 0; i < 2; i++) {
         const r = await verificarArchivo(db, almacen, t.data.archivo_id);
         if (r.accion === 'nada') break;
+        verifico = true;
         // Solo el id del archivo: nada de rutas ni datos personales en los logs.
         log.info({ archivo_id: t.data.archivo_id, ...r }, 'verificación de archivo');
       }
+      if (verifico) {
+        const ejecucionId = await ejecucionDeArchivo(db, t.data.archivo_id);
+        if (ejecucionId !== null) await encolarQa(ejecucionId);
+      }
     }
   });
+
+  await boss.work<{ ejecucion_id: string }>(COLA_QA, async (trabajos) => {
+    for (const t of trabajos) {
+      const r = await evaluarEjecucionQa(db, t.data.ejecucion_id);
+      if (r.accion === 'evaluada') {
+        log.info({ ejecucion_id: t.data.ejecucion_id, ...r }, 'QA post-sincronización');
+      } else if (r.motivo !== 'FOTOS_PENDIENTES' && r.motivo !== 'YA_EVALUADA') {
+        log.warn({ ejecucion_id: t.data.ejecucion_id, motivo: r.motivo }, 'QA sin evaluar');
+      }
+    }
+  });
+
+  await boss.work(COLA_QA_PENDIENTES, async () => {
+    for (const id of await ejecucionesListas(db)) await encolarQa(id);
+  });
+  await boss.schedule(COLA_QA_PENDIENTES, '* * * * *');
 
   await boss.work(COLA_PENDIENTES, async () => {
     for (const id of await archivosPendientes(db)) await encolar(id);
@@ -66,8 +102,14 @@ export const iniciarTrabajos = async (
         log.error({ err }, 'no se pudo encolar la verificación');
       });
     }
+    if (n.channel === CANAL_CIERRE && UUID.test(id)) {
+      encolarQa(id).catch((err: unknown) => {
+        log.error({ err }, 'no se pudo encolar la evaluación');
+      });
+    }
   });
   await oyente.query(`LISTEN ${CANAL}`);
+  await oyente.query(`LISTEN ${CANAL_CIERRE}`);
 
   return {
     detener: async () => {

@@ -88,6 +88,34 @@ const objetivo = (
   texto: texto ?? `${String(cantidad)} ${unidadTexto}`,
 });
 
+const numeroDe = (v: unknown): number | null => {
+  if (typeof v === 'number') return Number.isFinite(v) ? v : null;
+  if (typeof v === 'string' && v.trim() !== '') {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+};
+
+/**
+ * Esfuerzo ejecutado de **una** ejecución, en la medida de su objetivo (RN-19, RN-38): minutos
+ * efectivos del campo que D01 indica cuando el esfuerzo es tiempo (ABS); si no, unidades
+ * cerradas. El de un método en una estación es la suma de las ejecuciones de cada usuario.
+ */
+export const esfuerzoEjecutado = (
+  metodo: ConfiguracionMetodo,
+  objetivo: Objetivo,
+  ejecucion: {
+    readonly datos: Readonly<Record<string, unknown>>;
+    readonly unidades_cerradas: number;
+  },
+): number => {
+  const tiempo = metodo.validaciones.find((v) => v.tipo === 'tiempo_efectivo');
+  return objetivo.medida === 'minutos' && tiempo !== undefined
+    ? (numeroDe(ejecucion.datos[tiempo.campo_minutos]) ?? 0)
+    : ejecucion.unidades_cerradas;
+};
+
 /**
  * Avance elemental = ejecutado / objetivo aplicable (RN-38), en porcentaje con un decimal y sin
  * tope si se excede. Sin objetivo (o con objetivo 0) no hay porcentaje.

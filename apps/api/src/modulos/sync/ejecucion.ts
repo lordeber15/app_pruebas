@@ -329,6 +329,8 @@ export const ejecucionCerrada = async (
       }))
       .where('id', '=', p.ejecucion_id)
       .execute();
+    // Aviso al worker para la QA post-sincronización (se entrega al confirmar la transacción).
+    await sql`select pg_notify('ejecucion_cerrada', ${p.ejecucion_id})`.execute(x);
   });
 };
 

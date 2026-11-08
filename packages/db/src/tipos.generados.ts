@@ -32,6 +32,7 @@ export interface Alerta {
   actualizado_por: string | null;
   afecta_cronograma: Generated<boolean>;
   brigada_id: string | null;
+  categoria: string | null;
   cerrado_en: Timestamp | null;
   cerrado_por: string | null;
   cierre_comentario: string | null;
@@ -72,6 +73,8 @@ export interface Archivo {
   actualizado_en: Generated<Timestamp>;
   actualizado_por: string | null;
   altitud_m: number | null;
+  candidata_en: Timestamp | null;
+  candidata_por: string | null;
   candidata_reporte: Generated<boolean>;
   capturado_en: Timestamp;
   categoria_foto_id: string | null;
@@ -93,6 +96,9 @@ export interface Archivo {
   ruta_miniatura: string | null;
   ruta_original: string | null;
   ruta_preview: string | null;
+  seleccion_fecha: Timestamp | null;
+  seleccionada_en: Timestamp | null;
+  seleccionada_por: string | null;
   seleccionada_reporte: Generated<boolean>;
   tamano_original: Int8 | null;
   tamano_preview: Int8;
@@ -254,6 +260,7 @@ export interface CronogramaItem {
   estado_fila: Generated<string>;
   fecha: Timestamp;
   id: string;
+  linaje_id: string;
   orden: Generated<number>;
   tipo_actividad: string;
   version_id: string;

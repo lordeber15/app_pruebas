@@ -21,14 +21,9 @@ import {
 } from '@campo/core';
 import { sql, type Kysely } from 'kysely';
 import { z } from 'zod';
+import { elegirItemParaMetodo, METODOS_POR_ACTIVIDAD_ESPECIAL } from '../cronograma.ts';
 
 const CARPETA_SEMILLAS = path.join(import.meta.dirname, '..', '..', 'semillas', 'toce');
-
-/** Actividades especiales de A01 (hoja 02) y los métodos de D01 que programan nominalmente. */
-const METODOS_POR_ACTIVIDAD_ESPECIAL: Readonly<Record<string, readonly string[]>> = {
-  EPÍFITAS: ['epifitas.vasculares', 'epifitas.no_vasculares'],
-  'CÁMARAS TRAMPA': ['mamiferos_mayores.camaras_trampa'],
-};
 
 const SRID_POR_ZONA: Readonly<Record<string, number>> = { '17 S': 32717, '18 S': 32718 };
 
@@ -352,14 +347,7 @@ export const cargarToce = async (
     let reservas = 0;
     for (const h of habilitados) {
       const m = metodos.get(h.metodo);
-      const items = itemPorEstacion.get(h.estacion) ?? [];
-      const especialDe = Object.entries(METODOS_POR_ACTIVIDAD_ESPECIAL).find(([, ms]) =>
-        ms.includes(h.metodo),
-      )?.[0];
-      const item =
-        (especialDe === undefined ? undefined : items.find((i) => i.especial === especialDe)) ??
-        items.find((i) => i.especial === null) ??
-        items[0];
+      const item = elegirItemParaMetodo(itemPorEstacion.get(h.estacion) ?? [], h.metodo);
       const codigoEstacion =
         [...estacionId.entries()].find(([, id]) => id === h.estacion)?.[0] ?? '';
       const r = await sql<{ id: string }>`
