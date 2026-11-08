@@ -5,13 +5,11 @@ import {
   api,
   ETIQUETA_ROL_BRIGADA,
   type Brigada,
-  type Estacion,
   type Miembro,
   type Proyecto,
   type RolBrigada,
   type Usuario,
 } from '../api.ts';
-import { Mapa } from '../componentes/MapaDiferido.tsx';
 import {
   AvisoError,
   Boton,
@@ -20,9 +18,6 @@ import {
   claseEntrada,
   Dialogo,
   Encabezado,
-  Tabla,
-  td,
-  th,
   Vacio,
 } from '../componentes/Ui.tsx';
 import { puede, useYo } from '../sesion.ts';
@@ -409,131 +404,5 @@ export const Equipo = () => {
         )}
       </div>
     </section>
-  );
-};
-
-// ── Estaciones (A01) ──
-
-const atributo = (v: string | null): string => (v === null || v === '' ? 'Sin dato' : v);
-
-interface ResumenCarga {
-  metodos: number;
-  estaciones: number;
-  brigadas: number;
-  cronograma_items: number;
-  reservas: number;
-  estacion_metodo_pendientes: number;
-}
-
-/** Carga D01 + A01 en el proyecto (Coordinación y JdP). Repetirla no duplica nada. */
-const CargarConfiguracion = ({
-  proyectoId,
-  hayDatos,
-}: {
-  proyectoId: string;
-  hayDatos: boolean;
-}) => {
-  const qc = useQueryClient();
-  const cargar = useMutation({
-    mutationFn: () =>
-      api.post<{ resumen: ResumenCarga }>(`/proyectos/${proyectoId}/configuracion/toce`),
-    onSuccess: () => qc.invalidateQueries(),
-  });
-  const r = cargar.data?.resumen;
-  return (
-    <div className="flex flex-col items-end gap-2">
-      <Boton
-        variante={hayDatos ? 'secundario' : 'principal'}
-        ocupado={cargar.isPending}
-        onClick={() => cargar.mutate()}
-      >
-        {hayDatos ? 'Volver a cargar D01 y A01' : 'Cargar configuración TOCE (D01 y A01)'}
-      </Boton>
-      <AvisoError error={cargar.error} />
-      {r === undefined ? null : (
-        <p role="status" className="max-w-md text-right text-sm text-liquen-oscuro">
-          Cargados: {r.metodos} métodos, {r.estaciones} estaciones, {r.brigadas} brigadas,{' '}
-          {r.cronograma_items} filas del cronograma y {r.reservas} reservas.
-          {r.estacion_metodo_pendientes > 0
-            ? ` ${String(r.estacion_metodo_pendientes)} combinaciones estación–método esperan confirmación (P-01).`
-            : ''}
-        </p>
-      )}
-    </div>
-  );
-};
-
-export const Estaciones = () => {
-  const proyectoId = useProyectoId();
-  const yo = useYo();
-  const est = useQuery({
-    queryKey: ['estaciones', proyectoId],
-    queryFn: () => api.get<{ estaciones: Estacion[] }>(`/proyectos/${proyectoId}/estaciones`),
-  });
-  const lista = est.data?.estaciones ?? [];
-
-  return (
-    <>
-      <Encabezado titulo="Estaciones de muestreo">
-        {puede(yo.data).gestionar && est.data !== undefined ? (
-          <CargarConfiguracion proyectoId={proyectoId} hayDatos={lista.length > 0} />
-        ) : null}
-      </Encabezado>
-      <p className="-mt-3 mb-4 max-w-prose text-sm text-tinta-suave">
-        Atributos precargados desde A01: nunca se piden al especialista. El anillo ocre marca las
-        estaciones en zona de amortiguamiento o ecosistema frágil (ZA/EF).
-      </p>
-      {est.isPending ? <Cargando que="las estaciones" /> : null}
-      <AvisoError error={est.error} />
-      {est.data !== undefined && lista.length === 0 ? (
-        <Vacio titulo="Aún no hay estaciones">
-          {puede(yo.data).gestionar
-            ? 'Use el botón «Cargar configuración TOCE» para crear las 102 estaciones de A01, las brigadas, el cronograma y las reservas.'
-            : 'Las estaciones llegan con la carga de A01 del proyecto.'}
-        </Vacio>
-      ) : null}
-      {lista.length > 0 ? (
-        <div className="flex flex-col gap-6">
-          <Mapa
-            puntos={lista.map((s) => ({
-              id: s.id,
-              lat: s.lat,
-              lon: s.lon,
-              titulo: s.codigo,
-              zaEf: s.za_ef !== null && s.za_ef !== '',
-            }))}
-            alto="24rem"
-          />
-          <Tabla titulo="Estaciones">
-            <thead>
-              <tr>
-                <th className={th}>Código</th>
-                <th className={th}>Región</th>
-                <th className={th}>UV</th>
-                <th className={th}>AID/AII</th>
-                <th className={th}>ZA/EF</th>
-                <th className={th}>UTM</th>
-              </tr>
-            </thead>
-            <tbody>
-              {lista.map((s) => (
-                <tr key={s.id}>
-                  <td className={`${td} font-semibold`}>{s.codigo}</td>
-                  <td className={td}>{atributo(s.region)}</td>
-                  <td className={td}>{atributo(s.uv)}</td>
-                  <td className={td}>{atributo(s.aid_aii)}</td>
-                  <td className={td}>{s.za_ef === null || s.za_ef === '' ? 'No' : s.za_ef}</td>
-                  <td className={`${td} cifras whitespace-nowrap`}>
-                    {s.zona_utm === null
-                      ? `${s.lat.toFixed(5)}, ${s.lon.toFixed(5)}`
-                      : `${s.zona_utm} ${String(Number(s.este))} E ${String(Number(s.norte))} N`}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </Tabla>
-        </div>
-      ) : null}
-    </>
   );
 };

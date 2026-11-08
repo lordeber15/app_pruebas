@@ -1,12 +1,8 @@
 import {
-  calcularAvance,
   configuracionMetodoSchema,
-  esfuerzoEjecutado,
   puedeIntentar,
-  resolverObjetivo,
   type Avance,
   type Objetivo,
-  type Region,
 } from '@campo/core';
 import type { Db } from '@campo/db';
 import { sql } from 'kysely';
@@ -17,6 +13,7 @@ import {
   soloLoSuyo,
   veTodosLosProyectos,
 } from '../alcance/autorizacion.ts';
+import { avanceDeMetodo } from './avance.ts';
 
 /**
  * Dashboard de seguimiento (D02 §12, RF-W01, RN-37, RN-38, E-09).
@@ -31,17 +28,6 @@ import {
  * - Alcance: Coordinación y JdP todas las brigadas; JdB y Supervisor la suya; el especialista
  *   solo sus propias ejecuciones (ERS §2.3).
  */
-
-const REGIONES: readonly Region[] = ['COSTA', 'SIERRA', 'SELVA'];
-const comoRegion = (r: string | null): Region | null => REGIONES.find((x) => x === r) ?? null;
-
-const SIN_CONFIGURACION: Objetivo = {
-  cantidad: null,
-  medida: 'unidades',
-  unidad_texto: 'unidades',
-  origen: 'ninguno',
-  texto: 'La configuración D01 de este método no está disponible.',
-};
 
 export interface FilaSeguimiento {
   readonly estacion_id: string;
@@ -249,26 +235,7 @@ export const verSeguimiento = async (
           .filter((x) => x.estacion_id === c.estacion && x.metodo_id === c.metodo)
           .sort((x, y) => new Date(x.abierta_en).getTime() - new Date(y.abierta_en).getTime());
         // RN-38: el valor final definido en campo (bofedales) es el de la última ejecución que lo fijó.
-        const objetivoCampo =
-          propiasFila.findLast((x) => x.objetivo_campo !== null)?.objetivo_campo ?? null;
-        const estacionEval = { region: comoRegion(e.region), za_ef: e.za_ef, uv: e.uv };
-        const objetivo =
-          m.config === null
-            ? SIN_CONFIGURACION
-            : resolverObjetivo(m.config, estacionEval, objetivoCampo);
-        const config = m.config;
-        const ejecutado =
-          config === null
-            ? propiasFila.reduce((s, x) => s + x.unidades_cerradas, 0)
-            : propiasFila.reduce(
-                (s, x) =>
-                  s +
-                  esfuerzoEjecutado(config, objetivo, {
-                    datos: (x.datos ?? {}) as Record<string, unknown>,
-                    unidades_cerradas: x.unidades_cerradas,
-                  }),
-                0,
-              );
+        const { objetivo, avance } = avanceDeMetodo(m.config, e, propiasFila);
         const porEstado: Record<string, number> = {};
         for (const x of propiasFila) porEstado[x.estado] = (porEstado[x.estado] ?? 0) + 1;
         const ultima = propiasFila.reduce<Date | null>((u, x) => {
@@ -288,7 +255,7 @@ export const verSeguimiento = async (
             clase: m.clase,
             fecha_programada: c.fecha,
             objetivo,
-            avance: propiasFila.length === 0 ? null : calcularAvance(ejecutado, objetivo),
+            avance: propiasFila.length === 0 ? null : avance,
             sin_datos: propiasFila.length === 0,
             ejecuciones: propiasFila.length,
             por_estado: porEstado,

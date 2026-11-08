@@ -219,9 +219,23 @@ export const rutasWeb: FastifyPluginAsyncZod<Opciones> = (app, { auth, db, firma
   // cronograma y reservas en una sola transacción.
   app.post(
     '/proyectos/:id/configuracion/toce',
-    { schema: { params: conId } },
+    {
+      schema: {
+        params: conId,
+        // Sin cuerpo: carga D01 y A01 con sus fechas originales.
+        body: z
+          .object({
+            fecha_inicio: z.iso.date().nullable().default(null),
+            incluir_a01: z.boolean().default(true),
+          })
+          .nullish(),
+      },
+    },
     async (request) => ({
-      resumen: await cargarConfiguracionToce(db, actor(request), request.params.id),
+      resumen: await cargarConfiguracionToce(db, actor(request), request.params.id, {
+        fechaInicio: request.body?.fecha_inicio ?? null,
+        incluirA01: request.body?.incluir_a01 ?? true,
+      }),
     }),
   );
   // ── Archivos ──

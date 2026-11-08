@@ -8,24 +8,30 @@
  * Es idempotente: volver a ejecutarla actualiza la configuración vigente (si ninguna ejecución la
  * usa), no duplica estaciones, brigadas, cronograma ni reservas, y respeta las decisiones nominales
  * tomadas en la web sobre la matriz estación–método (RN-28, P-01).
+ *
+ * Opciones de la demo y de los proyectos armados en la web:
+ * - `fechaInicio`: corre todas las fechas de A01 los mismos días para que la primera sea esa
+ *   (conserva el orden y los huecos). Solo vale cuando se crea el cronograma base: un base ya
+ *   existente nunca se reescribe (RN-35).
+ * - `incluirA01: false`: carga solo D01 (especialidades y métodos) y vuelve a derivar la matriz y
+ *   las reservas de las estaciones creadas en la web.
  */
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import {
   crearGeneradorUuidV7,
-  resolverAplicabilidad,
+  diasEntre,
   semillaD01Schema,
-  type ConfiguracionMetodo,
+  sumarDias,
   type Region,
   type TipoBrigada,
 } from '@campo/core';
 import { sql, type Kysely } from 'kysely';
 import { z } from 'zod';
-import { elegirItemParaMetodo, METODOS_POR_ACTIVIDAD_ESPECIAL } from '../cronograma.ts';
+import { crearCronogramaBase, METODOS_POR_ACTIVIDAD_ESPECIAL } from '../cronograma.ts';
+import { derivarAplicabilidad, geomDesdeUtm, sincronizarReservas } from '../estaciones.ts';
 
 const CARPETA_SEMILLAS = path.join(import.meta.dirname, '..', '..', 'semillas', 'toce');
-
-const SRID_POR_ZONA: Readonly<Record<string, number>> = { '17 S': 32717, '18 S': 32718 };
 
 const region = z.enum(['COSTA', 'SIERRA', 'SELVA']);
 const itemA01 = z.object({
@@ -70,6 +76,10 @@ export interface OpcionesCargaToce {
   readonly proyectoId: string;
   /** Usuario que queda como `creado_por`; `null` cuando se carga desde la consola. */
   readonly usuarioId?: string | null;
+  /** AAAA-MM-DD: la primera fecha de A01 pasa a ser esta (solo al crear el cronograma base). */
+  readonly fechaInicio?: string | null;
+  /** `false`: solo D01. Por defecto se carga también A01. */
+  readonly incluirA01?: boolean;
 }
 
 export interface ResumenCargaToce {
@@ -82,6 +92,15 @@ export interface ResumenCargaToce {
   readonly estacion_metodo: number;
   readonly estacion_metodo_pendientes: number;
   readonly reservas: number;
+  /** Se cargó A01 (estaciones, brigadas y cronograma). */
+  readonly a01: boolean;
+  /** Días que se corrieron las fechas de A01; `null` si no se corrieron. */
+  readonly fechas_corridas_dias: number | null;
+  /** El cronograma base ya existía: no se tocó (RN-35) aunque se pidiera `fechaInicio`. */
+  readonly cronograma_base_existente: boolean;
+  /** Primera y última fecha del cronograma base del proyecto. */
+  readonly cronograma_desde: string | null;
+  readonly cronograma_hasta: string | null;
 }
 
 const uuid = crearGeneradorUuidV7((n) => globalThis.crypto.getRandomValues(new Uint8Array(n)));
@@ -136,7 +155,6 @@ export const cargarToce = async (
         RETURNING id`.execute(trx);
       especialidadId.set(e.codigo, r.rows[0]?.id ?? '');
     }
-    const esFauna = new Map(d01.especialidades.map((e) => [e.codigo, e.es_fauna]));
 
     // 2. Configuración metodológica vigente: se reutiliza si tiene el mismo origen y ninguna
     //    ejecución la usa; si no, se crea una versión nueva y la anterior pasa a histórica.
@@ -168,7 +186,6 @@ export const cargarToce = async (
 
     // 3. Métodos (config completa en jsonb, validada por core).
     const metodoId = new Map<string, string>();
-    const metodos = new Map<string, ConfiguracionMetodo>();
     for (const [orden, m] of d01.metodos.entries()) {
       const r = await sql<{ id: string }>`
         INSERT INTO app.metodo (id, configuracion_id, especialidad_id, codigo, nombre, clase,
@@ -182,11 +199,60 @@ export const cargarToce = async (
               requiere_track = EXCLUDED.requiere_track, orden = EXCLUDED.orden, config = EXCLUDED.config
         RETURNING id`.execute(trx);
       metodoId.set(m.codigo, r.rows[0]?.id ?? '');
-      metodos.set(m.codigo, m);
     }
 
-    // 4. Campaña activa (fechas de A01).
+    const cuenta = async (q: Promise<Fila<{ n: string }>>): Promise<number> =>
+      Number((await q).rows[0]?.n ?? 0);
+
+    if (opciones.incluirA01 === false) {
+      // Solo D01: la matriz y las reservas de las estaciones que ya existan (creadas en la web).
+      const matriz = await derivarAplicabilidad(trx, { proyectoId, usuarioId });
+      const reservas = await sincronizarReservas(trx, { proyectoId, usuarioId });
+      const rango = (
+        await sql<{ desde: string | null; hasta: string | null }>`
+          SELECT to_char(min(i.fecha), 'YYYY-MM-DD') AS desde, to_char(max(i.fecha), 'YYYY-MM-DD') AS hasta
+            FROM app.cronograma_item i
+            JOIN app.cronograma_version v ON v.id = i.version_id
+            JOIN app.campania c ON c.id = v.campania_id
+           WHERE c.proyecto_id = ${proyectoId} AND v.es_base`.execute(trx)
+      ).rows[0];
+      return {
+        configuracion_numero: numero,
+        especialidades: d01.especialidades.length,
+        metodos: d01.metodos.length,
+        estaciones: await cuenta(
+          sql<{ n: string }>`SELECT count(*)::text AS n FROM app.estacion WHERE proyecto_id = ${proyectoId}`.execute(
+            trx,
+          ),
+        ),
+        brigadas: 0,
+        cronograma_items: 0,
+        estacion_metodo: matriz.filas,
+        estacion_metodo_pendientes: matriz.pendientes,
+        reservas: reservas.creadas,
+        a01: false,
+        fechas_corridas_dias: null,
+        cronograma_base_existente: rango?.desde != null,
+        cronograma_desde: rango?.desde ?? null,
+        cronograma_hasta: rango?.hasta ?? null,
+      };
+    }
+
+    // 4. Campaña activa (fechas de A01, corridas si se pidió y el base aún no existe).
     const fechas = a01.programacion.map((p) => p.fecha).sort();
+    const baseExistente =
+      (
+        await sql<{ id: string }>`
+          SELECT v.id FROM app.cronograma_version v
+            JOIN app.campania c ON c.id = v.campania_id
+           WHERE c.proyecto_id = ${proyectoId} AND v.es_base`.execute(trx)
+      ).rows[0] !== undefined;
+    const primera = fechas[0];
+    const corrimiento =
+      opciones.fechaInicio == null || baseExistente || primera === undefined
+        ? null
+        : diasEntre(primera, opciones.fechaInicio);
+    const fechaDe = (f: string): string => (corrimiento === null ? f : sumarDias(f, corrimiento));
     const campaniaExistente = (
       await sql<{
         id: string;
@@ -198,7 +264,8 @@ export const cargarToce = async (
     if (campaniaExistente === undefined) {
       await sql`
         INSERT INTO app.campania (id, proyecto_id, nombre, fecha_inicio, fecha_fin, creado_por)
-        VALUES (${campaniaId}, ${proyectoId}, ${'Campaña TOCE'}, ${fechas[0] ?? null}, ${fechas.at(-1) ?? null}, ${usuarioId})`.execute(
+        VALUES (${campaniaId}, ${proyectoId}, ${'Campaña TOCE'}, ${primera === undefined ? null : fechaDe(primera)},
+                ${fechas.length === 0 ? null : fechaDe(fechas.at(-1) ?? '')}, ${usuarioId})`.execute(
         trx,
       );
     }
@@ -228,12 +295,10 @@ export const cargarToce = async (
     }
     const estacionId = new Map<string, string>();
     for (const e of a01.estaciones) {
-      const srid = SRID_POR_ZONA[e.zona_utm];
-      if (srid === undefined) throw new Error(`Zona UTM no prevista en A01: ${e.zona_utm}`);
       const r = await sql<{ id: string }>`
         INSERT INTO app.estacion (id, proyecto_id, codigo, geom, zona_utm, este, norte, aid_aii, uv, za_ef, region, creado_por)
         VALUES (${uuid()}, ${proyectoId}, ${e.codigo},
-                ST_Transform(ST_SetSRID(ST_MakePoint(${e.este}, ${e.norte}), ${srid}), 4326),
+                ${geomDesdeUtm(e.zona_utm, e.este, e.norte)},
                 ${e.zona_utm}, ${e.este}, ${e.norte}, ${e.aid_aii}, ${e.uv}, ${e.za_ef},
                 ${regionEstacion.get(e.codigo) ?? null}, ${usuarioId})
         ON CONFLICT (proyecto_id, codigo) DO UPDATE
@@ -251,119 +316,53 @@ export const cargarToce = async (
         trx,
       )
     ).rows[0]?.id;
-    const itemPorEstacion = new Map<
-      string,
-      { id: string; brigada: string; fecha: string; especial: string | null }[]
-    >();
     if (versionId === undefined) {
-      versionId = uuid();
-      await sql`
-        INSERT INTO app.cronograma_version (id, campania_id, numero, estado, es_base, aprobado_por, aprobado_en, creado_por)
-        VALUES (${versionId}, ${campaniaId}, 1, 'vigente', true, ${usuarioId}, now(), ${usuarioId})`.execute(
-        trx,
-      );
-      for (const [orden, p] of a01.programacion.entries()) {
-        const itemId = uuid();
-        const estId = p.estacion === null ? null : (estacionId.get(p.estacion) ?? null);
-        if (p.estacion !== null && estId === null)
-          throw new Error(`Estación de A01 sin fila maestra: ${p.estacion}`);
-        await sql`
-          INSERT INTO app.cronograma_item (id, version_id, brigada_id, fecha, tipo_actividad, estacion_id, detalle,
-                                           estado_fila, actividad_especial, orden, creado_por)
-          VALUES (${itemId}, ${versionId}, ${brigadaId.get(p.brigada) ?? null}, ${p.fecha}, ${p.tipo_actividad},
-                  ${estId}, ${p.detalle}, ${p.estado}, ${p.actividad_especial}, ${orden}, ${usuarioId})`.execute(
-          trx,
-        );
-      }
-    }
-    const itemsVigentes = (
-      await sql<{
-        id: string;
-        estacion_id: string;
-        brigada_id: string;
-        fecha: string;
-        actividad_especial: string | null;
-      }>`
-        SELECT i.id, i.estacion_id, i.brigada_id, to_char(i.fecha, 'YYYY-MM-DD') AS fecha, i.actividad_especial
-          FROM app.cronograma_item i
-          JOIN app.cronograma_version v ON v.id = i.version_id
-         WHERE v.campania_id = ${campaniaId} AND v.estado = 'vigente' AND i.estacion_id IS NOT NULL
-         ORDER BY i.fecha, i.orden`.execute(trx)
-    ).rows;
-    for (const i of itemsVigentes) {
-      const lista = itemPorEstacion.get(i.estacion_id) ?? [];
-      lista.push({
-        id: i.id,
-        brigada: i.brigada_id,
-        fecha: i.fecha,
-        especial: i.actividad_especial,
+      versionId = await crearCronogramaBase(trx, {
+        campaniaId,
+        usuarioId,
+        nuevoId: uuid,
+        filas: a01.programacion.map((p) => {
+          const estId = p.estacion === null ? null : (estacionId.get(p.estacion) ?? null);
+          if (p.estacion !== null && estId === null)
+            throw new Error(`Estación de A01 sin fila maestra: ${p.estacion}`);
+          return {
+            brigada_id: brigadaId.get(p.brigada) ?? '',
+            fecha: fechaDe(p.fecha),
+            tipo_actividad: p.tipo_actividad,
+            estacion_id: estId,
+            detalle: p.detalle,
+            estado_fila: p.estado,
+            actividad_especial: p.actividad_especial,
+          };
+        }),
       });
-      itemPorEstacion.set(i.estacion_id, lista);
     }
 
     // 8. Matriz estación–método (RN-28). Las actividades especiales de A01 son decisión nominal.
     const nominales = new Set<string>();
-    for (const i of itemsVigentes) {
-      if (i.actividad_especial === null) continue;
+    const especiales = (
+      await sql<{ estacion_id: string; actividad_especial: string }>`
+        SELECT DISTINCT i.estacion_id, i.actividad_especial
+          FROM app.cronograma_item i
+          JOIN app.cronograma_version v ON v.id = i.version_id
+         WHERE v.campania_id = ${campaniaId} AND v.estado = 'vigente'
+           AND i.estacion_id IS NOT NULL AND i.actividad_especial IS NOT NULL`.execute(trx)
+    ).rows;
+    for (const i of especiales) {
       for (const codigo of METODOS_POR_ACTIVIDAD_ESPECIAL[i.actividad_especial] ?? []) {
         nominales.add(`${i.estacion_id}|${codigo}`);
       }
     }
-    const atributos = new Map(a01.estaciones.map((e) => [e.codigo, e]));
-    let filasMatriz = 0;
-    let pendientes = 0;
-    const habilitados: { estacion: string; metodo: string }[] = [];
-    for (const [codigoEstacion, estId] of estacionId) {
-      const e = atributos.get(codigoEstacion);
-      if (e === undefined) continue;
-      const estacion = {
-        region: regionEstacion.get(codigoEstacion) ?? null,
-        uv: e.uv,
-        za_ef: e.za_ef,
-      };
-      for (const [codigoMetodo, m] of metodos) {
-        const mId = metodoId.get(codigoMetodo) ?? '';
-        const nominal = nominales.has(`${estId}|${codigoMetodo}`) ? { habilitado: true } : null;
-        const a = resolverAplicabilidad(
-          { clase: m.clase, condicion: m.aplicacion.condicion },
-          esFauna.get(m.especialidad) ?? false,
-          estacion,
-          nominal,
-        );
-        await sql`
-          INSERT INTO app.estacion_metodo (id, estacion_id, metodo_id, habilitado, origen, condicion_pendiente, creado_por)
-          VALUES (${uuid()}, ${estId}, ${mId}, ${a.habilitado}, ${a.origen}, ${a.condicion_pendiente}, ${usuarioId})
-          ON CONFLICT (estacion_id, metodo_id) DO UPDATE
-            SET habilitado = EXCLUDED.habilitado, origen = EXCLUDED.origen, condicion_pendiente = EXCLUDED.condicion_pendiente
-          WHERE app.estacion_metodo.origen <> 'nominal'`.execute(trx);
-        filasMatriz += 1;
-        if (a.condicion_pendiente) pendientes += 1;
-        if (a.habilitado && a.presentacion === 'metodo')
-          habilitados.push({ estacion: estId, metodo: codigoMetodo });
-      }
-    }
+    const matriz = await derivarAplicabilidad(trx, { proyectoId, nominales, usuarioId });
 
     // 9. Reservas estación × método programadas para la brigada del cronograma vigente.
-    let reservas = 0;
-    for (const h of habilitados) {
-      const m = metodos.get(h.metodo);
-      const item = elegirItemParaMetodo(itemPorEstacion.get(h.estacion) ?? [], h.metodo);
-      const codigoEstacion =
-        [...estacionId.entries()].find(([, id]) => id === h.estacion)?.[0] ?? '';
-      const r = await sql<{ id: string }>`
-        INSERT INTO app.reserva (id, proyecto_id, estacion_id, metodo_id, brigada_id,
-                                 fecha_programada, cronograma_item_id, geom, titulo, estado, creado_por)
-        SELECT ${uuid()}, ${proyectoId}, ${h.estacion}, ${metodoId.get(h.metodo) ?? null},
-               ${item?.brigada ?? null}, ${item?.fecha ?? null}, ${item?.id ?? null}, e.geom,
-               ${`${codigoEstacion} · ${m?.nombre ?? h.metodo}`}, ${item === undefined ? 'pendiente' : 'asignada'}, ${usuarioId}
-          FROM app.estacion e WHERE e.id = ${h.estacion}
-        ON CONFLICT (estacion_id, metodo_id) WHERE metodo_id IS NOT NULL DO NOTHING
-        RETURNING id`.execute(trx);
-      reservas += r.rows.length;
-    }
+    const reservas = await sincronizarReservas(trx, { proyectoId, usuarioId });
 
-    const cuenta = async (q: Promise<Fila<{ n: string }>>): Promise<number> =>
-      Number((await q).rows[0]?.n ?? 0);
+    const rango = (
+      await sql<{ desde: string | null; hasta: string | null }>`
+        SELECT to_char(min(fecha), 'YYYY-MM-DD') AS desde, to_char(max(fecha), 'YYYY-MM-DD') AS hasta
+          FROM app.cronograma_item WHERE version_id = ${versionId}`.execute(trx)
+    ).rows[0];
     return {
       configuracion_numero: numero,
       especialidades: d01.especialidades.length,
@@ -377,9 +376,14 @@ export const cargarToce = async (
           trx,
         ),
       ),
-      estacion_metodo: filasMatriz,
-      estacion_metodo_pendientes: pendientes,
-      reservas,
+      estacion_metodo: matriz.filas,
+      estacion_metodo_pendientes: matriz.pendientes,
+      reservas: reservas.creadas,
+      a01: true,
+      fechas_corridas_dias: corrimiento,
+      cronograma_base_existente: baseExistente,
+      cronograma_desde: rango?.desde ?? null,
+      cronograma_hasta: rango?.hasta ?? null,
     };
   });
 };

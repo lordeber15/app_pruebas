@@ -55,6 +55,58 @@ export interface CapaMapa {
   readonly geometria: { readonly type: string; readonly coordinates: unknown };
 }
 
+/**
+ * Marcador accesible (botón en el DOM) para mostrar un estado: forma + ícono + color, con su
+ * texto completo en `etiqueta` para lectores de pantalla y como información al pasar el puntero.
+ * El color nunca es el único indicador.
+ */
+export interface MarcadorMapa {
+  readonly id: string;
+  readonly lat: number;
+  readonly lon: number;
+  readonly etiqueta: string;
+  readonly icono: string;
+  readonly forma: 'circulo' | 'cuadrado' | 'rombo';
+  readonly fondo: string;
+  readonly tinta: string;
+  readonly elegido?: boolean;
+}
+
+const crearMarcador = (m: MarcadorMapa, alElegir: (id: string) => void): HTMLButtonElement => {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.setAttribute('aria-label', m.etiqueta);
+  b.setAttribute('aria-pressed', m.elegido === true ? 'true' : 'false');
+  b.title = m.etiqueta;
+  const tam = m.elegido === true ? 30 : 24;
+  Object.assign(b.style, {
+    width: `${String(tam)}px`,
+    height: `${String(tam)}px`,
+    background: m.fondo,
+    color: m.tinta,
+    border: `2px solid ${m.elegido === true ? '#18231f' : '#ffffff'}`,
+    borderRadius: m.forma === 'circulo' ? '9999px' : '3px',
+    transform: m.forma === 'rombo' ? 'rotate(45deg)' : '',
+    boxShadow: '0 0 0 1px rgba(24,35,31,0.55)',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    font: '700 13px/1 system-ui, sans-serif',
+    padding: '0',
+  });
+  const i = document.createElement('span');
+  i.setAttribute('aria-hidden', 'true');
+  i.textContent = m.icono;
+  if (m.forma === 'rombo') i.style.transform = 'rotate(-45deg)';
+  b.append(i);
+  b.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    alElegir(m.id);
+  });
+  return b;
+};
+
 type DatosGeoJson = Parameters<GeoJSONSource['setData']>[0];
 
 /** Pares [lon, lat] de cualquier geometría GeoJSON, para encuadrar el mapa. */
@@ -76,16 +128,20 @@ const hayMapaBase = async (): Promise<boolean> => {
 };
 
 const SIN_CAPAS: readonly CapaMapa[] = [];
+const SIN_MARCADORES: readonly MarcadorMapa[] = [];
 
 export const Mapa = ({
   puntos,
   capas = SIN_CAPAS,
+  marcadores = SIN_MARCADORES,
   alElegir,
   alto = '32rem',
   etiqueta = 'Mapa de estaciones',
 }: {
   puntos: readonly PuntoMapa[];
   capas?: readonly CapaMapa[];
+  /** Estaciones con estado (avance): se dibujan como marcadores accesibles. */
+  marcadores?: readonly MarcadorMapa[];
   alElegir?: (id: string) => void;
   alto?: string;
   etiqueta?: string;
@@ -94,6 +150,8 @@ export const Mapa = ({
   const mapa = useRef<maplibregl.Map | null>(null);
   const [sinMapaBase, setSinMapaBase] = useState(false);
   const [listo, setListo] = useState(false);
+  const enMapa = useRef<maplibregl.Marker[]>([]);
+  const encuadrado = useRef('');
   const elegir = useRef(alElegir);
   elegir.current = alElegir;
 
@@ -221,16 +279,28 @@ export const Mapa = ({
         properties: { id: c.id, tipo: c.tipo, etiqueta: c.etiqueta },
       })),
     } as DatosGeoJson);
+    for (const mk of enMapa.current) mk.remove();
+    enMapa.current = marcadores.map((mk) =>
+      new maplibregl.Marker({
+        element: crearMarcador(mk, (id) => elegir.current?.(id)),
+      })
+        .setLngLat([mk.lon, mk.lat])
+        .addTo(m),
+    );
     const todos: [number, number][] = [
       ...puntos.map((p): [number, number] => [p.lon, p.lat]),
+      ...marcadores.map((p): [number, number] => [p.lon, p.lat]),
       ...capas.flatMap((c) => coordenadas(c.geometria.coordinates)),
     ];
-    if (todos.length > 0) {
+    // Encuadrar solo cuando cambia el conjunto de lugares (elegir un marcador no mueve el mapa).
+    const clave = todos.map(([a, b]) => `${a.toFixed(5)},${b.toFixed(5)}`).join(';');
+    if (todos.length > 0 && clave !== encuadrado.current) {
+      encuadrado.current = clave;
       const limites = new maplibregl.LngLatBounds();
       for (const c of todos) limites.extend(c);
       m.fitBounds(limites, { padding: 48, maxZoom: capas.length > 0 ? 18 : 15, duration: 0 });
     }
-  }, [puntos, capas, listo]);
+  }, [puntos, capas, marcadores, listo]);
 
   return (
     <div className="flex flex-col gap-2">

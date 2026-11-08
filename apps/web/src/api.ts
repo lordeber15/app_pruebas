@@ -330,7 +330,37 @@ export interface Cronograma {
 
 export type CambioCronograma =
   | { tipo: 'reprogramar'; item_id: string; fecha: string; brigada_id: string | null }
-  | { tipo: 'marcar'; item_id: string; estado_fila: EstadoFilaCronograma };
+  | { tipo: 'marcar'; item_id: string; estado_fila: EstadoFilaCronograma }
+  | {
+      tipo: 'agregar';
+      item: {
+        id: string;
+        brigada_id: string;
+        fecha: string;
+        tipo_actividad: string;
+        estacion_id: string | null;
+        detalle: string | null;
+        actividad_especial: string | null;
+      };
+    };
+
+/** Fila del borrador del cronograma base (proyecto sin A01, antes de publicarlo). */
+export interface FilaBorrador {
+  id: string;
+  brigada_id: string;
+  brigada_codigo: string | null;
+  brigada_nombre: string;
+  fecha: string;
+  tipo_actividad: string;
+  estacion_id: string | null;
+  estacion_codigo: string | null;
+  detalle: string | null;
+}
+
+export interface Borrador {
+  publicado: boolean;
+  filas: FilaBorrador[];
+}
 
 export interface SolicitudCronograma {
   id: string;
@@ -400,6 +430,49 @@ export interface BrigadaSeguimiento {
   ultima_sincronizacion: string | null;
   dispositivos: { dispositivo_id: string; ultima_sincronizacion: string }[];
   filas: FilaSeguimiento[];
+}
+
+// ── Avance por estación (métodos completos / aplicables) ──
+
+export type EstadoEstacion =
+  | 'con_incumplimiento'
+  | 'completa'
+  | 'en_curso'
+  | 'reprogramada'
+  | 'sin_datos'
+  | 'sin_iniciar';
+
+export interface EstacionAvance {
+  id: string;
+  codigo: string;
+  lat: number;
+  lon: number;
+  za_ef: string | null;
+  brigada_id: string | null;
+  brigada: string | null;
+  fecha_programada: string | null;
+  reprogramada: boolean;
+  avance: {
+    completos: number;
+    aplicables: number;
+    porcentaje: number | null;
+    estado: EstadoEstacion;
+  };
+  metodos: {
+    metodo_id: string;
+    metodo_codigo: string;
+    metodo_nombre: string;
+    especialidad_nombre: string;
+    porcentaje: number | null;
+    completo: boolean;
+    ejecuciones: number;
+  }[];
+}
+
+export interface AvanceEstaciones {
+  generado_en: string;
+  hoy: string;
+  estaciones: EstacionAvance[];
 }
 
 // ── Galería (E-10) ──

@@ -19,3 +19,5 @@ export * from './reglas/horario.ts';
 export * from './reglas/evaluador.ts';
 export * from './reglas/presentacion.ts';
 export * from './contrasena.ts';
+export * from './configuracion/estacion.ts';
+export * from './fechas.ts';
