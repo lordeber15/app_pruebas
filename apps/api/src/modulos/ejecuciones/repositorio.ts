@@ -1,6 +1,7 @@
 import type { EstadoEjecucion } from '@campo/core';
 import type { Db } from '@campo/db';
 import { sql } from 'kysely';
+import { despuesDe, instanteCursor, pagina, type Cursor } from '../../plataforma/paginacion.ts';
 
 /**
  * Consultas de seguimiento de ejecuciones para la web (D02 §11, E-02, E-04, E-05). Solo lectura;
@@ -30,7 +31,19 @@ const ultimaRecepcion = sql<Date | null>`(
       or ev.payload->>'ejecucion_id' = e.id::text
 )`;
 
-export const listar = (db: Db, proyectoId: string, alcance: Alcance, f: FiltroEjecuciones) => {
+export interface Pagina {
+  readonly limite: number;
+  readonly cursor: Cursor | null;
+}
+
+/** Más recientes primero; desempate por id para que el cursor sea estable. */
+export const listar = async (
+  db: Db,
+  proyectoId: string,
+  alcance: Alcance,
+  f: FiltroEjecuciones,
+  p: Pagina,
+) => {
   let q = db
     .selectFrom('ejecucion as e')
     .innerJoin('estacion as s', 's.id', 'e.estacion_id')
@@ -61,6 +74,7 @@ export const listar = (db: Db, proyectoId: string, alcance: Alcance, f: FiltroEj
       ),
       sql<number | null>`(e.resultado_qa->>'advertencias')::int`.as('advertencias'),
       ultimaRecepcion.as('ultima_recepcion'),
+      instanteCursor('e.abierta_en').as('_cursor_t'),
     ])
     .where('e.proyecto_id', '=', proyectoId)
     .where((eb) => {
@@ -79,7 +93,13 @@ export const listar = (db: Db, proyectoId: string, alcance: Alcance, f: FiltroEj
   if (f.brigada !== undefined) q = q.where('e.brigada_id', '=', f.brigada);
   if (f.estacion !== undefined) q = q.where('e.estacion_id', '=', f.estacion);
   if (f.estado !== undefined) q = q.where('e.estado', '=', f.estado);
-  return q.orderBy('e.abierta_en', 'desc').limit(500).execute();
+  if (p.cursor !== null) q = q.where(despuesDe('e.abierta_en', 'e.id', p.cursor, 'desc'));
+  const filas = await q
+    .orderBy('e.abierta_en', 'desc')
+    .orderBy('e.id', 'desc')
+    .limit(p.limite + 1)
+    .execute();
+  return pagina(filas, p.limite);
 };
 
 export const cabecera = (db: Db, ejecucionId: string) =>

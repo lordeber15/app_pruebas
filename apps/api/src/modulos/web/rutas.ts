@@ -1,4 +1,9 @@
-import { cambioContrasenaSchema, ROLES_BRIGADA, VALORES_ROL_GLOBAL } from '@campo/core';
+import {
+  cambioContrasenaSchema,
+  consultaPaginaSchema,
+  ROLES_BRIGADA,
+  VALORES_ROL_GLOBAL,
+} from '@campo/core';
 import type { Db } from '@campo/db';
 import type { FastifyPluginAsyncZod } from '@fastify/type-provider-zod';
 import type { FastifyRequest } from 'fastify';
@@ -6,6 +11,7 @@ import { z } from 'zod';
 import type { Firmador } from '../../plataforma/almacenamiento.ts';
 import type { Auth } from '../../plataforma/auth.ts';
 import { noAutenticado } from '../../plataforma/errores.ts';
+import { decodificarCursor } from '../../plataforma/paginacion.ts';
 import { requiereSesion, type Actor } from '../../plataforma/sesion.ts';
 import { noEncontrado, rolEnBrigada } from '../alcance/autorizacion.ts';
 import { rutaParaDescarga } from '../archivos/servicio.ts';
@@ -281,9 +287,17 @@ export const rutasWeb: FastifyPluginAsyncZod<Opciones> = (
   );
 
   // ── Revisiones ──
-  app.get('/proyectos/:id/revisiones', { schema: { params: conId } }, async (request) => ({
-    revisiones: await revisiones.listarRevisiones(db, actor(request), request.params.id),
-  }));
+  app.get(
+    '/proyectos/:id/revisiones',
+    { schema: { params: conId, querystring: consultaPaginaSchema } },
+    async (request) => {
+      const r = await revisiones.listarRevisiones(db, actor(request), request.params.id, {
+        limite: request.query.limite,
+        cursor: decodificarCursor(request.query.cursor),
+      });
+      return { revisiones: r.filas, siguiente_cursor: r.siguiente_cursor };
+    },
+  );
   app.post(
     '/revisiones/:id/resolver',
     {

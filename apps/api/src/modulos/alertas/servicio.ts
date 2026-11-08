@@ -84,14 +84,15 @@ export const listarAlertas = async (
   actor: Actor,
   proyectoId: string,
   filtros: repo.FiltrosAlertas,
+  pag: Parameters<typeof repo.listarDeProyecto>[4],
 ) => {
   await verProyecto(db, actor, proyectoId);
-  if (veTodosLosProyectos(actor)) return repo.listarDeProyecto(db, proyectoId, null, filtros);
+  if (veTodosLosProyectos(actor)) return repo.listarDeProyecto(db, proyectoId, null, filtros, pag);
   const mapa = await brigadasVisibles(db, actor, proyectoId);
   const brigadas = [...mapa]
     .filter(([, rol]) => puedeIntentar(rol, 'consultar_seguimiento'))
     .map(([id]) => id);
-  return repo.listarDeProyecto(db, proyectoId, brigadas, filtros);
+  return repo.listarDeProyecto(db, proyectoId, brigadas, filtros, pag);
 };
 
 export const verAlerta = async (db: Db, actor: Actor, id: string) => {

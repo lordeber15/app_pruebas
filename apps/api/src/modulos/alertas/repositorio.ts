@@ -1,6 +1,7 @@
 import type { EstadoAlerta, TipoAlerta, TipoMensajeAlerta } from '@campo/core';
 import type { Db } from '@campo/db';
 import { generarId } from '../../plataforma/ids.ts';
+import { despuesDe, instanteCursor, pagina, type Cursor } from '../../plataforma/paginacion.ts';
 
 /** Consultas de alertas (D02 §9, RN-36). La autorización por rol + alcance la hace el servicio. */
 
@@ -62,8 +63,9 @@ export const listarDeProyecto = async (
   proyectoId: string,
   brigadas: readonly string[] | null,
   f: FiltrosAlertas,
+  p: { readonly limite: number; readonly cursor: Cursor | null },
 ) => {
-  if (brigadas !== null && brigadas.length === 0) return [];
+  if (brigadas !== null && brigadas.length === 0) return { filas: [], siguiente_cursor: null };
   let q = db
     .selectFrom('alerta as a')
     .leftJoin('estacion as e', 'e.id', 'a.estacion_id')
@@ -86,13 +88,21 @@ export const listarDeProyecto = async (
       'e.codigo as estacion_codigo',
       'a.ejecucion_id',
       'u.nombre as autor_nombre',
+      instanteCursor('a.creado_en').as('_cursor_t'),
     ])
     .where('a.proyecto_id', '=', proyectoId);
   if (brigadas !== null) q = q.where('a.brigada_id', 'in', brigadas);
   if (f.estado !== undefined) q = q.where('a.estado', '=', f.estado);
   if (f.tipo !== undefined) q = q.where('a.tipo', '=', f.tipo);
   if (f.brigadaId !== undefined) q = q.where('a.brigada_id', '=', f.brigadaId);
-  return q.orderBy('a.creado_en', 'desc').orderBy('a.id', 'desc').limit(500).execute();
+  // Por cursor (creado_en desc, id desc): estable aunque lleguen alertas nuevas entre páginas.
+  if (p.cursor !== null) q = q.where(despuesDe('a.creado_en', 'a.id', p.cursor, 'desc'));
+  const filas = await q
+    .orderBy('a.creado_en', 'desc')
+    .orderBy('a.id', 'desc')
+    .limit(p.limite + 1)
+    .execute();
+  return pagina(filas, p.limite);
 };
 
 export const buscarAlerta = (db: Db, id: string, bloquear = false) => {
