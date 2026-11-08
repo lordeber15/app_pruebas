@@ -91,6 +91,12 @@ export interface ContextoEvaluacion {
   readonly zona_horaria?: string;
   /** Unidades de otros métodos en la misma estación, para verificar vínculos (RN-34). */
   readonly unidades_vinculables?: readonly { readonly id: string; readonly metodo: string }[];
+  /**
+   * Reglas del proyecto que no vienen de D01. `fotos_minimas_ejecucion`: fotos que toda
+   * ejecución debe tener, de cualquier tipo (RN-04 ampliada, decisión del usuario 2026-11-08).
+   * Ausente o 0: la regla no se evalúa.
+   */
+  readonly proyecto?: { readonly fotos_minimas_ejecucion: number };
 }
 
 /**
@@ -101,7 +107,11 @@ export interface ContextoEvaluacion {
  */
 export type EstadoRegla = 'cumple' | 'incumple' | 'no_aplica' | 'no_evaluable' | 'informativo';
 
-export type ReglaEvaluada = TipoValidacion | 'desviacion';
+/**
+ * `desviacion` y `foto_ejecucion` no son validaciones de D01: la primera viene de D02 §6 y la
+ * segunda es una regla del proyecto (RN-04 ampliada, 2026-11-08).
+ */
+export type ReglaEvaluada = TipoValidacion | 'desviacion' | 'foto_ejecucion';
 
 export interface ResultadoRegla {
   readonly regla: ReglaEvaluada;

@@ -481,6 +481,7 @@ export interface Proyecto {
   creado_por: string | null;
   dias_bloqueo: Generated<number>;
   estado: Generated<string>;
+  fotos_minimas_ejecucion: Generated<number>;
   hora_cierre_jornada: string | null;
   id: string;
   nombre: string;

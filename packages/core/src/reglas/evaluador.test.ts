@@ -1224,3 +1224,92 @@ describe('integración con la máquina de la ejecución (RN-05, RF-T04)', () => 
     ]);
   });
 });
+
+describe('RN-04 ampliada (decisión 2026-11-08): toda ejecución requiere una foto mínima', () => {
+  // D01 «Registros oportunos» es EVENTO y no pide fotos metodológicas (mínimo 0).
+  const evento = metodoBase({
+    codigo: 'anfibios_reptiles.registros_oportunos',
+    clase: 'evento',
+    unidad: { tipo: 'evento', tipos_adicionales: [], texto: null },
+    esfuerzo: { estandar: null, za_ef: null },
+  });
+  const proyecto = { fotos_minimas_ejecucion: 1 };
+
+  it('RN-04 ampliada: un EVENTO sin fotos incumple la regla obligatoria del proyecto', () => {
+    const e = evaluarEjecucion({
+      metodo: evento,
+      estacion: ESTACION_COSTA,
+      ejecucion: ejecucion({ fotos: [], unidades: [unidad({ tipo: 'evento', fotos: [] })] }),
+      proyecto,
+    });
+    const [r] = de(e.resultados, 'foto_ejecucion');
+    expect(r?.estado).toBe('incumple');
+    expect(r?.tipo_control).toBe('obligatorio');
+    expect(r?.mensaje).toContain('al menos 1 foto(s) georreferenciada(s) (decisión del proyecto)');
+    expect(e.incumplimientos_obligatorios).toBe(1);
+    expect(
+      transicionarEjecucion('evidencia_pendiente', {
+        tipo: 'evaluar_qa',
+        incumplimientosObligatorios: e.incumplimientos_obligatorios,
+      }),
+    ).toEqual({ ok: true, valor: 'parcial' });
+  });
+
+  it('RN-04 ampliada: cuenta fotos de cualquier tipo, de la ejecución o de sus unidades', () => {
+    const conUnidad = evaluarEjecucion({
+      metodo: evento,
+      estacion: ESTACION_COSTA,
+      ejecucion: ejecucion({
+        fotos: [],
+        unidades: [unidad({ tipo: 'evento', fotos: [foto('primer_plano')] })],
+      }),
+      proyecto,
+    });
+    expect(estados(conUnidad.resultados, 'foto_ejecucion')).toEqual(['cumple']);
+    const sueltas = evaluarEjecucion({
+      metodo: evento,
+      estacion: ESTACION_COSTA,
+      ejecucion: ejecucion({ fotos: [foto('metodologica')] }),
+      proyecto,
+    });
+    expect(estados(sueltas.resultados, 'foto_ejecucion')).toEqual(['cumple']);
+    expect(sueltas.incumplimientos_obligatorios).toBe(0);
+  });
+
+  it('RN-04 ampliada: las fotos heredadas por vínculo no cuentan como foto de la ejecución', () => {
+    const e = evaluarEjecucion({
+      metodo: evento,
+      estacion: ESTACION_COSTA,
+      ejecucion: ejecucion({
+        fotos: [],
+        unidades: [unidad({ tipo: 'evento', fotos: [foto('contexto', true)] })],
+      }),
+      proyecto,
+    });
+    expect(estados(e.resultados, 'foto_ejecucion')).toEqual(['incumple']);
+  });
+
+  it('RN-04 ampliada: el mínimo es configurable por proyecto (2 fotos)', () => {
+    const e = evaluarEjecucion({
+      metodo: evento,
+      estacion: ESTACION_COSTA,
+      ejecucion: ejecucion({ fotos: [foto('contexto')] }),
+      proyecto: { fotos_minimas_ejecucion: 2 },
+    });
+    const [r] = de(e.resultados, 'foto_ejecucion');
+    expect(r).toMatchObject({ estado: 'incumple', esperado: 2, obtenido: 1 });
+  });
+
+  it('RN-04 ampliada: sin regla del proyecto (ausente o 0) no se emite resultado', () => {
+    for (const p of [undefined, { fotos_minimas_ejecucion: 0 }]) {
+      const e = evaluarEjecucion({
+        metodo: evento,
+        estacion: ESTACION_COSTA,
+        ejecucion: ejecucion({ fotos: [] }),
+        ...(p === undefined ? {} : { proyecto: p }),
+      });
+      expect(de(e.resultados, 'foto_ejecucion')).toEqual([]);
+      expect(e.incumplimientos_obligatorios).toBe(0);
+    }
+  });
+});

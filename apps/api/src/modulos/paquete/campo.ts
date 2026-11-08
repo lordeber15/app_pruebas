@@ -35,7 +35,15 @@ export const paqueteCampo = async (db: Db, usuarioId: string) => {
 
   const proyectos = await db
     .selectFrom('proyecto')
-    .select(['id', 'nombre', 'validacion_activa', 'subir_originales', 'dias_bloqueo'])
+    .select([
+      'id',
+      'nombre',
+      'validacion_activa',
+      'subir_originales',
+      'dias_bloqueo',
+      // RN-04 ampliada (2026-11-08): el celular evalúa la misma foto mínima que el worker.
+      'fotos_minimas_ejecucion',
+    ])
     .where('id', 'in', proyectoIds)
     .execute();
 
