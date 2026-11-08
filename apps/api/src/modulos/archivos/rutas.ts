@@ -81,6 +81,7 @@ export const rutasArchivos: FastifyPluginAsyncZod<Opciones> = (app, { auth, db, 
         if (actor?.dispositivoId == null || actor.estadoDispositivo !== 'activo') {
           return rechazar(401, 'NO_AUTENTICADO');
         }
+        if (actor.debeCambiarContrasena) return rechazar(403, 'CAMBIO_CONTRASENA_REQUERIDO');
         const r = await servicio.autorizarSubida(
           db,
           { ...actor, dispositivoId: actor.dispositivoId },

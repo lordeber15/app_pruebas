@@ -12,6 +12,8 @@ export interface NuevoUsuario {
   readonly rolGlobal: ValorRolGlobal;
   readonly contrasena: string;
   readonly creadoPor: string | null;
+  /** Por defecto debe cambiarla en su primer ingreso (contraseña temporal). */
+  readonly debeCambiarContrasena?: boolean;
 }
 
 /**
@@ -32,6 +34,7 @@ export const crearUsuario = async (db: Db, nuevo: NuevoUsuario): Promise<string>
           num_documento: nuevo.numDocumento,
           nombre: nuevo.nombre,
           rol_global: nuevo.rolGlobal,
+          debe_cambiar_contrasena: nuevo.debeCambiarContrasena ?? true,
           creado_por: nuevo.creadoPor,
           actualizado_por: nuevo.creadoPor,
         })

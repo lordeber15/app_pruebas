@@ -12,6 +12,7 @@ import { useEffect } from 'react';
 import { api, ErrorApi } from './api.ts';
 import { Cargando } from './componentes/Ui.tsx';
 import { Dispositivos, Usuarios } from './paginas/Administracion.tsx';
+import { CambiarContrasena } from './paginas/Contrasena.tsx';
 import { Entrar } from './paginas/Entrar.tsx';
 import { Equipo, Estaciones, MarcoProyecto, Proyectos } from './paginas/Proyectos.tsx';
 import { Revisiones } from './paginas/Revisiones.tsx';
@@ -43,6 +44,7 @@ const Marco = () => {
     );
   if (yo.data === undefined) return null;
   const p = puede(yo.data);
+  const primerIngreso = yo.data.debe_cambiar_contrasena;
 
   const salir = async () => {
     await api.salir().catch(() => undefined);
@@ -71,7 +73,10 @@ const Marco = () => {
           </svg>
           <span className="font-bold">Supervisión de campo</span>
         </div>
-        <nav aria-label="Principal" className="flex gap-1 overflow-x-auto px-2 pb-3 md:flex-col">
+        <nav
+          aria-label="Principal"
+          className={`flex gap-1 overflow-x-auto px-2 pb-3 md:flex-col ${primerIngreso ? 'hidden' : ''}`}
+        >
           <Link
             to="/"
             className={enlaceMenu}
@@ -98,6 +103,9 @@ const Marco = () => {
               </Link>
             </>
           ) : null}
+          <Link to="/cuenta" className={enlaceMenu} activeProps={{ className: enlaceActivo }}>
+            Cambiar contraseña
+          </Link>
         </nav>
         <div className="hidden border-t border-linea px-4 py-4 text-sm md:block">
           <p className="font-semibold">{yo.data.nombre}</p>
@@ -114,7 +122,7 @@ const Marco = () => {
         </div>
       </aside>
       <main id="contenido" className="min-w-0 flex-1 px-4 py-6 md:px-8">
-        <Outlet />
+        {primerIngreso ? <CambiarContrasena primerIngreso /> : <Outlet />}
       </main>
     </div>
   );
@@ -139,6 +147,11 @@ const revisiones = createRoute({
   path: '/revisiones',
   component: Revisiones,
 });
+const cuenta = createRoute({
+  getParentRoute: () => raiz,
+  path: '/cuenta',
+  component: () => <CambiarContrasena primerIngreso={false} />,
+});
 const usuarios = createRoute({
   getParentRoute: () => raiz,
   path: '/admin/usuarios',
@@ -155,6 +168,7 @@ export const router = createRouter({
     entrar,
     inicio,
     proyecto.addChildren([estaciones, equipo, revisiones]),
+    cuenta,
     usuarios,
     dispositivos,
   ]),

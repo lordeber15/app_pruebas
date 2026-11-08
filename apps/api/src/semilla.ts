@@ -1,5 +1,6 @@
 // Datos sintéticos para desarrollo local. Nunca se ejecuta fuera de development.
 import { crearDb, crearPool } from '@campo/db';
+import { generarContrasenaTemporal } from '@campo/core';
 import { randomBytes } from 'node:crypto';
 import { crearUsuario } from './modulos/usuarios/servicio.ts';
 import { generarId } from './plataforma/ids.ts';
@@ -34,7 +35,7 @@ for (const u of usuarios) {
     continue;
   }
   // Contraseña aleatoria por ejecución: se muestra una sola vez y no se guarda en ningún archivo.
-  const contrasena = randomBytes(9).toString('base64url');
+  const contrasena = generarContrasenaTemporal((n) => randomBytes(n));
   await crearUsuario(db, { tipoDocumento: 'DNI', ...u, contrasena, creadoPor: null });
   console.log(`DNI ${u.numDocumento} (${u.rolGlobal}): contraseña ${contrasena}`);
 }

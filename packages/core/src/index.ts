@@ -17,3 +17,4 @@ export * from './reglas/geometria.ts';
 export * from './reglas/horario.ts';
 export * from './reglas/evaluador.ts';
 export * from './reglas/presentacion.ts';
+export * from './contrasena.ts';

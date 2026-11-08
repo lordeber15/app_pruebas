@@ -77,6 +77,8 @@ export interface Yo {
   tipo_documento: string;
   num_documento: string;
   rol_global: RolGlobal;
+  /** Entró con una contraseña temporal: debe cambiarla antes de seguir. */
+  debe_cambiar_contrasena: boolean;
   membresias: { brigada_id: string; rol: RolBrigada }[];
 }
 

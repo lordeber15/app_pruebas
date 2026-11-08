@@ -33,6 +33,7 @@ export default function Raiz() {
       >
         <Stack.Screen name="index" options={{ title: 'Campo' }} />
         <Stack.Screen name="servidor" options={{ title: 'Servidor' }} />
+        <Stack.Screen name="contrasena" options={{ title: 'Contraseña' }} />
         <Stack.Screen name="entrar" options={{ title: 'Ingresar', headerBackVisible: false }} />
         <Stack.Screen
           name="desbloquear"
