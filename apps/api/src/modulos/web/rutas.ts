@@ -9,6 +9,7 @@ import { noAutenticado } from '../../plataforma/errores.ts';
 import { requiereSesion, type Actor } from '../../plataforma/sesion.ts';
 import { noEncontrado, rolEnBrigada } from '../alcance/autorizacion.ts';
 import { rutaParaDescarga } from '../archivos/servicio.ts';
+import { cargarConfiguracionToce } from '../configuracion/servicio.ts';
 import { cambiarContrasena } from '../cuenta/servicio.ts';
 import * as revisiones from '../ejecuciones/revisiones.ts';
 import * as org from '../organizacion/servicio.ts';
@@ -214,6 +215,15 @@ export const rutasWeb: FastifyPluginAsyncZod<Opciones> = (app, { auth, db, firma
   app.get('/proyectos/:id/estaciones', { schema: { params: conId } }, async (request) => ({
     estaciones: await org.listarEstaciones(db, actor(request), request.params.id),
   }));
+  // Carga de D01 + A01 (RF-W09). Puede tardar unos segundos: crea estaciones, brigadas,
+  // cronograma y reservas en una sola transacción.
+  app.post(
+    '/proyectos/:id/configuracion/toce',
+    { schema: { params: conId } },
+    async (request) => ({
+      resumen: await cargarConfiguracionToce(db, actor(request), request.params.id),
+    }),
+  );
   // ── Archivos ──
   app.get(
     '/archivos/:id/url',
