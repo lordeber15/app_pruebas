@@ -1,8 +1,9 @@
 import { estacionNuevaSchema, fechaEnZona } from '@campo/core';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { api, ErrorApi, type AvanceEstaciones, type Estacion } from '../api.ts';
 import { CeldaAvance, MapaAvance } from '../componentes/AvanceEstaciones.tsx';
+import { MetodosEstacion } from '../componentes/MetodosEstacion.tsx';
 import {
   AvisoError,
   Boton,
@@ -42,9 +43,12 @@ interface ResumenCarga {
 const CargarConfiguracion = ({
   proyectoId,
   hayDatos,
+  alVerPendientes,
 }: {
   proyectoId: string;
   hayDatos: boolean;
+  /** Lleva a las estaciones con métodos que esperan confirmación (P-01). */
+  alVerPendientes: () => void;
 }) => {
   const qc = useQueryClient();
   const [abierto, setAbierto] = useState(false);
@@ -152,9 +156,19 @@ const CargarConfiguracion = ({
           {r.cronograma_base_existente && r.a01
             ? ' El cronograma base ya existía: no se cambiaron sus fechas (el base nunca se modifica).'
             : ''}
-          {r.estacion_metodo_pendientes > 0
-            ? ` ${String(r.estacion_metodo_pendientes)} combinaciones estación–método esperan confirmación (P-01).`
-            : ''}
+          {r.estacion_metodo_pendientes > 0 ? (
+            <>
+              {' '}
+              <button
+                type="button"
+                onClick={alVerPendientes}
+                className="min-h-11 font-semibold underline underline-offset-2"
+              >
+                {r.estacion_metodo_pendientes} combinaciones estación–método esperan confirmación
+                (P-01): verlas
+              </button>
+            </>
+          ) : null}
         </p>
       )}
     </div>
@@ -364,10 +378,30 @@ export const Estaciones = () => {
   });
   // Diálogo: `undefined` cerrado, `null` estación nueva.
   const [editando, setEditando] = useState<Estacion | null | undefined>(undefined);
-  const lista = est.data?.estaciones ?? [];
+  // Estación elegida para el panel «Métodos a ejecutar».
+  const [elegida, setElegida] = useState<{ id: string; soloPendientes: boolean } | null>(null);
+  const [soloPendientes, setSoloPendientes] = useState(false);
+  const panelRef = useRef<HTMLElement>(null);
+  const todas = est.data?.estaciones ?? [];
+  const conPendientes = todas.filter((s) => s.metodos_pendientes > 0);
+  const lista = soloPendientes ? conPendientes : todas;
   // El mapa muestra todas; solo la tabla se pagina en el cliente (catálogo acotado, ~100).
-  const pag = usePaginaCliente(lista);
+  const pag = usePaginaCliente(lista, soloPendientes ? 'pendientes' : '');
   const porId = new Map((avance.data?.estaciones ?? []).map((a) => [a.id, a]));
+  const codigoElegida = todas.find((s) => s.id === elegida?.id)?.codigo;
+  const tablaRef = useRef<HTMLDivElement>(null);
+  const verPendientes = () => {
+    setSoloPendientes(true);
+    tablaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+  const elegir = (s: Estacion) => {
+    setElegida({ id: s.id, soloPendientes: soloPendientes && s.metodos_pendientes > 0 });
+    // El panel se monta debajo de la tabla: se lleva la vista y el foco hacia él.
+    requestAnimationFrame(() => {
+      panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      panelRef.current?.focus({ preventScroll: true });
+    });
+  };
 
   return (
     <>
@@ -377,7 +411,11 @@ export const Estaciones = () => {
             <Boton variante="secundario" onClick={() => setEditando(null)}>
               Agregar estación
             </Boton>
-            <CargarConfiguracion proyectoId={proyectoId} hayDatos={lista.length > 0} />
+            <CargarConfiguracion
+              proyectoId={proyectoId}
+              hayDatos={todas.length > 0}
+              alVerPendientes={verPendientes}
+            />
           </>
         ) : null}
       </Encabezado>
@@ -397,91 +435,149 @@ export const Estaciones = () => {
       </p>
       {est.isPending ? <Cargando que="las estaciones" /> : null}
       <AvisoError error={est.error ?? avance.error} />
-      {est.data !== undefined && lista.length === 0 ? (
+      {conPendientes.length > 0 ? (
+        <div
+          role="status"
+          className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-md border border-ocre bg-ocre-claro px-3 py-2 text-sm"
+        >
+          <p>
+            <span aria-hidden="true">? </span>
+            {conPendientes.length === 1
+              ? '1 estación tiene'
+              : `${String(conPendientes.length)} estaciones tienen`}{' '}
+            métodos condicionales que esperan confirmación (P-01).
+            {gestionar ? ' Elija «Métodos» para confirmarlos o descartarlos.' : ''}
+          </p>
+          <Boton
+            variante="secundario"
+            onClick={() => (soloPendientes ? setSoloPendientes(false) : verPendientes())}
+          >
+            {soloPendientes ? 'Ver todas las estaciones' : 'Ver solo esas estaciones'}
+          </Boton>
+        </div>
+      ) : null}
+      {est.data !== undefined && todas.length === 0 ? (
         <Vacio titulo="Aún no hay estaciones">
           {gestionar
             ? 'Use «Cargar configuración TOCE» para crear las 102 estaciones de A01, o cargue solo D01 y agregue las estaciones con «Agregar estación».'
             : 'Las estaciones llegan con la carga de A01 del proyecto.'}
         </Vacio>
       ) : null}
-      {lista.length > 0 ? (
+      {todas.length > 0 ? (
         <div className="flex flex-col gap-6">
           {avance.data === undefined ? (
             <Cargando que="el avance de las estaciones" />
           ) : (
             <MapaAvance estaciones={avance.data.estaciones} />
           )}
-          <Tabla titulo="Estaciones">
-            <thead>
-              <tr>
-                <th className={th}>Código</th>
-                <th className={th}>Avance</th>
-                <th className={th}>Brigada y fecha</th>
-                <th className={th}>Región</th>
-                <th className={th}>UV</th>
-                <th className={th}>AID/AII</th>
-                <th className={th}>ZA/EF</th>
-                <th className={th}>UTM</th>
-                {gestionar ? (
+          <div ref={tablaRef} className="scroll-mt-4">
+            <Tabla titulo="Estaciones">
+              <thead>
+                <tr>
+                  <th className={th}>Código</th>
+                  <th className={th}>Avance</th>
+                  <th className={th}>Brigada y fecha</th>
+                  <th className={th}>Región</th>
+                  <th className={th}>UV</th>
+                  <th className={th}>AID/AII</th>
+                  <th className={th}>ZA/EF</th>
+                  <th className={th}>UTM</th>
                   <th className={th}>
                     <span className="sr-only">Acciones</span>
                   </th>
-                ) : null}
-              </tr>
-            </thead>
-            <tbody>
-              {pag.visibles.map((s) => {
-                const a = porId.get(s.id);
-                return (
-                  <tr key={s.id}>
-                    <td className={`${td} font-semibold`}>{s.codigo}</td>
-                    <td className={td}>
-                      {a === undefined ? (
-                        <span className="text-tinta-suave">—</span>
-                      ) : (
-                        <CeldaAvance a={a.avance} />
-                      )}
-                    </td>
-                    <td className={`${td} whitespace-nowrap`}>
-                      {a?.brigada == null ? (
-                        <span className="text-tinta-suave">Sin asignar</span>
-                      ) : (
-                        <>
-                          {a.brigada}
-                          <br />
-                          <span className="cifras text-tinta-suave">
-                            {a.fecha_programada}
-                            {a.reprogramada ? ' (reprogramada)' : ''}
-                          </span>
-                        </>
-                      )}
-                    </td>
-                    <td className={td}>{atributo(s.region)}</td>
-                    <td className={td}>{atributo(s.uv)}</td>
-                    <td className={td}>{atributo(s.aid_aii)}</td>
-                    <td className={td}>{s.za_ef === null || s.za_ef === '' ? 'No' : s.za_ef}</td>
-                    <td className={`${td} cifras whitespace-nowrap`}>
-                      {s.zona_utm === null
-                        ? `${s.lat.toFixed(5)}, ${s.lon.toFixed(5)}`
-                        : `${s.zona_utm} ${String(Number(s.este))} E ${String(Number(s.norte))} N`}
-                    </td>
-                    {gestionar ? (
+                </tr>
+              </thead>
+              <tbody>
+                {pag.visibles.map((s) => {
+                  const a = porId.get(s.id);
+                  return (
+                    <tr key={s.id}>
+                      <td className={`${td} font-semibold`}>{s.codigo}</td>
                       <td className={td}>
-                        <Boton
-                          variante="secundario"
-                          onClick={() => setEditando(s)}
-                          aria-label={`Corregir la estación ${s.codigo}`}
-                        >
-                          Corregir
-                        </Boton>
+                        {a === undefined ? (
+                          <span className="text-tinta-suave">—</span>
+                        ) : (
+                          <CeldaAvance a={a.avance} />
+                        )}
                       </td>
-                    ) : null}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </Tabla>
+                      <td className={`${td} whitespace-nowrap`}>
+                        {a?.brigada == null ? (
+                          <span className="text-tinta-suave">Sin asignar</span>
+                        ) : (
+                          <>
+                            {a.brigada}
+                            <br />
+                            <span className="cifras text-tinta-suave">
+                              {a.fecha_programada}
+                              {a.reprogramada ? ' (reprogramada)' : ''}
+                            </span>
+                          </>
+                        )}
+                      </td>
+                      <td className={td}>{atributo(s.region)}</td>
+                      <td className={td}>{atributo(s.uv)}</td>
+                      <td className={td}>{atributo(s.aid_aii)}</td>
+                      <td className={td}>{s.za_ef === null || s.za_ef === '' ? 'No' : s.za_ef}</td>
+                      <td className={`${td} cifras whitespace-nowrap`}>
+                        {s.zona_utm === null
+                          ? `${s.lat.toFixed(5)}, ${s.lon.toFixed(5)}`
+                          : `${s.zona_utm} ${String(Number(s.este))} E ${String(Number(s.norte))} N`}
+                      </td>
+                      <td className={td}>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Boton
+                            variante={elegida?.id === s.id ? 'principal' : 'secundario'}
+                            onClick={() => elegir(s)}
+                            aria-pressed={elegida?.id === s.id}
+                            aria-label={`Métodos a ejecutar en la estación ${s.codigo}${s.metodos_pendientes > 0 ? `, ${String(s.metodos_pendientes)} por confirmar` : ''}`}
+                          >
+                            Métodos
+                            {s.metodos_pendientes > 0 ? (
+                              <span className="rounded-sm border border-ocre bg-ocre-claro px-1.5 text-xs text-tinta">
+                                ? {s.metodos_pendientes}
+                              </span>
+                            ) : null}
+                          </Boton>
+                          {gestionar ? (
+                            <Boton
+                              variante="secundario"
+                              onClick={() => setEditando(s)}
+                              aria-label={`Corregir la estación ${s.codigo}`}
+                            >
+                              Corregir
+                            </Boton>
+                          ) : null}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </Tabla>
+          </div>
           <Paginacion etiqueta="Páginas de estaciones" {...pag.props} />
+          {elegida === null ? null : (
+            <section
+              ref={panelRef}
+              tabIndex={-1}
+              aria-labelledby="titulo-metodos-estacion"
+              className="scroll-mt-4 rounded-md border border-linea bg-papel p-4 focus:outline-none"
+            >
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                <h2 id="titulo-metodos-estacion" className="text-lg font-semibold">
+                  Métodos a ejecutar{codigoElegida === undefined ? '' : ` en ${codigoElegida}`}
+                </h2>
+                <Boton variante="secundario" onClick={() => setElegida(null)}>
+                  Cerrar panel
+                </Boton>
+              </div>
+              <MetodosEstacion
+                key={`${elegida.id}-${String(elegida.soloPendientes)}`}
+                estacionId={elegida.id}
+                soloPendientesInicial={elegida.soloPendientes}
+              />
+            </section>
+          )}
         </div>
       ) : null}
     </>

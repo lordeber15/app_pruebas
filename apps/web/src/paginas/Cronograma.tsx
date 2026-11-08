@@ -24,6 +24,7 @@ import {
   th,
   Vacio,
 } from '../componentes/Ui.tsx';
+import { DialogoMetodosEstacion } from '../componentes/MetodosEstacion.tsx';
 import { Paginacion, usePaginaCliente } from '../componentes/Paginacion.tsx';
 import { useYo } from '../sesion.ts';
 import { ACTIVIDAD, AsignarEstacion, BorradorBase } from './CronogramaArmado.tsx';
@@ -410,6 +411,7 @@ export const Cronograma = () => {
   const [version, setVersion] = useState<number | null>(null);
   const [brigada, setBrigada] = useState('');
   const [elegidos, setElegidos] = useState<ReadonlySet<string>>(new Set());
+  const [metodosDe, setMetodosDe] = useState<{ id: string; codigo: string } | null>(null);
 
   const q = useQuery({
     queryKey: ['cronograma', proyectoId, version],
@@ -549,6 +551,11 @@ export const Cronograma = () => {
                   <th className={th}>Actividad</th>
                   <th className={th}>Estado</th>
                   {v?.es_base === true ? null : <th className={th}>En el base</th>}
+                  {esVigente ? (
+                    <th className={th}>
+                      <span className="sr-only">Métodos de la estación</span>
+                    </th>
+                  ) : null}
                 </tr>
               </thead>
               <tbody>
@@ -588,6 +595,24 @@ export const Cronograma = () => {
                           {cambio}
                         </td>
                       )}
+                      {esVigente ? (
+                        <td className={td}>
+                          {i.estacion_id === null ? null : (
+                            <Boton
+                              variante="secundario"
+                              onClick={() =>
+                                setMetodosDe({
+                                  id: i.estacion_id ?? '',
+                                  codigo: i.estacion_codigo ?? 'la estación',
+                                })
+                              }
+                              aria-label={`Métodos a ejecutar en ${i.estacion_codigo ?? 'la estación'} el ${i.fecha}`}
+                            >
+                              Métodos
+                            </Boton>
+                          )}
+                        </td>
+                      ) : null}
                     </tr>
                   );
                 })}
@@ -595,6 +620,14 @@ export const Cronograma = () => {
             </Tabla>
           )}
           <Paginacion etiqueta="Páginas de actividades del cronograma" {...pagItems.props} />
+          {metodosDe === null ? null : (
+            <DialogoMetodosEstacion
+              key={metodosDe.id}
+              estacionId={metodosDe.id}
+              estacionCodigo={metodosDe.codigo}
+              alCerrar={() => setMetodosDe(null)}
+            />
+          )}
 
           {proponer ? (
             <Propuesta

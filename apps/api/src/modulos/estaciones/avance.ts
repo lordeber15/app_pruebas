@@ -132,6 +132,8 @@ export const verAvanceEstaciones = async (
     ])
     .where('r.proyecto_id', '=', proyectoId)
     .where('r.estacion_id', 'is not', null)
+    // Los métodos aplicables no incluyen los CONDICIONAL descartados en la web.
+    .where('r.estado', '<>', 'descartada')
     .$if(!global, (q) => q.where('r.brigada_id', 'in', ids))
     .execute();
 

@@ -406,6 +406,19 @@ export interface EstacionMetodo {
   origen: string;
 }
 
+export interface EstacionMetodoDecision {
+  condicion_pendiente_anterior: boolean;
+  creado_en: Generated<Timestamp>;
+  creado_por: string;
+  decision: string;
+  estacion_metodo_id: string;
+  habilitado_anterior: boolean;
+  id: string;
+  motivo: string;
+  origen_anterior: string;
+  reserva_id: string | null;
+}
+
 export interface EstacionMetodologia {
   actualizado_en: Generated<Timestamp>;
   actualizado_por: string | null;
@@ -692,6 +705,7 @@ export interface DB {
   especialidad: Especialidad;
   estacion: Estacion;
   estacion_metodo: EstacionMetodo;
+  estacion_metodo_decision: EstacionMetodoDecision;
   estacion_metodologia: EstacionMetodologia;
   evento: Evento;
   evidencia_item: EvidenciaItem;

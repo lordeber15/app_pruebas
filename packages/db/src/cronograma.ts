@@ -59,7 +59,9 @@ export const reubicarReservas = async (
   const seguidas = await sql`
     UPDATE app.reserva r
        SET cronograma_item_id = n.id, brigada_id = n.brigada_id, fecha_programada = n.fecha,
-           estado = 'asignada', actualizado_por = ${usuarioId}
+           -- Una reserva descartada sigue a su fila, pero sigue descartada.
+           estado = CASE WHEN r.estado = 'descartada' THEN r.estado ELSE 'asignada' END,
+           actualizado_por = ${usuarioId}
       FROM app.cronograma_item a
       JOIN app.cronograma_item n ON n.linaje_id = a.linaje_id AND n.version_id = ${versionNuevaId}
      WHERE a.version_id = ${versionAnteriorId}
@@ -77,7 +79,8 @@ export const reubicarReservas = async (
 /**
  * Ubica las reservas que aún no tienen fila del cronograma en la fila que elija
  * `elegirItemParaMetodo` entre las de su estación en la versión indicada (brigada y fecha). Las
- * estaciones que esa versión no programa quedan sin fila (`pendiente`). Devuelve cuántas ubicó.
+ * estaciones que esa versión no programa quedan sin fila (`pendiente`); las `descartadas` no se
+ * ubican. Devuelve cuántas ubicó.
  */
 export const asignarReservasSinFila = async (
   db: Kysely<unknown>,
@@ -95,7 +98,7 @@ export const asignarReservasSinFila = async (
         FROM app.reserva r
         JOIN app.metodo m ON m.id = r.metodo_id
        WHERE r.proyecto_id = ${proyectoId} AND r.cronograma_item_id IS NULL
-         AND r.estacion_id IS NOT NULL
+         AND r.estacion_id IS NOT NULL AND r.estado <> 'descartada'
          ${opciones.estacionIds === undefined ? sql`` : sql`AND r.estacion_id = ANY(${[...opciones.estacionIds]}::uuid[])`}`.execute(
       db,
     )
