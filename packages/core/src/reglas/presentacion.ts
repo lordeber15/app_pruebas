@@ -45,6 +45,7 @@ export const ETIQUETAS_REGLA: Readonly<Record<ReglaEvaluada, string>> = {
   parametros_tecnicos: 'Parámetros técnicos',
   vinculo_unidad: 'Vínculo con otra unidad',
   desviacion: 'Desviación declarada',
+  foto_ejecucion: 'Foto mínima de la ejecución',
 };
 
 const textoObjetivo = (o: Objetivo): string => {

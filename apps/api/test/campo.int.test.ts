@@ -58,6 +58,7 @@ const miembroDe = async (codigoBrigada: string) => {
 };
 
 interface Paquete {
+  proyectos: { id: string; fotos_minimas_ejecucion: number }[];
   brigadas: { id: string; codigo: string; region: string | null }[];
   cronograma: { brigada_id: string; fecha: string; estacion_id: string | null }[];
   estaciones: {
@@ -205,6 +206,29 @@ describe('RF-M01 paquete de campo TOCE', () => {
     // RN-25: el paquete no lleva usuarios ni datos personales.
     expect(crudo).not.toMatch(/usuario_id|num_documento|nombre_completo|username/);
     expect(crudo).not.toContain(yo.usuario.username);
+  });
+
+  it('RN-04 ampliada (decisión 2026-11-08): el paquete lleva la foto mínima por ejecución del proyecto', async () => {
+    const yo = await miembroDe('SELVA 2');
+    const { cuerpo } = await paquete(yo.token);
+    expect(cuerpo.proyectos).toEqual([
+      expect.objectContaining({ id: proyectoId, fotos_minimas_ejecucion: 1 }),
+    ]);
+    await e.admin
+      .updateTable('proyecto')
+      .set({ fotos_minimas_ejecucion: 2 })
+      .where('id', '=', proyectoId)
+      .execute();
+    try {
+      const otra = (await paquete(yo.token)).cuerpo;
+      expect(otra.proyectos[0]?.fotos_minimas_ejecucion).toBe(2);
+    } finally {
+      await e.admin
+        .updateTable('proyecto')
+        .set({ fotos_minimas_ejecucion: 1 })
+        .where('id', '=', proyectoId)
+        .execute();
+    }
   });
 
   it('negativo: un usuario sin brigada recibe 403', async () => {

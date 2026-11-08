@@ -45,7 +45,8 @@
           "locationWhenInUsePermission": "La app guarda la ubicación de cada foto de evidencia."
         }
       ],
-      "react-native-quick-crypto"
+      "react-native-quick-crypto",
+      "@maplibre/maplibre-react-native"
     ],
     "experiments": { "typedRoutes": false }
   }

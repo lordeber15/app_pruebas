@@ -32,7 +32,8 @@ import { randomFillSync } from 'node:crypto';
  *   (`anunciado`, `preview_subida` o `error`): son la evidencia que evalúan las reglas. Con un
  *   hash incorrecto (`error`) el celular vuelve a subirla; mientras tanto la ejecución espera.
  *   El original no hace falta (RN-26). Fichas y audios no bloquean: D01 no evalúa sobre ellos.
- * - Una ejecución cerrada sin fotos se evalúa directamente.
+ * - Una ejecución cerrada sin fotos se evalúa directamente; si el proyecto exige una foto mínima
+ *   por ejecución (`proyecto.fotos_minimas_ejecucion`, RN-04 ampliada) incumple esa regla.
  * - Cada regla **obligatoria** incumplida genera una alerta `post_sincronizacion` del sistema
  *   (una por regla, con el detalle de cada unidad). Advertencias, referencias, informativos y
  *   criterios humanos nunca generan alertas (RN-31).
@@ -164,6 +165,7 @@ const armarContexto = async (
   tx: Tx,
   ej: {
     id: string;
+    proyecto_id: string;
     estacion_id: string;
     metodo_id: string;
     abierta_en: Date;
@@ -185,6 +187,13 @@ const armarContexto = async (
     .executeTakeFirstOrThrow();
   const config = configuracionMetodoSchema.safeParse(metodo.config);
   if (!config.success) return { ok: false, motivo: 'CONFIGURACION_INVALIDA' };
+
+  // RN-04 ampliada (decisión 2026-11-08): foto mínima por ejecución, regla del proyecto.
+  const proyecto = await tx
+    .selectFrom('proyecto')
+    .select('fotos_minimas_ejecucion')
+    .where('id', '=', ej.proyecto_id)
+    .executeTakeFirstOrThrow();
 
   const estacion = await tx
     .selectFrom('estacion')
@@ -282,6 +291,7 @@ const armarContexto = async (
         unidades: evaluables,
       },
       unidades_vinculables: vinculables.map((v) => ({ id: v.id, metodo: v.codigo })),
+      proyecto: { fotos_minimas_ejecucion: proyecto.fotos_minimas_ejecucion },
     },
   };
 };

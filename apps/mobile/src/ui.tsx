@@ -499,6 +499,43 @@ export const Avance = ({
   );
 };
 
+/**
+ * Barra de progreso simple (0–100). Sin porcentaje no se dibuja relleno: la ausencia de datos
+ * no es 0 % (RN-37). El texto que la acompaña dice el valor; el color no es el único indicador.
+ */
+export const BarraProgreso = ({
+  porcentaje,
+  etiqueta,
+  alto = 8,
+}: {
+  porcentaje: number | null;
+  etiqueta: string;
+  alto?: number;
+}) => {
+  const pct = porcentaje === null ? 0 : Math.max(0, Math.min(100, porcentaje));
+  return (
+    <View
+      accessibilityRole="progressbar"
+      accessibilityLabel={etiqueta}
+      accessibilityValue={porcentaje === null ? undefined : { min: 0, max: 100, now: pct }}
+      style={{
+        height: alto,
+        borderRadius: alto / 2,
+        backgroundColor: C.linea,
+        overflow: 'hidden',
+      }}
+    >
+      <View
+        style={{
+          width: `${String(Math.round(pct))}%`,
+          height: alto,
+          backgroundColor: pct >= 100 ? C.liquen : C.ocre,
+        }}
+      />
+    </View>
+  );
+};
+
 /** Barra inferior fija para la acción principal de la pantalla. */
 export const AccionInferior = ({ children, abajo }: { children: ReactNode; abajo: number }) => (
   <View
