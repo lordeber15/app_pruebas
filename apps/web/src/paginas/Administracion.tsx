@@ -15,6 +15,7 @@ import {
   th,
   Vacio,
 } from '../componentes/Ui.tsx';
+import { Paginacion, usePaginaCliente } from '../componentes/Paginacion.tsx';
 import { useYo } from '../sesion.ts';
 import { FormularioDialogo } from './Proyectos.tsx';
 
@@ -65,6 +66,8 @@ export const Usuarios = () => {
     clave: string;
   } | null>(null);
   const invalidar = () => qc.invalidateQueries({ queryKey: ['usuarios'] });
+  // Catálogo acotado que otras pantallas necesitan completo: se pagina en el cliente.
+  const pag = usePaginaCliente(q.data?.usuarios ?? []);
   const cambiar = useMutation({
     mutationFn: ({
       id,
@@ -185,7 +188,7 @@ export const Usuarios = () => {
             </tr>
           </thead>
           <tbody>
-            {q.data.usuarios.map((u) => (
+            {pag.visibles.map((u) => (
               <tr key={u.id}>
                 <td className={`${td} font-semibold`}>{u.nombre}</td>
                 <td className={`${td} cifras`}>
@@ -242,6 +245,7 @@ export const Usuarios = () => {
           </tbody>
         </Tabla>
       ) : null}
+      <Paginacion etiqueta="Páginas de usuarios" {...pag.props} />
       <ContrasenaTemporal datos={temporal} alCerrar={() => setTemporal(null)} />
     </>
   );
@@ -273,6 +277,8 @@ export const Dispositivos = () => {
     mutationFn: (id: string) => api.post(`/admin/dispositivos/${id}/baja`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['dispositivos'] }),
   });
+  // Uno o dos celulares por persona: se pagina en el cliente.
+  const pag = usePaginaCliente(q.data?.dispositivos ?? []);
   return (
     <>
       <Encabezado titulo="Dispositivos" />
@@ -295,7 +301,7 @@ export const Dispositivos = () => {
             </tr>
           </thead>
           <tbody>
-            {q.data.dispositivos.map((d) => (
+            {pag.visibles.map((d) => (
               <tr key={d.id}>
                 <td className={`${td} font-semibold`}>{d.usuario_nombre}</td>
                 <td className={td}>
@@ -315,6 +321,7 @@ export const Dispositivos = () => {
           </tbody>
         </Tabla>
       ) : null}
+      <Paginacion etiqueta="Páginas de dispositivos" {...pag.props} />
     </>
   );
 };

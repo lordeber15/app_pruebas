@@ -1,5 +1,5 @@
-import { ETIQUETAS_REGLA, ETIQUETAS_TIPO_CONTROL } from '@campo/core';
-import { useQuery } from '@tanstack/react-query';
+import { ETIQUETAS_REGLA, ETIQUETAS_TIPO_CONTROL, LIMITE_PAGINA_POR_DEFECTO } from '@campo/core';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Link, useParams } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
 import {
@@ -13,6 +13,7 @@ import {
   type ResultadoReglaQa,
 } from '../api.ts';
 import { Mapa, type CapaMapa } from '../componentes/MapaDiferido.tsx';
+import { Paginacion, usePaginaCursor } from '../componentes/Paginacion.tsx';
 import {
   AvisoError,
   Campo,
@@ -111,12 +112,15 @@ export const Ejecuciones = () => {
     ...(estacion === '' ? {} : { estacion }),
     ...(estado === '' ? {} : { estado }),
   }).toString();
+  // Paginada por cursor en la API; cambiar un filtro vuelve a la primera página.
+  const pag = usePaginaCursor(consulta);
   const q = useQuery({
-    queryKey: ['ejecuciones', proyectoId, consulta],
+    queryKey: ['ejecuciones', proyectoId, consulta, pag.cursor ?? null],
     queryFn: () =>
-      api.get<{ ejecuciones: EjecucionFila[] }>(
-        `/proyectos/${proyectoId}/ejecuciones${consulta === '' ? '' : `?${consulta}`}`,
+      api.get<{ ejecuciones: EjecucionFila[]; siguiente_cursor: string | null }>(
+        `/proyectos/${proyectoId}/ejecuciones?limite=${String(LIMITE_PAGINA_POR_DEFECTO)}${consulta === '' ? '' : `&${consulta}`}${pag.parametro}`,
       ),
+    placeholderData: keepPreviousData,
   });
   const lista = q.data?.ejecuciones ?? [];
   const filtrado = consulta !== '';
@@ -267,6 +271,10 @@ export const Ejecuciones = () => {
           </tbody>
         </Tabla>
       ) : null}
+      <Paginacion
+        etiqueta="Páginas de ejecuciones"
+        {...pag.props(q.data?.siguiente_cursor, q.isPlaceholderData)}
+      />
     </>
   );
 };

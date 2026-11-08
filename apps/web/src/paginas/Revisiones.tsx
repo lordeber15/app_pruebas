@@ -1,4 +1,5 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { LIMITE_PAGINA_POR_DEFECTO } from '@campo/core';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, type Revision } from '../api.ts';
 import {
   AvisoError,
@@ -11,6 +12,7 @@ import {
   th,
   Vacio,
 } from '../componentes/Ui.tsx';
+import { Paginacion, usePaginaCursor } from '../componentes/Paginacion.tsx';
 import { useProyectoId } from './Proyectos.tsx';
 
 /** Por qué un dato quedó en revisión (motivos de la API, RN-13). */
@@ -30,9 +32,15 @@ const TIPO: Readonly<Record<string, string>> = {
 export const Revisiones = () => {
   const proyectoId = useProyectoId();
   const qc = useQueryClient();
+  // Paginada por cursor en la API (las más antiguas primero).
+  const pag = usePaginaCursor('');
   const q = useQuery({
-    queryKey: ['revisiones', proyectoId],
-    queryFn: () => api.get<{ revisiones: Revision[] }>(`/proyectos/${proyectoId}/revisiones`),
+    queryKey: ['revisiones', proyectoId, pag.cursor ?? null],
+    queryFn: () =>
+      api.get<{ revisiones: Revision[]; siguiente_cursor: string | null }>(
+        `/proyectos/${proyectoId}/revisiones?limite=${String(LIMITE_PAGINA_POR_DEFECTO)}${pag.parametro}`,
+      ),
+    placeholderData: keepPreviousData,
   });
   const resolver = useMutation({
     mutationFn: ({ id, decision }: { id: string; decision: 'elegido' | 'descartado' }) =>
@@ -49,7 +57,15 @@ export const Revisiones = () => {
       {q.isPending ? <Cargando que="las revisiones" /> : null}
       <AvisoError error={q.error ?? resolver.error} />
       {q.data?.revisiones.length === 0 ? (
-        <Vacio titulo="No hay datos pendientes de revisión" />
+        <Vacio
+          titulo={
+            pag.pagina === 1
+              ? 'No hay datos pendientes de revisión'
+              : 'Ya se resolvieron los datos de esta página'
+          }
+        >
+          {pag.pagina === 1 ? undefined : 'Vuelva a la página anterior para ver los pendientes.'}
+        </Vacio>
       ) : null}
       {q.data !== undefined && q.data.revisiones.length > 0 ? (
         <Tabla titulo="Datos en revisión">
@@ -98,6 +114,10 @@ export const Revisiones = () => {
           </tbody>
         </Tabla>
       ) : null}
+      <Paginacion
+        etiqueta="Páginas de datos en revisión"
+        {...pag.props(q.data?.siguiente_cursor, q.isPlaceholderData)}
+      />
     </>
   );
 };

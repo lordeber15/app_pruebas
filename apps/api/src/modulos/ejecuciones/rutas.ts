@@ -1,10 +1,11 @@
-import { ESTADOS_EJECUCION } from '@campo/core';
+import { consultaPaginaSchema, ESTADOS_EJECUCION } from '@campo/core';
 import type { Db } from '@campo/db';
 import type { FastifyPluginAsyncZod } from '@fastify/type-provider-zod';
 import type { FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import type { Auth } from '../../plataforma/auth.ts';
 import { noAutenticado } from '../../plataforma/errores.ts';
+import { decodificarCursor } from '../../plataforma/paginacion.ts';
 import { requiereSesion, type Actor } from '../../plataforma/sesion.ts';
 import { listarEjecuciones, verEjecucion } from './servicio.ts';
 
@@ -29,7 +30,7 @@ export const rutasEjecuciones: FastifyPluginAsyncZod<Opciones> = (app, { auth, d
     {
       schema: {
         params: conId,
-        querystring: z.object({
+        querystring: consultaPaginaSchema.extend({
           brigada: z.uuid().optional(),
           estacion: z.uuid().optional(),
           estado: z.enum(ESTADOS_EJECUCION).optional(),
@@ -38,13 +39,19 @@ export const rutasEjecuciones: FastifyPluginAsyncZod<Opciones> = (app, { auth, d
     },
     async (request) => {
       const q = request.query;
-      return {
-        ejecuciones: await listarEjecuciones(db, actor(request), request.params.id, {
+      const r = await listarEjecuciones(
+        db,
+        actor(request),
+        request.params.id,
+        {
           ...(q.brigada === undefined ? {} : { brigada: q.brigada }),
           ...(q.estacion === undefined ? {} : { estacion: q.estacion }),
           ...(q.estado === undefined ? {} : { estado: q.estado }),
-        }),
-      };
+        },
+        { limite: q.limite, cursor: decodificarCursor(q.cursor) },
+      );
+      // Paginada por cursor (orden abierta_en desc, id desc): `siguiente_cursor` nulo al final.
+      return { ejecuciones: r.filas, siguiente_cursor: r.siguiente_cursor };
     },
   );
 

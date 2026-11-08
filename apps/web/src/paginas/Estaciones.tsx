@@ -16,6 +16,7 @@ import {
   th,
   Vacio,
 } from '../componentes/Ui.tsx';
+import { Paginacion, usePaginaCliente } from '../componentes/Paginacion.tsx';
 import { puede, useYo } from '../sesion.ts';
 import { useProyectoId } from './Proyectos.tsx';
 
@@ -364,6 +365,8 @@ export const Estaciones = () => {
   // Diálogo: `undefined` cerrado, `null` estación nueva.
   const [editando, setEditando] = useState<Estacion | null | undefined>(undefined);
   const lista = est.data?.estaciones ?? [];
+  // El mapa muestra todas; solo la tabla se pagina en el cliente (catálogo acotado, ~100).
+  const pag = usePaginaCliente(lista);
   const porId = new Map((avance.data?.estaciones ?? []).map((a) => [a.id, a]));
 
   return (
@@ -427,7 +430,7 @@ export const Estaciones = () => {
               </tr>
             </thead>
             <tbody>
-              {lista.map((s) => {
+              {pag.visibles.map((s) => {
                 const a = porId.get(s.id);
                 return (
                   <tr key={s.id}>
@@ -478,6 +481,7 @@ export const Estaciones = () => {
               })}
             </tbody>
           </Tabla>
+          <Paginacion etiqueta="Páginas de estaciones" {...pag.props} />
         </div>
       ) : null}
     </>

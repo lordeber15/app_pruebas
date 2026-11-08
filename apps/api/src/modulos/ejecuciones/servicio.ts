@@ -22,6 +22,7 @@ export const listarEjecuciones = async (
   actor: Actor,
   proyectoId: string,
   filtro: repo.FiltroEjecuciones,
+  pag: repo.Pagina,
 ) => {
   const mapa = await brigadasVisibles(db, actor, proyectoId);
   const completas: string[] = [];
@@ -40,9 +41,15 @@ export const listarEjecuciones = async (
         .where('id', '=', proyectoId)
         .executeTakeFirst()) !== undefined;
     if (!existe) throw noEncontrado('El proyecto');
-    return [];
+    return { filas: [], siguiente_cursor: null };
   }
-  return repo.listar(db, proyectoId, { completas, propias, usuarioId: actor.usuarioId }, filtro);
+  return repo.listar(
+    db,
+    proyectoId,
+    { completas, propias, usuarioId: actor.usuarioId },
+    filtro,
+    pag,
+  );
 };
 
 export const verEjecucion = async (db: Db, actor: Actor, ejecucionId: string) => {

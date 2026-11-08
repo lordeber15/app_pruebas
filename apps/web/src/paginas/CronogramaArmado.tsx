@@ -20,6 +20,7 @@ import {
   th,
   Vacio,
 } from '../componentes/Ui.tsx';
+import { Paginacion, usePaginaCliente } from '../componentes/Paginacion.tsx';
 
 /**
  * Armar el trabajo desde la web (RF-W12, RN-35, RN-36): asignar una estación a una brigada en el
@@ -293,6 +294,8 @@ export const BorradorBase = ({
     onSuccess: () => qc.invalidateQueries(),
   });
   const filas = borrador.data?.filas ?? [];
+  // El borrador llega completo (lo necesita «Publicar»): la tabla se pagina en el cliente.
+  const pag = usePaginaCliente(filas);
   const enBorrador = new Set(filas.flatMap((f) => (f.estacion_id === null ? [] : [f.estacion_id])));
 
   return (
@@ -396,7 +399,7 @@ export const BorradorBase = ({
             </tr>
           </thead>
           <tbody>
-            {filas.map((f) => (
+            {pag.visibles.map((f) => (
               <tr key={f.id}>
                 <td className={`${td} cifras whitespace-nowrap`}>{fechaCorta(f.fecha)}</td>
                 <td className={td}>{f.brigada_codigo ?? f.brigada_nombre}</td>
@@ -419,6 +422,7 @@ export const BorradorBase = ({
           </tbody>
         </Tabla>
       ) : null}
+      <Paginacion etiqueta="Páginas del borrador" {...pag.props} />
       <div>
         <Boton
           ocupado={publicar.isPending}

@@ -22,3 +22,4 @@ export * from './contrasena.ts';
 export * from './configuracion/estacion.ts';
 export * from './fechas.ts';
 export * from './mapas.ts';
+export * from './paginacion.ts';

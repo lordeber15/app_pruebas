@@ -1,5 +1,6 @@
 import {
   CATEGORIAS_ALERTA_LOGISTICA,
+  consultaPaginaSchema,
   ESTADOS_ALERTA,
   TIPOS_ALERTA,
   TIPOS_ALERTA_REGISTRABLES,
@@ -10,6 +11,7 @@ import type { FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import type { Auth } from '../../plataforma/auth.ts';
 import { noAutenticado } from '../../plataforma/errores.ts';
+import { decodificarCursor } from '../../plataforma/paginacion.ts';
 import { requiereSesion, type Actor } from '../../plataforma/sesion.ts';
 import * as servicio from './servicio.ts';
 
@@ -46,20 +48,24 @@ export const rutasAlertas: FastifyPluginAsyncZod<Opciones> = (app, { auth, db })
     {
       schema: {
         params: conId,
-        querystring: z.object({
+        querystring: consultaPaginaSchema.extend({
           estado: z.enum(ESTADOS_ALERTA).optional(),
           tipo: z.enum(TIPOS_ALERTA).optional(),
           brigada: z.uuid().optional(),
         }),
       },
     },
-    async (request) => ({
-      alertas: await servicio.listarAlertas(db, actor(request), request.params.id, {
-        estado: request.query.estado,
-        tipo: request.query.tipo,
-        brigadaId: request.query.brigada,
-      }),
-    }),
+    async (request) => {
+      const q = request.query;
+      const r = await servicio.listarAlertas(
+        db,
+        actor(request),
+        request.params.id,
+        { estado: q.estado, tipo: q.tipo, brigadaId: q.brigada },
+        { limite: q.limite, cursor: decodificarCursor(q.cursor) },
+      );
+      return { alertas: r.filas, siguiente_cursor: r.siguiente_cursor };
+    },
   );
 
   app.post(
