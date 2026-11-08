@@ -21,6 +21,7 @@ import {
 import { leerPaquete, type EstacionPaquete } from '../src/campo.ts';
 import { useApp } from '../src/estado.ts';
 import { estiloNeutro, prepararMapaBase, type MapaBase } from '../src/mapa-base.ts';
+import { servidor } from '../src/sesion.ts';
 import { Aviso, BarraEstado, Boton, C, e, T } from '../src/ui.tsx';
 
 /**
@@ -170,7 +171,10 @@ export default function MapaEstaciones() {
           }
           const avances = await avancesDeEstacionesLocales(d.paquete);
           if (!sigue()) return;
-          setBase((b) => b ?? prepararMapaBase());
+          // Con señal, el mapa base del servidor sirve de respaldo al recorte local (bloque 8).
+          const url = conectado ? await servidor().catch(() => null) : null;
+          if (!sigue()) return;
+          setBase(prepararMapaBase(url));
           setEstado({ tipo: 'listo', estaciones: d.paquete.estaciones, avances });
           // Solo se consulta el permiso: el punto azul aparece si ya fue concedido.
           const permiso = await Location.getForegroundPermissionsAsync();
@@ -188,7 +192,7 @@ export default function MapaEstaciones() {
       return () => {
         c.vigente = false;
       };
-    }, [version, intento]),
+    }, [version, intento, conectado]),
   );
 
   const estaciones = estado.tipo === 'listo' ? estado.estaciones : null;
@@ -345,7 +349,7 @@ export default function MapaEstaciones() {
           </ScrollView>
           {sinFondo ? (
             <Text style={[T.suave, { paddingHorizontal: 10, paddingBottom: 8, fontSize: 13 }]}>
-              Mapa base no descargado: las estaciones se muestran sin fondo.
+              Sin mapa base: conéctese para verlo. Las estaciones se muestran igual.
             </Text>
           ) : null}
         </View>

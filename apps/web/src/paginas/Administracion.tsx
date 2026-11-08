@@ -66,8 +66,14 @@ export const Usuarios = () => {
   } | null>(null);
   const invalidar = () => qc.invalidateQueries({ queryKey: ['usuarios'] });
   const cambiar = useMutation({
-    mutationFn: ({ id, estado }: { id: string; estado: 'activo' | 'inactivo' }) =>
-      api.patch(`/admin/usuarios/${id}`, { estado }),
+    mutationFn: ({
+      id,
+      ...cambio
+    }: {
+      id: string;
+      estado?: 'activo' | 'inactivo';
+      rol_global?: Usuario['rol_global'];
+    }) => api.patch(`/admin/usuarios/${id}`, cambio),
     onSuccess: invalidar,
   });
   const restablecer = useMutation({
@@ -185,7 +191,29 @@ export const Usuarios = () => {
                 <td className={`${td} cifras`}>
                   {u.tipo_documento} {u.num_documento}
                 </td>
-                <td className={td}>{ROL[u.rol_global]}</td>
+                <td className={td}>
+                  {u.id === yo.data?.id ? (
+                    ROL[u.rol_global]
+                  ) : (
+                    <select
+                      aria-label={`Rol de ${u.nombre}`}
+                      value={u.rol_global}
+                      disabled={cambiar.isPending}
+                      onChange={(e) =>
+                        cambiar.mutate({
+                          id: u.id,
+                          rol_global: e.target.value as Usuario['rol_global'],
+                        })
+                      }
+                      className={claseEntrada}
+                    >
+                      <option value="ninguno">{ROL.ninguno}</option>
+                      <option value="coordinacion">{ROL.coordinacion}</option>
+                      <option value="jefe_proyecto">{ROL.jefe_proyecto}</option>
+                      <option value="admin">{ROL.admin}</option>
+                    </select>
+                  )}
+                </td>
                 <td className={td}>{u.estado === 'activo' ? 'Activo' : 'Inactivo'}</td>
                 <td className={td}>
                   {u.id === yo.data?.id ? (
