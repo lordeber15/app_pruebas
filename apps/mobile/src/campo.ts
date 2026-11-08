@@ -23,6 +23,8 @@ import { pedir } from './sesion.ts';
  * outbox (RNF-01); solo descargar el paquete necesita señal. La evaluación de reglas es la de core.
  */
 
+const json = <T>(s: string | null, defecto: T): T => (s === null ? defecto : (JSON.parse(s) as T));
+
 // ── Paquete ──────────────────────────────────────────────────────────────────────────────────
 
 export interface EstacionPaquete {
@@ -63,7 +65,13 @@ export interface MetodoPaquete {
 
 export interface Paquete {
   generado_en: string;
-  proyectos: { id: string; nombre: string; validacion_activa: boolean }[];
+  proyectos: {
+    id: string;
+    nombre: string;
+    validacion_activa: boolean;
+    /** RN-04 ampliada (2026-11-08); falta en paquetes descargados antes de la migración. */
+    fotos_minimas_ejecucion?: number;
+  }[];
   brigadas: {
     id: string;
     codigo: string | null;
@@ -393,42 +401,103 @@ export const nuevaUnidad = async (ejecucionId: string, tipo: TipoUnidad): Promis
   return id;
 };
 
-export interface CambioUnidad {
-  geometria?: GeometriaCapturada | null;
-  inicio?: string | null;
-  fin?: string | null;
-  estado?: 'abierta' | 'cerrada';
-  datos?: Record<string, unknown>;
-  registros?: Record<string, unknown>[];
-  unidad_vinculada_id?: string | null;
-  parametros?: string[];
+/** Estado editable de una unidad, ya interpretado desde SQLite. */
+export interface EstadoUnidadEditable {
+  geometria: GeometriaCapturada | null;
+  inicio: string | null;
+  fin: string | null;
+  estado: 'abierta' | 'cerrada';
+  datos: Record<string, unknown>;
+  registros: Record<string, unknown>[];
+  unidad_vinculada_id: string | null;
+  parametros: string[];
 }
 
-export const actualizarUnidad = async (id: string, c: CambioUnidad): Promise<void> => {
-  const u = await unidad(id);
-  if (u === null) return;
-  await ejecutar(
-    `UPDATE unidad_local SET geometria = ?, inicio = ?, fin = ?, estado = ?, datos = ?, registros = ?,
-       unidad_vinculada_id = ?, parametros = ?, actualizado_en = ? WHERE id = ?`,
-    [
+/**
+ * Cambio de una unidad. `datos` se **combina campo por campo** con lo guardado (dos campos
+ * editados seguidos nunca se pisan); lo demás reemplaza su valor. Si el cambio depende del
+ * estado (agregar un vértice o una fila), se pasa como función del estado vigente.
+ */
+export type CambioUnidad = Partial<EstadoUnidadEditable>;
+export type CambioUnidadEntrada = CambioUnidad | ((actual: EstadoUnidadEditable) => CambioUnidad);
+
+export const estadoEditable = (u: UnidadLocal): EstadoUnidadEditable => ({
+  geometria: json<GeometriaCapturada | null>(u.geometria, null),
+  inicio: u.inicio,
+  fin: u.fin,
+  estado: u.estado,
+  datos: json<Record<string, unknown>>(u.datos, {}),
+  registros: json<Record<string, unknown>[]>(u.registros, []),
+  unidad_vinculada_id: u.unidad_vinculada_id,
+  parametros: json<string[]>(u.parametros, []),
+});
+
+/** Aplica un cambio a la fila local; la pantalla y la escritura usan la misma regla. */
+export const aplicarCambioUnidad = (u: UnidadLocal, entrada: CambioUnidadEntrada): UnidadLocal => {
+  const actual = estadoEditable(u);
+  const c = typeof entrada === 'function' ? entrada(actual) : entrada;
+  return {
+    ...u,
+    geometria:
       c.geometria === undefined
         ? u.geometria
         : c.geometria === null
           ? null
           : JSON.stringify(c.geometria),
-      c.inicio === undefined ? u.inicio : c.inicio,
-      c.fin === undefined ? u.fin : c.fin,
-      c.estado ?? u.estado,
-      c.datos === undefined ? u.datos : JSON.stringify(c.datos),
-      c.registros === undefined ? u.registros : JSON.stringify(c.registros),
+    inicio: c.inicio === undefined ? u.inicio : c.inicio,
+    fin: c.fin === undefined ? u.fin : c.fin,
+    estado: c.estado ?? u.estado,
+    datos: c.datos === undefined ? u.datos : JSON.stringify({ ...actual.datos, ...c.datos }),
+    registros: c.registros === undefined ? u.registros : JSON.stringify(c.registros),
+    unidad_vinculada_id:
       c.unidad_vinculada_id === undefined ? u.unidad_vinculada_id : c.unidad_vinculada_id,
-      c.parametros === undefined ? u.parametros : JSON.stringify(c.parametros),
-      new Date().toISOString(),
-      id,
-    ],
-  );
-  await enviarUnidad(id);
+    parametros: c.parametros === undefined ? u.parametros : JSON.stringify(c.parametros),
+  };
 };
+
+/**
+ * Cola serial por clave: cada escritura lee lo guardado, aplica su cambio y escribe antes de que
+ * empiece la siguiente. Así dos guardados seguidos de la misma unidad no se intercalan.
+ */
+const colas = new Map<string, Promise<unknown>>();
+const enCola = <T>(clave: string, fn: () => Promise<T>): Promise<T> => {
+  const previa = colas.get(clave) ?? Promise.resolve();
+  const siguiente = previa.then(fn, fn);
+  const cola = siguiente.catch(() => undefined);
+  colas.set(clave, cola);
+  void cola.then(() => {
+    if (colas.get(clave) === cola) colas.delete(clave);
+  });
+  return siguiente;
+};
+
+export const actualizarUnidad = (id: string, c: CambioUnidadEntrada): Promise<void> =>
+  enCola(`unidad:${id}`, async () => {
+    const u = await unidad(id);
+    if (u === null) return;
+    const n = aplicarCambioUnidad(u, c);
+    await ejecutar(
+      `UPDATE unidad_local SET geometria = ?, inicio = ?, fin = ?, estado = ?, datos = ?, registros = ?,
+         unidad_vinculada_id = ?, parametros = ?, actualizado_en = ? WHERE id = ?`,
+      [
+        n.geometria,
+        n.inicio,
+        n.fin,
+        n.estado,
+        n.datos,
+        n.registros,
+        n.unidad_vinculada_id,
+        n.parametros,
+        new Date().toISOString(),
+        id,
+      ],
+    );
+    await enviarUnidad(id);
+  });
+
+/** Se resuelve cuando terminaron los guardados encolados de la unidad. */
+export const esperarUnidad = (id: string): Promise<void> =>
+  enCola(`unidad:${id}`, () => Promise.resolve());
 
 /** Valores de formulario aceptados por el contrato de eventos. */
 const limpiarDatos = (
@@ -548,7 +617,15 @@ export const cerrarTrack = async (unidadId: string): Promise<void> => {
 
 // ── Evaluación con el motor de core (RF-T04) ─────────────────────────────────────────────────
 
-const json = <T>(s: string | null, defecto: T): T => (s === null ? defecto : (JSON.parse(s) as T));
+/**
+ * Foto mínima por ejecución del proyecto (RN-04 ampliada, 2026-11-08). Un paquete anterior a la
+ * migración no la trae: se usa el valor por defecto de la BD (1) hasta volver a descargarlo, para
+ * que el celular no permita cerrar sin foto lo que la QA del servidor marcará como parcial.
+ */
+const FOTOS_MINIMAS_POR_DEFECTO = 1;
+export const fotosMinimasEjecucion = (p: Paquete, proyectoId: string): number =>
+  p.proyectos.find((x) => x.id === proyectoId)?.fotos_minimas_ejecucion ??
+  FOTOS_MINIMAS_POR_DEFECTO;
 
 export const evaluarLocal = async (
   p: Paquete,
@@ -631,6 +708,7 @@ export const evaluarLocal = async (
       id: v.id,
       metodo: codigoDe.get(v.metodo_id) ?? '',
     })),
+    proyecto: { fotos_minimas_ejecucion: fotosMinimasEjecucion(p, estacion.proyecto_id) },
   });
   return { evaluacion, metodo, estacion };
 };
@@ -646,6 +724,7 @@ export const unidadesVinculables = async (p: Paquete, estacionId: string, codigo
   );
 };
 
+/** Borrador del cierre; en cola por ejecución para que el último guardado sea el que queda. */
 export const guardarBorradorCierre = (
   ejecucionId: string,
   c: {
@@ -655,16 +734,18 @@ export const guardarBorradorCierre = (
     objetivo_campo: number | null;
   },
 ) =>
-  ejecutar(
-    'UPDATE ejecucion_local SET datos = ?, desviacion_tipo = ?, desviacion_explicacion = ?, confirmaciones = ?, objetivo_campo = ? WHERE id = ?',
-    [
-      JSON.stringify(c.datos),
-      c.desviacion.tipo,
-      c.desviacion.explicacion,
-      JSON.stringify(c.confirmaciones),
-      c.objetivo_campo,
-      ejecucionId,
-    ],
+  enCola(`ejecucion:${ejecucionId}`, () =>
+    ejecutar(
+      'UPDATE ejecucion_local SET datos = ?, desviacion_tipo = ?, desviacion_explicacion = ?, confirmaciones = ?, objetivo_campo = ? WHERE id = ?',
+      [
+        JSON.stringify(c.datos),
+        c.desviacion.tipo,
+        c.desviacion.explicacion,
+        JSON.stringify(c.confirmaciones),
+        c.objetivo_campo,
+        ejecucionId,
+      ],
+    ),
   );
 
 /**

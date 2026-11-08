@@ -34,6 +34,8 @@ const numDocumento = z
   .regex(/^[0-9A-Za-z]{4,20}$/);
 const rolGlobal = z.enum(VALORES_ROL_GLOBAL);
 const conId = z.object({ id });
+/** Fotos mínimas por ejecución: decisión del proyecto, además de las de D01. */
+const fotosMinimas = z.number().int().min(0).max(20);
 
 const actor = (request: FastifyRequest): Actor => {
   if (request.actor === null) throw noAutenticado();
@@ -93,6 +95,7 @@ export const rutasWeb: FastifyPluginAsyncZod<Opciones> = (app, { auth, db, firma
     subir_originales: z.boolean().default(false),
     dias_bloqueo: z.number().int().min(1).max(365).default(15),
     hora_cierre_jornada: hora.nullable().default(null),
+    fotos_minimas_ejecucion: fotosMinimas.default(1),
   });
 
   app.get('/proyectos', async (request) => ({
@@ -109,6 +112,7 @@ export const rutasWeb: FastifyPluginAsyncZod<Opciones> = (app, { auth, db, firma
       subirOriginales: b.subir_originales,
       diasBloqueo: b.dias_bloqueo,
       horaCierreJornada: b.hora_cierre_jornada,
+      fotosMinimasEjecucion: b.fotos_minimas_ejecucion,
     });
     return reply.status(201).send({ id: nuevo });
   });
@@ -124,6 +128,7 @@ export const rutasWeb: FastifyPluginAsyncZod<Opciones> = (app, { auth, db, firma
           dias_bloqueo: z.number().int().min(1).max(365).optional(),
           hora_cierre_jornada: hora.nullable().optional(),
           estado: z.enum(['activo', 'cerrado']).optional(),
+          fotos_minimas_ejecucion: fotosMinimas.optional(),
         }),
       },
     },
@@ -138,6 +143,9 @@ export const rutasWeb: FastifyPluginAsyncZod<Opciones> = (app, { auth, db, firma
           ? {}
           : { horaCierreJornada: b.hora_cierre_jornada }),
         ...(b.estado === undefined ? {} : { estado: b.estado }),
+        ...(b.fotos_minimas_ejecucion === undefined
+          ? {}
+          : { fotosMinimasEjecucion: b.fotos_minimas_ejecucion }),
       });
       return reply.status(204).send();
     },
@@ -219,9 +227,23 @@ export const rutasWeb: FastifyPluginAsyncZod<Opciones> = (app, { auth, db, firma
   // cronograma y reservas en una sola transacción.
   app.post(
     '/proyectos/:id/configuracion/toce',
-    { schema: { params: conId } },
+    {
+      schema: {
+        params: conId,
+        // Sin cuerpo: carga D01 y A01 con sus fechas originales.
+        body: z
+          .object({
+            fecha_inicio: z.iso.date().nullable().default(null),
+            incluir_a01: z.boolean().default(true),
+          })
+          .nullish(),
+      },
+    },
     async (request) => ({
-      resumen: await cargarConfiguracionToce(db, actor(request), request.params.id),
+      resumen: await cargarConfiguracionToce(db, actor(request), request.params.id, {
+        fechaInicio: request.body?.fecha_inicio ?? null,
+        incluirA01: request.body?.incluir_a01 ?? true,
+      }),
     }),
   );
   // ── Archivos ──

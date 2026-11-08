@@ -94,17 +94,22 @@ El dominio debe ser exactamente el de `preparar.sh`. Las URL firmadas de las fot
 
 ## Circuito de la demo
 
+Hay dos formas de armar el proyecto:
+
+- **Rápida (TOCE):** cree un proyecto nuevo y, en **Estaciones**, pulse **Cargar configuración TOCE** con la *fecha de inicio* de hoy. Todas las fechas de A01 se corren para empezar ese día, así hay estaciones programadas para hoy. En un proyecto que ya tenía cronograma las fechas no se corren: cree uno nuevo.
+- **Desde cero:** cargue solo D01 (desmarque «Cargar también A01»), agregue estaciones con **Agregar estación** (código, zona UTM, Este, Norte, región, UV, AID/AII, ZA/EF), cree brigadas y, en **Cronograma**, arme el borrador asignando estación, brigada y fecha; luego **Publicar cronograma base**.
+
 1. **Usuarios**: cree a los especialistas (rol *Personal de campo*). Cada alta muestra su contraseña temporal una sola vez; la persona crea la suya en su primer ingreso, en la web o en el celular.
-2. **Proyectos → TOCE → Brigadas**: agregue a cada especialista a su brigada, por ejemplo SELVA 2, con el rol *Especialista* o *Supervisor de campo*. El *Jefe de Brigada* es el rol logístico y no ejecuta métodos.
-3. **Proyectos → TOCE → Estaciones**: revise las estaciones de A01 con sus atributos (región, UV, AID/AII, ZA/EF) en el mapa y en la tabla.
-4. En el celular: instale el APK, escriba `https://demo.suempresa.pe` como servidor e ingrese con el especialista. La app descarga el paquete de campo de su brigada.
-5. En el celular, siga el flujo **Estación → Especialidad → Método → Unidad → Ejecución**: vea lo que D01 exige al iniciar el método, registre unidades con su geometría, fotos de contexto y datos, y use **Revisar y cerrar**. Funciona sin señal; sincronice al volver.
-6. En la web, **Ejecuciones**: unos segundos después de sincronizar, el worker revisa cada ejecución contra lo obligatorio de D01 y la deja *completa* o *parcial*. El detalle muestra en el mapa las geometrías y tracks, el resultado regla por regla con su tipo de control y las fotos.
-7. **Alertas**: cada regla obligatoria incumplida genera una alerta post-sincronización. Desde el celular (**Registrar alerta**, también sin señal) el especialista registra alertas técnicas y el Jefe de Brigada, logísticas. En la web, Coordinación y JdP consultan, cierran o reabren; la brigada responde o complementa.
-8. **Seguimiento**: avance por brigada × estación × método (ejecutado sobre objetivo, sumando el esfuerzo de todos). Lo que no se sincronizó aparece «Sin datos sincronizados», nunca como 0 %, junto con la última sincronización.
-9. **Cronograma**: compare el *base* con el *vigente*. Coordinación selecciona filas, propone una nueva fecha o brigada con un motivo y el JdP aprueba, rechaza o pide ajuste. Al aprobar nace una versión vigente nueva y las reservas se mueven: el celular de la brigada las recibe al sincronizar.
-10. **Galería**: fotos verificadas con filtros; marque candidatas y, Coordinación o JdP, seleccione las del reporte del día. El reporte diario en sí espera la plantilla del cliente (P-13).
-11. **Revisiones** muestra lo que llegó tarde a una ejecución ya cerrada para conservarlo o descartarlo.
+2. **Brigadas**: agregue a cada especialista a su brigada con el rol *Especialista* o *Supervisor de campo*. El *Jefe de Brigada* es el rol logístico y no ejecuta métodos.
+3. **Estaciones**: tabla y mapa con el estado de cada estación (sin iniciar, sin datos, en curso, completa, con incumplimiento, reprogramada) y su avance «métodos completos de aplicables». **Ajustes del proyecto** fija las *fotos mínimas por ejecución* (1 por defecto).
+4. **Cronograma → Asignar estación**: elija estación, brigada y fecha. Coordinación lo envía como solicitud y el JdP lo aprueba; el JdP también puede **Aplicar ahora**. Al aprobar nace una versión vigente nueva y las reservas pasan al celular de la brigada en su próxima sincronización. El base nunca cambia.
+5. En el celular: instale el APK, escriba `https://demo.suempresa.pe` como servidor e ingrese con el especialista. La app descarga el paquete de su brigada; la lista de estaciones muestra el avance y **Mapa de estaciones** su estado.
+6. En el celular, siga **Estación → Especialidad → Método → Unidad → Ejecución**: registre unidades con geometría, datos y fotos. Cada foto sale con un sello de coordenadas, fecha y hora, estación, método y unidad. Ninguna ejecución se cierra sin sus fotos (las de D01 y al menos la mínima del proyecto) salvo declarando una desviación. Funciona sin señal; sincronice al volver.
+7. **Ejecuciones**: el worker revisa cada ejecución contra lo obligatorio y la deja *completa* o *parcial*; el detalle muestra geometrías, tracks, el resultado regla por regla y las fotos.
+8. **Alertas**: cada regla obligatoria incumplida genera una alerta post-sincronización; desde el celular se registran alertas técnicas y logísticas, también sin señal. En la web, Coordinación y JdP consultan, cierran o reabren.
+9. **Seguimiento**: avance por brigada × estación × método y mapa de estado. Lo no sincronizado aparece «Sin datos sincronizados», nunca como 0 %.
+10. **Galería**: fotos verificadas; marque candidatas y seleccione las del reporte del día (el reporte espera la plantilla del cliente, P-13).
+11. **Revisiones**: lo que llegó tarde a una ejecución ya cerrada.
 
 ## Actualizar una demo existente
 

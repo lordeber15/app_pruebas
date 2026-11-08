@@ -269,6 +269,19 @@ export interface Propuesta {
   readonly alertaId: string | null;
 }
 
+const validarAlerta = async (db: Db, proyectoId: string, alertaId: string | null) => {
+  if (alertaId === null) return;
+  const alerta = await db
+    .selectFrom('alerta')
+    .select('id')
+    .where('id', '=', alertaId)
+    .where('proyecto_id', '=', proyectoId)
+    .executeTakeFirst();
+  if (alerta === undefined) {
+    throw new ProblemaHttp(400, 'ALERTA_INVALIDA', 'La alerta indicada no es del proyecto.');
+  }
+};
+
 export const proponerCambio = async (
   db: Db,
   actor: Actor,
@@ -281,24 +294,24 @@ export const proponerCambio = async (
   const vigente = campania === undefined ? undefined : await vigenteDe(db, campania.id);
   if (campania === undefined || vigente === undefined) throw sinCronograma();
   await validarCambios(db, proyectoId, await itemsDeVersion(db, vigente.id), p.cambios);
-  if (p.alertaId !== null) {
-    const alerta = await db
-      .selectFrom('alerta')
-      .select('id')
-      .where('id', '=', p.alertaId)
-      .where('proyecto_id', '=', proyectoId)
-      .executeTakeFirst();
-    if (alerta === undefined) {
-      throw new ProblemaHttp(400, 'ALERTA_INVALIDA', 'La alerta indicada no es del proyecto.');
-    }
-  }
+  await validarAlerta(db, proyectoId, p.alertaId);
+  return insertarSolicitud(db, actor, campania.id, vigente.id, p);
+};
+
+const insertarSolicitud = async (
+  db: Tx,
+  actor: Actor,
+  campaniaId: string,
+  versionBaseId: string,
+  p: Propuesta,
+): Promise<string> => {
   const id = generarId();
   await db
     .insertInto('solicitud_cronograma')
     .values({
       id,
-      campania_id: campania.id,
-      version_base_id: vigente.id,
+      campania_id: campaniaId,
+      version_base_id: versionBaseId,
       propuesto_por: actor.usuarioId,
       motivo: p.motivo,
       cambios: JSON.stringify(p.cambios),
@@ -488,112 +501,122 @@ const bloquearYTransicionar = async (
 export const aprobarSolicitud = async (db: Db, actor: Actor, solicitudId: string) => {
   const sol = await cargarSolicitud(db, solicitudId);
   exigirGlobal(actor, 'aprobar_cronograma');
-  return db.transaction().execute(async (tx) => {
-    const s = await bloquearYTransicionar(tx, solicitudId, { tipo: 'aprobar' });
-    const vigente = await tx
-      .selectFrom('cronograma_version')
-      .select(['id', 'numero'])
-      .where('campania_id', '=', s.campania_id)
-      .where('estado', '=', 'vigente')
-      .forUpdate()
-      .executeTakeFirst();
-    if (vigente === undefined) throw sinCronograma();
-    const items = await itemsDeVersion(tx, vigente.id);
-    let cambios = cambiosGuardados.parse(s.cambios);
-    if (s.version_base_id !== vigente.id) {
-      const linajeDe = new Map(
-        (await itemsDeVersion(tx, s.version_base_id)).map((i) => [i.id, i.linaje_id]),
-      );
-      const enVigente = new Map(items.map((i) => [i.linaje_id, i.id]));
-      cambios = cambios.map((c) => {
-        if (c.tipo === 'agregar') return c;
-        const linaje = linajeDe.get(c.item_id);
-        const actual = linaje === undefined ? undefined : enVigente.get(linaje);
-        if (actual === undefined) {
-          throw new ProblemaHttp(
-            409,
-            'CAMBIO_DESACTUALIZADO',
-            'Una fila de la propuesta ya no está en el cronograma vigente. Pida un ajuste.',
-          );
-        }
-        return { ...c, item_id: actual };
-      });
-    }
-    const despues = await validarCambios(tx, sol.proyecto_id, items, cambios);
-    // RN-35: ninguna fila desaparece. Por construcción no ocurre; si ocurriera, nada se guarda.
-    if (impactoCronograma(items, despues).items_desaparecidos.length > 0) {
-      throw new Error('RN-35: la versión nueva perdería filas del cronograma');
-    }
+  return db
+    .transaction()
+    .execute(async (tx) => aprobarEnTransaccion(tx, actor, solicitudId, sol.proyecto_id));
+};
 
-    const anterior = new Map(items.map((i) => [i.id, i]));
-    let orden = Math.max(0, ...items.map((i) => i.orden));
-    const nuevaId = generarId();
-    const numero = vigente.numero + 1;
-    await tx
-      .updateTable('cronograma_version')
-      .set({ estado: 'historica', actualizado_por: actor.usuarioId })
-      .where('id', '=', vigente.id)
-      .execute();
-    await tx
-      .insertInto('cronograma_version')
-      .values({
-        id: nuevaId,
-        campania_id: s.campania_id,
-        numero,
-        estado: 'vigente',
-        es_base: false,
-        solicitud_id: s.id,
-        aprobado_por: actor.usuarioId,
-        aprobado_en: new Date(),
-        creado_por: actor.usuarioId,
-        actualizado_por: actor.usuarioId,
-      })
-      .execute();
-    const filas = despues.map((i) => {
-      const previo = anterior.get(i.id);
-      const id = generarId();
-      return {
-        id,
-        version_id: nuevaId,
-        linaje_id: previo?.linaje_id ?? id,
-        brigada_id: i.brigada_id,
-        fecha: i.fecha,
-        tipo_actividad: i.tipo_actividad,
-        estacion_id: i.estacion_id,
-        detalle: i.detalle,
-        estado_fila: i.estado_fila,
-        actividad_especial: i.actividad_especial,
-        orden: previo?.orden ?? ++orden,
-        creado_por: actor.usuarioId,
-        actualizado_por: actor.usuarioId,
-      };
+/** Aprobación dentro de una transacción abierta (la usan aprobar y «Aplicar ahora»). */
+const aprobarEnTransaccion = async (
+  tx: Tx,
+  actor: Actor,
+  solicitudId: string,
+  proyectoId: string,
+) => {
+  const s = await bloquearYTransicionar(tx, solicitudId, { tipo: 'aprobar' });
+  const vigente = await tx
+    .selectFrom('cronograma_version')
+    .select(['id', 'numero'])
+    .where('campania_id', '=', s.campania_id)
+    .where('estado', '=', 'vigente')
+    .forUpdate()
+    .executeTakeFirst();
+  if (vigente === undefined) throw sinCronograma();
+  const items = await itemsDeVersion(tx, vigente.id);
+  let cambios = cambiosGuardados.parse(s.cambios);
+  if (s.version_base_id !== vigente.id) {
+    const linajeDe = new Map(
+      (await itemsDeVersion(tx, s.version_base_id)).map((i) => [i.id, i.linaje_id]),
+    );
+    const enVigente = new Map(items.map((i) => [i.linaje_id, i.id]));
+    cambios = cambios.map((c) => {
+      if (c.tipo === 'agregar') return c;
+      const linaje = linajeDe.get(c.item_id);
+      const actual = linaje === undefined ? undefined : enVigente.get(linaje);
+      if (actual === undefined) {
+        throw new ProblemaHttp(
+          409,
+          'CAMBIO_DESACTUALIZADO',
+          'Una fila de la propuesta ya no está en el cronograma vigente. Pida un ajuste.',
+        );
+      }
+      return { ...c, item_id: actual };
     });
-    for (let i = 0; i < filas.length; i += 500) {
-      await tx
-        .insertInto('cronograma_item')
-        .values(filas.slice(i, i + 500))
-        .execute();
-    }
-    const reservas = await reubicarReservas(tx as unknown as Kysely<unknown>, {
-      proyectoId: sol.proyecto_id,
-      versionAnteriorId: vigente.id,
-      versionNuevaId: nuevaId,
-      usuarioId: actor.usuarioId,
-    });
-    await tx
-      .updateTable('solicitud_cronograma')
-      .set({
-        estado: s.nuevo,
-        version_base_id: vigente.id,
-        cambios: JSON.stringify(cambios),
-        decidido_por: actor.usuarioId,
-        decidido_en: new Date(),
-        actualizado_por: actor.usuarioId,
-      })
-      .where('id', '=', s.id)
-      .execute();
-    return { version_id: nuevaId, numero, reservas_reubicadas: reservas };
+  }
+  const despues = await validarCambios(tx, proyectoId, items, cambios);
+  // RN-35: ninguna fila desaparece. Por construcción no ocurre; si ocurriera, nada se guarda.
+  if (impactoCronograma(items, despues).items_desaparecidos.length > 0) {
+    throw new Error('RN-35: la versión nueva perdería filas del cronograma');
+  }
+
+  const anterior = new Map(items.map((i) => [i.id, i]));
+  let orden = Math.max(0, ...items.map((i) => i.orden));
+  const nuevaId = generarId();
+  const numero = vigente.numero + 1;
+  await tx
+    .updateTable('cronograma_version')
+    .set({ estado: 'historica', actualizado_por: actor.usuarioId })
+    .where('id', '=', vigente.id)
+    .execute();
+  await tx
+    .insertInto('cronograma_version')
+    .values({
+      id: nuevaId,
+      campania_id: s.campania_id,
+      numero,
+      estado: 'vigente',
+      es_base: false,
+      solicitud_id: s.id,
+      aprobado_por: actor.usuarioId,
+      aprobado_en: new Date(),
+      creado_por: actor.usuarioId,
+      actualizado_por: actor.usuarioId,
+    })
+    .execute();
+  const filas = despues.map((i) => {
+    const previo = anterior.get(i.id);
+    const id = generarId();
+    return {
+      id,
+      version_id: nuevaId,
+      linaje_id: previo?.linaje_id ?? id,
+      brigada_id: i.brigada_id,
+      fecha: i.fecha,
+      tipo_actividad: i.tipo_actividad,
+      estacion_id: i.estacion_id,
+      detalle: i.detalle,
+      estado_fila: i.estado_fila,
+      actividad_especial: i.actividad_especial,
+      orden: previo?.orden ?? ++orden,
+      creado_por: actor.usuarioId,
+      actualizado_por: actor.usuarioId,
+    };
   });
+  for (let i = 0; i < filas.length; i += 500) {
+    await tx
+      .insertInto('cronograma_item')
+      .values(filas.slice(i, i + 500))
+      .execute();
+  }
+  const reservas = await reubicarReservas(tx as unknown as Kysely<unknown>, {
+    proyectoId: proyectoId,
+    versionAnteriorId: vigente.id,
+    versionNuevaId: nuevaId,
+    usuarioId: actor.usuarioId,
+  });
+  await tx
+    .updateTable('solicitud_cronograma')
+    .set({
+      estado: s.nuevo,
+      version_base_id: vigente.id,
+      cambios: JSON.stringify(cambios),
+      decidido_por: actor.usuarioId,
+      decidido_en: new Date(),
+      actualizado_por: actor.usuarioId,
+    })
+    .where('id', '=', s.id)
+    .execute();
+  return { version_id: nuevaId, numero, reservas_reubicadas: reservas };
 };
 
 /** Rechazo o pedido de ajuste (solo JdP), con comentario obligatorio. */
@@ -646,5 +669,26 @@ export const ajustarSolicitud = async (
       })
       .where('id', '=', s.id)
       .execute();
+  });
+};
+
+/**
+ * «Aplicar ahora» del Jefe de Proyecto: crea la solicitud y la aprueba en una sola transacción.
+ * Queda registrada como solicitud + aprobación (RN-36: la aprueba el JdP, el único que puede).
+ */
+export const aplicarAhora = async (db: Db, actor: Actor, proyectoId: string, p: Propuesta) => {
+  exigirGlobal(actor, 'aprobar_cronograma');
+  if (!(await existeProyecto(db, proyectoId))) throw noEncontrado('El proyecto');
+  return db.transaction().execute(async (tx) => {
+    const campania = await campaniaDe(tx, proyectoId);
+    const vigente = campania === undefined ? undefined : await vigenteDe(tx, campania.id);
+    if (campania === undefined || vigente === undefined) throw sinCronograma();
+    await validarCambios(tx, proyectoId, await itemsDeVersion(tx, vigente.id), p.cambios);
+    await validarAlerta(tx, proyectoId, p.alertaId);
+    const solicitudId = await insertarSolicitud(tx, actor, campania.id, vigente.id, p);
+    return {
+      solicitud_id: solicitudId,
+      ...(await aprobarEnTransaccion(tx, actor, solicitudId, proyectoId)),
+    };
   });
 };

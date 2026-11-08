@@ -13,8 +13,18 @@ export const crearPool = (url: string, maxConexiones = 10): pg.Pool =>
 export const crearDb = (pool: pg.Pool): Db =>
   new Kysely<DB>({ dialect: new PostgresDialect({ pool }) });
 export {
+  asignarReservasSinFila,
+  crearCronogramaBase,
   elegirItemParaMetodo,
   METODOS_POR_ACTIVIDAD_ESPECIAL,
   reubicarReservas,
+  type FilaCronogramaBase,
   type ItemParaReserva,
 } from './cronograma.ts';
+export {
+  derivarAplicabilidad,
+  geomDesdeUtm,
+  sincronizarReservas,
+  versionVigenteDe,
+  type ResultadoMatriz,
+} from './estaciones.ts';

@@ -11,6 +11,8 @@ import {
   type EstacionDelDia,
   type Paquete,
 } from '../src/campo.ts';
+import { avancesDeEstacionesLocales, type AvanceEstacionLocal } from '../src/avance.ts';
+import { ResumenAvanceEstacion } from '../src/avance-vista.tsx';
 import { useApp } from '../src/estado.ts';
 import { CLAVES, llavero } from '../src/plataforma.ts';
 import { ErrorServidor } from '../src/sesion.ts';
@@ -41,9 +43,11 @@ const FORMATO_HORA = new Intl.DateTimeFormat('es-PE', {
 const FilaEstacion = ({
   item,
   resumen,
+  avance,
 }: {
   item: EstacionDelDia;
   resumen: { en_curso: number; cerradas: number } | undefined;
+  avance: AvanceEstacionLocal | undefined;
 }) => {
   const est = item.estacion;
   return (
@@ -82,6 +86,7 @@ const FilaEstacion = ({
           .filter((x) => x !== null && x !== '')
           .join(' · ')}
       </Text>
+      {avance === undefined ? null : <ResumenAvanceEstacion avance={avance} compacto />}
     </Fila>
   );
 };
@@ -94,6 +99,7 @@ export default function Inicio() {
   const [resumen, setResumen] = useState<Map<string, { en_curso: number; cerradas: number }>>(
     new Map(),
   );
+  const [avances, setAvances] = useState<Map<string, AvanceEstacionLocal>>(new Map());
   const [jornada, setJornada] = useState<{ id: string } | null>(null);
   const [descargando, setDescargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -112,7 +118,9 @@ export default function Inicio() {
       setRuta('/desbloquear');
       return;
     }
-    setDatos(await leerPaquete());
+    const paquete = await leerPaquete();
+    setDatos(paquete);
+    setAvances(paquete === null ? new Map() : await avancesDeEstacionesLocales(paquete.paquete));
     setResumen(new Map((await resumenPorEstacion()).map((r) => [r.estacion_id, r])));
     setJornada(await jornadaAbierta());
     setRuta('lista');
@@ -200,11 +208,18 @@ export default function Inicio() {
             </View>
 
             {agenda !== null && agenda.deHoy.length > 0 ? (
-              <Grupo titulo="Estaciones de hoy">
+              <Grupo
+                titulo="Estaciones de hoy"
+                nota="El avance es según lo registrado en este celular."
+              >
                 {agenda.deHoy.map((it, i) => (
                   <View key={it.estacion.id}>
                     {i > 0 ? <Separador /> : null}
-                    <FilaEstacion item={it} resumen={resumen.get(it.estacion.id)} />
+                    <FilaEstacion
+                      item={it}
+                      resumen={resumen.get(it.estacion.id)}
+                      avance={avances.get(it.estacion.id)}
+                    />
                   </View>
                 ))}
               </Grupo>
@@ -220,7 +235,11 @@ export default function Inicio() {
                 {d.items.map((it, i) => (
                   <View key={it.estacion.id}>
                     {i > 0 ? <Separador /> : null}
-                    <FilaEstacion item={it} resumen={resumen.get(it.estacion.id)} />
+                    <FilaEstacion
+                      item={it}
+                      resumen={resumen.get(it.estacion.id)}
+                      avance={avances.get(it.estacion.id)}
+                    />
                   </View>
                 ))}
               </Grupo>
@@ -233,7 +252,11 @@ export default function Inicio() {
                     {d.items.map((it, i) => (
                       <View key={it.estacion.id}>
                         {i > 0 ? <Separador /> : null}
-                        <FilaEstacion item={it} resumen={resumen.get(it.estacion.id)} />
+                        <FilaEstacion
+                          item={it}
+                          resumen={resumen.get(it.estacion.id)}
+                          avance={avances.get(it.estacion.id)}
+                        />
                       </View>
                     ))}
                   </Grupo>
@@ -267,6 +290,11 @@ export default function Inicio() {
                   }
                 />
               </View>
+              <Boton
+                variante="secundario"
+                texto="Mapa de estaciones"
+                alPresionar={() => router.push('/mapa')}
+              />
               <Boton
                 variante="secundario"
                 texto="Registrar alerta"

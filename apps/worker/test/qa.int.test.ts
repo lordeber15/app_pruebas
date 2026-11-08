@@ -121,7 +121,14 @@ beforeAll(async () => {
     .execute();
   await admin
     .insertInto('proyecto')
-    .values({ id: proyectoId, nombre: 'Proyecto sintético', validacion_activa: false })
+    // Las pruebas de D01 aíslan sus reglas: la foto mínima del proyecto (RN-04 ampliada) se
+    // activa solo en su propio bloque.
+    .values({
+      id: proyectoId,
+      nombre: 'Proyecto sintético',
+      validacion_activa: false,
+      fotos_minimas_ejecucion: 0,
+    })
     .execute();
   await admin
     .insertInto('brigada')
@@ -383,6 +390,62 @@ describe('QA post-sincronización (RN-05, RN-31, RF-T04)', () => {
     });
     expect((await ejecucion(id)).estado).toBe('evidencia_pendiente');
   });
+});
+
+describe('RN-04 ampliada (decisión 2026-11-08): foto mínima por ejecución en la QA', () => {
+  const conMinimo = async (n: number, prueba: () => Promise<void>) => {
+    await admin
+      .updateTable('proyecto')
+      .set({ fotos_minimas_ejecucion: n })
+      .where('id', '=', proyectoId)
+      .execute();
+    try {
+      await prueba();
+    } finally {
+      await admin
+        .updateTable('proyecto')
+        .set({ fotos_minimas_ejecucion: 0 })
+        .where('id', '=', proyectoId)
+        .execute();
+    }
+  };
+
+  it('RN-04 ampliada: una ejecución sin fotos queda parcial con alerta post_sincronizacion foto_ejecucion', () =>
+    conMinimo(1, async () => {
+      // Sin unidades ni fotos (como un EVENTO cerrado sin foto).
+      const id = await ejecucionCerrada([]);
+      const r = await evaluarEjecucionQa(db, id);
+      expect(r).toMatchObject({ accion: 'evaluada', estado: 'parcial' });
+      expect((await ejecucion(id)).estado).toBe('parcial');
+      const qa = (await ejecucion(id)).resultado_qa as unknown as EvaluacionEjecucion;
+      expect(qa.resultados.find((x) => x.regla === 'foto_ejecucion')).toMatchObject({
+        estado: 'incumple',
+        tipo_control: 'obligatorio',
+        esperado: 1,
+        obtenido: 0,
+      });
+      const a = (await alertas(id)).find(
+        (x) => x.clave_dedup === claveAlertaQa('foto_ejecucion', id, '2026-12-02'),
+      );
+      expect(a).toMatchObject({
+        tipo: 'post_sincronizacion',
+        origen: 'sistema',
+        estado: 'abierta',
+      });
+      expect(a?.titulo).toContain('Foto mínima de la ejecución');
+    }));
+
+  it('RN-04 ampliada: con una foto verificada la regla del proyecto se cumple', () =>
+    conMinimo(1, async () => {
+      const id = await ejecucionCerrada([{ fotos: 1 }]);
+      expect(await evaluarEjecucionQa(db, id)).toMatchObject({
+        accion: 'evaluada',
+        estado: 'completa',
+        incumplimientos: 0,
+      });
+      const qa = (await ejecucion(id)).resultado_qa as unknown as EvaluacionEjecucion;
+      expect(qa.resultados.find((x) => x.regla === 'foto_ejecucion')?.estado).toBe('cumple');
+    }));
 });
 
 describe('cola con pg-boss', () => {

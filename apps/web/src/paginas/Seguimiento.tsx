@@ -1,6 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { api, type BrigadaSeguimiento, type FilaSeguimiento } from '../api.ts';
+import {
+  api,
+  type AvanceEstaciones,
+  type BrigadaSeguimiento,
+  type FilaSeguimiento,
+} from '../api.ts';
+import { MapaAvance } from '../componentes/AvanceEstaciones.tsx';
 import {
   AvisoError,
   Campo,
@@ -183,6 +189,11 @@ export const Seguimiento = () => {
       ),
     refetchInterval: 60_000,
   });
+  const avance = useQuery({
+    queryKey: ['avance-estaciones', proyectoId],
+    queryFn: () => api.get<AvanceEstaciones>(`/proyectos/${proyectoId}/estaciones/avance`),
+    refetchInterval: 60_000,
+  });
   const lista = todas.data?.brigadas ?? [];
   const visibles = brigada === '' ? lista : lista.filter((b) => b.id === brigada);
 
@@ -192,9 +203,23 @@ export const Seguimiento = () => {
       <p className="-mt-3 mb-4 max-w-prose text-sm text-tinta-suave">
         Avance elemental por método: esfuerzo ejecutado (suma de las ejecuciones de cada
         especialista) frente al objetivo aplicable de D01. La web solo muestra lo recibido por el
-        servidor: «sin datos sincronizados» no significa 0 % ni incumplimiento. El avance agregado
-        por estación o brigada está pendiente de definir (P-11) y no se calcula.
+        servidor: «sin datos sincronizados» no significa 0 % ni incumplimiento. El avance de una
+        estación es la cantidad de métodos completos sobre los aplicables; el agregado por brigada
+        está pendiente de definir (P-11) y no se calcula.
       </p>
+      <AvisoError error={avance.error} />
+      {avance.data !== undefined && avance.data.estaciones.length > 0 ? (
+        <div className="mb-6">
+          <MapaAvance
+            estaciones={
+              brigada === ''
+                ? avance.data.estaciones
+                : avance.data.estaciones.filter((s) => s.brigada_id === brigada)
+            }
+            alto="20rem"
+          />
+        </div>
+      ) : null}
       {todas.isPending ? <Cargando que="el seguimiento" /> : null}
       <AvisoError error={todas.error} />
       {todas.data !== undefined && lista.length === 0 ? (

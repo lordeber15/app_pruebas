@@ -1,5 +1,6 @@
 import {
   contarPorClase,
+  diasEntre,
   ESTADOS_ALERTA,
   ESTADOS_EJECUCION,
   ESTADOS_FILA_CRONOGRAMA,
@@ -10,7 +11,12 @@ import { Kysely, PostgresDialect, sql } from 'kysely';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { iniciarBaseDePrueba, type BaseDePrueba } from '../src/pruebas.ts';
-import { cargarToce, leerSemillaD01, type ResumenCargaToce } from '../src/semillas/toce.ts';
+import {
+  cargarToce,
+  leerSemillaA01,
+  leerSemillaD01,
+  type ResumenCargaToce,
+} from '../src/semillas/toce.ts';
 
 const PROY = '0192f0c8-0000-7000-8000-000000000010';
 
@@ -287,7 +293,8 @@ describe('carga TOCE (A01 + D01)', () => {
     );
     const otra = await cargarToce(db, { proyectoId: PROY });
     expect(otra.configuracion_numero).toBe(1);
-    expect(otra.reservas).toBe(0);
+    // Lo único nuevo es la reserva del método que la web habilitó nominalmente.
+    expect(otra.reservas).toBe(1);
     expect(
       await n(
         sql<{
@@ -321,5 +328,55 @@ describe('carga TOCE (A01 + D01)', () => {
     const def = rows[0]?.def ?? '';
     const enBd = [...def.matchAll(/'([a-z_]+)'::text/g)].map((m) => m[1]).sort();
     expect(enBd).toEqual([...valores].sort());
+  });
+});
+
+describe('demo con fechas cercanas (fecha de inicio de A01)', () => {
+  const PROY2 = '0192f0c8-0000-7000-8000-000000000011';
+  const PROY3 = '0192f0c8-0000-7000-8000-000000000012';
+
+  it('RN-35 corre todas las fechas de A01 al crear el base y conserva los huecos', async () => {
+    await sql`INSERT INTO app.proyecto (id, nombre, validacion_activa) VALUES (${PROY2}, 'TOCE demo', false)`.execute(
+      db,
+    );
+    const a01 = await leerSemillaA01();
+    const fechas = a01.programacion.map((p) => p.fecha).sort();
+    const primera = fechas[0] ?? '';
+    const r = await cargarToce(db, { proyectoId: PROY2, fechaInicio: '2026-11-08' });
+    expect(r.fechas_corridas_dias).toBe(diasEntre(primera, '2026-11-08'));
+    expect(r.cronograma_desde).toBe('2026-11-08');
+    expect(diasEntre(r.cronograma_desde ?? '', r.cronograma_hasta ?? '')).toBe(
+      diasEntre(primera, fechas.at(-1) ?? ''),
+    );
+    // La misma reserva de referencia (EM-52 epífitas, 13-dic en A01) se corre igual.
+    const t = await uno(sql<{ fecha: string }>`
+      SELECT to_char(t.fecha_programada, 'YYYY-MM-DD') AS fecha
+        FROM app.reserva t JOIN app.estacion e ON e.id = t.estacion_id JOIN app.metodo m ON m.id = t.metodo_id
+       WHERE e.proyecto_id = ${PROY2} AND e.codigo = 'EM-52' AND m.codigo = 'epifitas.vasculares'`);
+    expect(diasEntre('2026-12-13', t.fecha)).toBe(r.fechas_corridas_dias);
+    const c = await uno(sql<{ desde: string }>`
+      SELECT to_char(fecha_inicio, 'YYYY-MM-DD') AS desde FROM app.campania WHERE proyecto_id = ${PROY2}`);
+    expect(c.desde).toBe('2026-11-08');
+
+    // Con el base ya creado, otra fecha no lo reescribe.
+    const otra = await cargarToce(db, { proyectoId: PROY2, fechaInicio: '2027-02-01' });
+    expect(otra.fechas_corridas_dias).toBeNull();
+    expect(otra.cronograma_base_existente).toBe(true);
+    expect(otra.cronograma_desde).toBe('2026-11-08');
+  }, 240_000);
+
+  it('solo D01: no crea estaciones, brigadas ni cronograma', async () => {
+    await sql`INSERT INTO app.proyecto (id, nombre, validacion_activa) VALUES (${PROY3}, 'Solo D01', false)`.execute(
+      db,
+    );
+    const r = await cargarToce(db, { proyectoId: PROY3, incluirA01: false });
+    expect(r).toMatchObject({ a01: false, metodos: 33, estaciones: 0, brigadas: 0, reservas: 0 });
+    expect(
+      await n(
+        sql<{
+          n: string;
+        }>`SELECT count(*)::text AS n FROM app.campania WHERE proyecto_id = ${PROY3}`,
+      ),
+    ).toBe(0);
   });
 });

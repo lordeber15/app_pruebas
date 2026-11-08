@@ -10,16 +10,25 @@ import { verProyecto } from '../organizacion/servicio.ts';
  * reservas) en un proyecto, desde la web (RF-W09, `03` §8). Usa la semilla curada por GENIA que
  * también carga `db:toce`; la plantilla Excel editable por el cliente queda para después.
  * Idempotente: repetirla no duplica nada y respeta las decisiones nominales ya tomadas.
+ *
+ * `fechaInicio` (demo): corre las fechas de A01 para que empiecen ese día; solo al crear el
+ * cronograma base (RN-35). `incluirA01: false` carga solo D01 para un proyecto armado en la web.
  */
 export const cargarConfiguracionToce = async (
   db: Db,
   actor: Actor,
   proyectoId: string,
+  opciones: { readonly fechaInicio: string | null; readonly incluirA01: boolean } = {
+    fechaInicio: null,
+    incluirA01: true,
+  },
 ): Promise<ResumenCargaToce> => {
   exigirGlobal(actor, 'cargar_configuracion');
   await verProyecto(db, actor, proyectoId);
   return cargarToce(db as unknown as Kysely<unknown>, {
     proyectoId,
     usuarioId: actor.usuarioId,
+    fechaInicio: opciones.fechaInicio,
+    incluirA01: opciones.incluirA01,
   });
 };

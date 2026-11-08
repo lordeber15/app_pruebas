@@ -712,6 +712,44 @@ const evaluarDesviacion = (ejecucion: ContextoEvaluacion['ejecucion']): Resultad
   ];
 };
 
+/**
+ * RN-04 ampliada (decisión del usuario, 2026-11-08): toda ejecución, incluidos los EVENTOS, debe
+ * tener al menos N fotos georreferenciadas, de cualquier tipo. Es una regla del proyecto, no de
+ * D01: el mínimo llega en `ctx.proyecto`; sin él (o con 0) no se evalúa. Las fotos heredadas por
+ * vínculo no cuentan: la foto tiene que ser de esta ejecución.
+ */
+const evaluarFotoEjecucion = (ctx: ContextoEvaluacion): ResultadoRegla[] => {
+  const minimo = ctx.proyecto?.fotos_minimas_ejecucion ?? 0;
+  if (!Number.isFinite(minimo) || minimo <= 0) return [];
+  const propias = (fotos: readonly { heredada: boolean }[]): number =>
+    fotos.filter((f) => !f.heredada).length;
+  const n =
+    propias(ctx.ejecucion.fotos) + ctx.ejecucion.unidades.reduce((s, u) => s + propias(u.fotos), 0);
+  const texto = `Decisión del proyecto (RN-04 ampliada): toda ejecución requiere al menos ${String(minimo)} foto(s) georreferenciada(s)`;
+  return [
+    n >= minimo
+      ? resultado(
+          'foto_ejecucion',
+          'obligatorio',
+          texto,
+          'cumple',
+          `${String(n)} foto(s) en la ejecución (mínimo ${String(minimo)})`,
+          {
+            esperado: minimo,
+            obtenido: n,
+          },
+        )
+      : resultado(
+          'foto_ejecucion',
+          'obligatorio',
+          texto,
+          'incumple',
+          `Toda ejecución requiere al menos ${String(minimo)} foto(s) georreferenciada(s) (decisión del proyecto): hay ${String(n)}`,
+          { esperado: minimo, obtenido: n },
+        ),
+  ];
+};
+
 export const evaluarEjecucion = (ctx: ContextoEvaluacion): EvaluacionEjecucion => {
   const { metodo, estacion, ejecucion } = ctx;
   const principales = ejecucion.unidades.filter((u) => u.tipo === metodo.unidad.tipo);
@@ -734,6 +772,7 @@ export const evaluarEjecucion = (ctx: ContextoEvaluacion): EvaluacionEjecucion =
 
   const resultados = [
     ...metodo.validaciones.flatMap((v) => evaluarValidacion(v, c)),
+    ...evaluarFotoEjecucion(ctx),
     ...evaluarDesviacion(ejecucion),
   ];
 

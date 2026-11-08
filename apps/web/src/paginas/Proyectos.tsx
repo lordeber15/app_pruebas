@@ -5,13 +5,11 @@ import {
   api,
   ETIQUETA_ROL_BRIGADA,
   type Brigada,
-  type Estacion,
   type Miembro,
   type Proyecto,
   type RolBrigada,
   type Usuario,
 } from '../api.ts';
-import { Mapa } from '../componentes/MapaDiferido.tsx';
 import {
   AvisoError,
   Boton,
@@ -20,9 +18,6 @@ import {
   claseEntrada,
   Dialogo,
   Encabezado,
-  Tabla,
-  td,
-  th,
   Vacio,
 } from '../componentes/Ui.tsx';
 import { puede, useYo } from '../sesion.ts';
@@ -81,6 +76,92 @@ const FormularioDialogo = ({
 };
 export { FormularioDialogo };
 
+/** Fotos mínimas por ejecución: decisión del proyecto, además de las de D01 (0 a 20). */
+const CampoFotosMinimas = ({
+  valor,
+  alCambiar,
+}: {
+  valor: string;
+  alCambiar: (v: string) => void;
+}) => (
+  <Campo
+    etiqueta="Fotos mínimas por ejecución (decisión del proyecto; además de las de D01)"
+    ayuda="Entre 0 y 20. Con 0 solo se exigen las fotos que D01 define para cada método."
+  >
+    {(id) => (
+      <input
+        id={id}
+        type="number"
+        inputMode="numeric"
+        min={0}
+        max={20}
+        step={1}
+        required
+        value={valor}
+        onChange={(e) => alCambiar(e.target.value)}
+        className={claseEntrada}
+      />
+    )}
+  </Campo>
+);
+
+/** Ajustes del proyecto (Coordinación y JdP). */
+const AjustesProyecto = ({ proyecto }: { proyecto: Proyecto }) => {
+  const qc = useQueryClient();
+  const [nombre, setNombre] = useState(proyecto.nombre);
+  const [validacion, setValidacion] = useState(proyecto.validacion_activa);
+  const [originales, setOriginales] = useState(proyecto.subir_originales);
+  const [fotosMinimas, setFotosMinimas] = useState(String(proyecto.fotos_minimas_ejecucion));
+  return (
+    <FormularioDialogo
+      titulo="Ajustes del proyecto"
+      boton="Guardar ajustes"
+      abrir="Ajustes del proyecto"
+      alGuardar={async () => {
+        await api.patch(`/proyectos/${proyecto.id}`, {
+          nombre,
+          validacion_activa: validacion,
+          subir_originales: originales,
+          fotos_minimas_ejecucion: Number(fotosMinimas),
+        });
+        await qc.invalidateQueries({ queryKey: ['proyecto', proyecto.id] });
+        await qc.invalidateQueries({ queryKey: ['proyectos'] });
+      }}
+    >
+      <Campo etiqueta="Nombre del proyecto">
+        {(id) => (
+          <input
+            id={id}
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+            required
+            className={claseEntrada}
+          />
+        )}
+      </Campo>
+      <label className="flex min-h-11 items-center gap-3 text-sm">
+        <input
+          type="checkbox"
+          checked={validacion}
+          onChange={(e) => setValidacion(e.target.checked)}
+          className="size-5 accent-liquen"
+        />
+        Las ejecuciones se validan antes de cerrarse (validación humana, C1)
+      </label>
+      <label className="flex min-h-11 items-center gap-3 text-sm">
+        <input
+          type="checkbox"
+          checked={originales}
+          onChange={(e) => setOriginales(e.target.checked)}
+          className="size-5 accent-liquen"
+        />
+        Subir también las fotos originales (solo con WiFi)
+      </label>
+      <CampoFotosMinimas valor={fotosMinimas} alCambiar={setFotosMinimas} />
+    </FormularioDialogo>
+  );
+};
+
 // ── Lista de proyectos ──
 
 export const Proyectos = () => {
@@ -93,6 +174,7 @@ export const Proyectos = () => {
   const [nombre, setNombre] = useState('');
   const [validacion, setValidacion] = useState(true);
   const [originales, setOriginales] = useState(false);
+  const [fotosMinimas, setFotosMinimas] = useState('1');
   const activos = q.data?.proyectos.filter((p) => p.estado === 'activo').length ?? 0;
 
   return (
@@ -108,6 +190,7 @@ export const Proyectos = () => {
                 nombre,
                 validacion_activa: validacion,
                 subir_originales: originales,
+                fotos_minimas_ejecucion: Number(fotosMinimas),
               });
               setNombre('');
               await qc.invalidateQueries({ queryKey: ['proyectos'] });
@@ -142,6 +225,7 @@ export const Proyectos = () => {
               />
               Subir también las fotos originales (solo con WiFi)
             </label>
+            <CampoFotosMinimas valor={fotosMinimas} alCambiar={setFotosMinimas} />
             <p className="text-xs text-tinta-suave">Hay {activos} de 6 proyectos activos.</p>
           </FormularioDialogo>
         ) : null}
@@ -194,6 +278,7 @@ const PESTANAS = [
 
 export const MarcoProyecto = () => {
   const proyectoId = useProyectoId();
+  const yo = useYo();
   const q = useQuery({
     queryKey: ['proyecto', proyectoId],
     queryFn: () => api.get<Proyecto>(`/proyectos/${proyectoId}`),
@@ -205,7 +290,12 @@ export const MarcoProyecto = () => {
           Proyectos
         </Link>
       </p>
-      <h1 className="mb-4 text-2xl font-bold tracking-tight">{q.data?.nombre ?? 'Proyecto'}</h1>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold tracking-tight">{q.data?.nombre ?? 'Proyecto'}</h1>
+        {puede(yo.data).gestionar && q.data !== undefined ? (
+          <AjustesProyecto key={q.data.id} proyecto={q.data} />
+        ) : null}
+      </div>
       <AvisoError error={q.error} />
       <nav
         aria-label="Secciones del proyecto"
@@ -409,131 +499,5 @@ export const Equipo = () => {
         )}
       </div>
     </section>
-  );
-};
-
-// ── Estaciones (A01) ──
-
-const atributo = (v: string | null): string => (v === null || v === '' ? 'Sin dato' : v);
-
-interface ResumenCarga {
-  metodos: number;
-  estaciones: number;
-  brigadas: number;
-  cronograma_items: number;
-  reservas: number;
-  estacion_metodo_pendientes: number;
-}
-
-/** Carga D01 + A01 en el proyecto (Coordinación y JdP). Repetirla no duplica nada. */
-const CargarConfiguracion = ({
-  proyectoId,
-  hayDatos,
-}: {
-  proyectoId: string;
-  hayDatos: boolean;
-}) => {
-  const qc = useQueryClient();
-  const cargar = useMutation({
-    mutationFn: () =>
-      api.post<{ resumen: ResumenCarga }>(`/proyectos/${proyectoId}/configuracion/toce`),
-    onSuccess: () => qc.invalidateQueries(),
-  });
-  const r = cargar.data?.resumen;
-  return (
-    <div className="flex flex-col items-end gap-2">
-      <Boton
-        variante={hayDatos ? 'secundario' : 'principal'}
-        ocupado={cargar.isPending}
-        onClick={() => cargar.mutate()}
-      >
-        {hayDatos ? 'Volver a cargar D01 y A01' : 'Cargar configuración TOCE (D01 y A01)'}
-      </Boton>
-      <AvisoError error={cargar.error} />
-      {r === undefined ? null : (
-        <p role="status" className="max-w-md text-right text-sm text-liquen-oscuro">
-          Cargados: {r.metodos} métodos, {r.estaciones} estaciones, {r.brigadas} brigadas,{' '}
-          {r.cronograma_items} filas del cronograma y {r.reservas} reservas.
-          {r.estacion_metodo_pendientes > 0
-            ? ` ${String(r.estacion_metodo_pendientes)} combinaciones estación–método esperan confirmación (P-01).`
-            : ''}
-        </p>
-      )}
-    </div>
-  );
-};
-
-export const Estaciones = () => {
-  const proyectoId = useProyectoId();
-  const yo = useYo();
-  const est = useQuery({
-    queryKey: ['estaciones', proyectoId],
-    queryFn: () => api.get<{ estaciones: Estacion[] }>(`/proyectos/${proyectoId}/estaciones`),
-  });
-  const lista = est.data?.estaciones ?? [];
-
-  return (
-    <>
-      <Encabezado titulo="Estaciones de muestreo">
-        {puede(yo.data).gestionar && est.data !== undefined ? (
-          <CargarConfiguracion proyectoId={proyectoId} hayDatos={lista.length > 0} />
-        ) : null}
-      </Encabezado>
-      <p className="-mt-3 mb-4 max-w-prose text-sm text-tinta-suave">
-        Atributos precargados desde A01: nunca se piden al especialista. El anillo ocre marca las
-        estaciones en zona de amortiguamiento o ecosistema frágil (ZA/EF).
-      </p>
-      {est.isPending ? <Cargando que="las estaciones" /> : null}
-      <AvisoError error={est.error} />
-      {est.data !== undefined && lista.length === 0 ? (
-        <Vacio titulo="Aún no hay estaciones">
-          {puede(yo.data).gestionar
-            ? 'Use el botón «Cargar configuración TOCE» para crear las 102 estaciones de A01, las brigadas, el cronograma y las reservas.'
-            : 'Las estaciones llegan con la carga de A01 del proyecto.'}
-        </Vacio>
-      ) : null}
-      {lista.length > 0 ? (
-        <div className="flex flex-col gap-6">
-          <Mapa
-            puntos={lista.map((s) => ({
-              id: s.id,
-              lat: s.lat,
-              lon: s.lon,
-              titulo: s.codigo,
-              zaEf: s.za_ef !== null && s.za_ef !== '',
-            }))}
-            alto="24rem"
-          />
-          <Tabla titulo="Estaciones">
-            <thead>
-              <tr>
-                <th className={th}>Código</th>
-                <th className={th}>Región</th>
-                <th className={th}>UV</th>
-                <th className={th}>AID/AII</th>
-                <th className={th}>ZA/EF</th>
-                <th className={th}>UTM</th>
-              </tr>
-            </thead>
-            <tbody>
-              {lista.map((s) => (
-                <tr key={s.id}>
-                  <td className={`${td} font-semibold`}>{s.codigo}</td>
-                  <td className={td}>{atributo(s.region)}</td>
-                  <td className={td}>{atributo(s.uv)}</td>
-                  <td className={td}>{atributo(s.aid_aii)}</td>
-                  <td className={td}>{s.za_ef === null || s.za_ef === '' ? 'No' : s.za_ef}</td>
-                  <td className={`${td} cifras whitespace-nowrap`}>
-                    {s.zona_utm === null
-                      ? `${s.lat.toFixed(5)}, ${s.lon.toFixed(5)}`
-                      : `${s.zona_utm} ${String(Number(s.este))} E ${String(Number(s.norte))} N`}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </Tabla>
-        </div>
-      ) : null}
-    </>
   );
 };

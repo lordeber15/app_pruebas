@@ -11,9 +11,16 @@ import {
   type EstacionPaquete,
   type MetodoEnEstacion,
 } from '../../src/campo.ts';
+import {
+  avanceDeEstacionLocal,
+  type AvanceEstacionLocal,
+  type AvanceMetodoLocal,
+} from '../../src/avance.ts';
+import { ResumenAvanceEstacion } from '../../src/avance-vista.tsx';
 import { useApp } from '../../src/estado.ts';
 import {
   BarraEstado,
+  BarraProgreso,
   Boton,
   C,
   e,
@@ -74,6 +81,25 @@ const estadoMetodo = (propias: EjecucionLocal[]) => {
   return null;
 };
 
+/** Mini barra del método: avance elemental (RN-38) o, sin objetivo numérico, su estado. */
+const AvanceMetodo = ({ a }: { a: AvanceMetodoLocal }) => {
+  const { ejecutado, objetivo, porcentaje } = a.avance;
+  const texto =
+    objetivo === null
+      ? a.completo
+        ? 'Completo'
+        : `${String(ejecutado)} ${a.unidadTexto}`
+      : `${String(ejecutado)} de ${String(objetivo)} ${a.unidadTexto}${a.completo ? ' · completo' : ''}`;
+  return (
+    <View style={{ gap: 4, marginTop: 4 }}>
+      <Text style={T.etiqueta}>{texto}</Text>
+      {porcentaje === null ? null : (
+        <BarraProgreso porcentaje={porcentaje} etiqueta={`Avance del método: ${texto}`} alto={6} />
+      )}
+    </View>
+  );
+};
+
 const CLASE: Record<string, string> = {
   condicional: 'Condicional',
   transversal: 'Transversal de fauna',
@@ -87,6 +113,7 @@ export default function Estacion() {
   const [especialidades, setEspecialidades] = useState<EspecialidadEnEstacion[]>([]);
   const [ejecuciones, setEjecuciones] = useState<EjecucionLocal[]>([]);
   const [abiertas, setAbiertas] = useState<Set<string>>(new Set());
+  const [avance, setAvance] = useState<AvanceEstacionLocal | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -96,6 +123,7 @@ export default function Estacion() {
         setEst(d.paquete.estaciones.find((x) => x.id === id) ?? null);
         setEspecialidades(metodosDeEstacion(d.paquete, id));
         setEjecuciones(await ejecucionesDeEstacion(id));
+        setAvance(await avanceDeEstacionLocal(d.paquete, id));
       })();
     }, [id, version]),
   );
@@ -116,6 +144,10 @@ export default function Estacion() {
         {CLASE[m.metodo.clase] === undefined ? null : (
           <Text style={T.suave}>{CLASE[m.metodo.clase]}</Text>
         )}
+        {(() => {
+          const a = avance?.metodos.find((x) => x.metodoId === m.metodo.id);
+          return a === undefined ? null : <AvanceMetodo a={a} />;
+        })()}
       </Fila>
     </View>
   );
@@ -132,6 +164,11 @@ export default function Estacion() {
           <Text style={T.titular}>{est.codigo}</Text>
           <AtributosEstacion est={est} />
         </View>
+        {avance === null ? null : (
+          <View style={e.tarjeta}>
+            <ResumenAvanceEstacion avance={avance} />
+          </View>
+        )}
 
         {especialidades.map((esp) => (
           <Grupo key={esp.id} titulo={tipoOracion(esp.nombre)}>
@@ -153,6 +190,11 @@ export default function Estacion() {
           </Grupo>
         ) : null}
 
+        <Boton
+          variante="secundario"
+          texto="Ver en el mapa"
+          alPresionar={() => router.push({ pathname: '/mapa', params: { estacionId: id } })}
+        />
         <Boton
           variante="secundario"
           texto="Registrar alerta en esta estación"

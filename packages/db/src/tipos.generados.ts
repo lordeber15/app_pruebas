@@ -248,6 +248,23 @@ export interface ConfiguracionMetodologica {
   proyecto_id: string;
 }
 
+export interface CronogramaBorradorItem {
+  actualizado_en: Generated<Timestamp>;
+  actualizado_por: string | null;
+  brigada_id: string;
+  creado_en: Generated<Timestamp>;
+  creado_por: string | null;
+  detalle: string | null;
+  estacion_id: string | null;
+  estado: Generated<string>;
+  fecha: Timestamp;
+  id: string;
+  orden: Generated<number>;
+  proyecto_id: string;
+  tipo_actividad: string;
+  version_id: string | null;
+}
+
 export interface CronogramaItem {
   actividad_especial: string | null;
   actualizado_en: Generated<Timestamp>;
@@ -481,6 +498,7 @@ export interface Proyecto {
   creado_por: string | null;
   dias_bloqueo: Generated<number>;
   estado: Generated<string>;
+  fotos_minimas_ejecucion: Generated<number>;
   hora_cierre_jornada: string | null;
   id: string;
   nombre: string;
@@ -629,6 +647,7 @@ export interface DB {
   categoria_foto: CategoriaFoto;
   comentario: Comentario;
   configuracion_metodologica: ConfiguracionMetodologica;
+  cronograma_borrador_item: CronogramaBorradorItem;
   cronograma_item: CronogramaItem;
   cronograma_version: CronogramaVersion;
   cuaderno: Cuaderno;
