@@ -59,9 +59,9 @@ describe('sobre de evento (doc. 03 §9.1)', () => {
   });
 
   it('rechaza un tipo de evento desconocido', () => {
-    expect(
-      eventoSchema.safeParse({ ...ejecucionAbierta, tipo: 'gasto_registrado' }).success,
-    ).toBe(false);
+    expect(eventoSchema.safeParse({ ...ejecucionAbierta, tipo: 'gasto_registrado' }).success).toBe(
+      false,
+    );
   });
 
   it('los eventos del modelo anterior ya no son parte del catálogo', () => {
@@ -280,5 +280,43 @@ describe('eventos de ejecución TOCE (RN-05, RN-24, RN-30, RF-M11)', () => {
     expect(
       eventoSchema.safeParse({ ...fotoCapturada, payload: { ...p, tipo_foto: 'selfie' } }).success,
     ).toBe(false);
+  });
+});
+
+describe('alerta registrada en campo (D02 §9 y §13, RN-36, E-07)', () => {
+  const alerta = (payload: Record<string, unknown>) => ({
+    ...sobre,
+    tipo: 'alerta_local_generada',
+    entidad: { tipo: 'alerta', id: ID },
+    payload: {
+      alerta_id: ID,
+      brigada_id: ID,
+      tipo: 'tecnica',
+      categoria: null,
+      titulo: 'Trampa 4 inundada',
+      descripcion: null,
+      estacion_id: ID,
+      ejecucion_id: null,
+      reserva_id: null,
+      afecta_cronograma: false,
+      ...payload,
+    },
+  });
+
+  it('técnica sin categoría', () => {
+    expect(eventoSchema.safeParse(alerta({})).success).toBe(true);
+  });
+
+  it('E-07 logística con su categoría; sin ella no pasa', () => {
+    expect(
+      eventoSchema.safeParse(alerta({ tipo: 'logistica', categoria: 'movilidad' })).success,
+    ).toBe(true);
+    expect(eventoSchema.safeParse(alerta({ tipo: 'logistica' })).success).toBe(false);
+    expect(eventoSchema.safeParse(alerta({ categoria: 'viaticos' })).success).toBe(false);
+  });
+
+  it('la post-sincronización no se registra desde campo y el título es obligatorio', () => {
+    expect(eventoSchema.safeParse(alerta({ tipo: 'post_sincronizacion' })).success).toBe(false);
+    expect(eventoSchema.safeParse(alerta({ titulo: '  ' })).success).toBe(false);
   });
 });

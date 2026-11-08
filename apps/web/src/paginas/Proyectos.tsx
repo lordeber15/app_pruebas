@@ -185,6 +185,7 @@ const PESTANAS = [
   { a: '/p/$proyectoId', texto: 'Estaciones', exacto: true },
   { a: '/p/$proyectoId/equipo', texto: 'Brigadas' },
   { a: '/p/$proyectoId/revisiones', texto: 'Revisiones' },
+  { a: '/p/$proyectoId/alertas', texto: 'Alertas' },
 ] as const;
 
 export const MarcoProyecto = () => {

@@ -44,6 +44,8 @@ export default function Raiz() {
         <Stack.Screen name="ejecucion/[id]" options={{ title: 'Ejecución' }} />
         <Stack.Screen name="unidad/[id]" options={{ title: 'Unidad' }} />
         <Stack.Screen name="cierre/[id]" options={{ title: 'Revisar y cerrar' }} />
+        <Stack.Screen name="alerta/nueva" options={{ title: 'Registrar alerta' }} />
+        <Stack.Screen name="alertas" options={{ title: 'Mis alertas' }} />
         <Stack.Screen
           name="camara"
           options={{ title: 'Cámara', presentation: 'fullScreenModal', headerShown: false }}

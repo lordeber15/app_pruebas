@@ -1,8 +1,10 @@
 import { z } from 'zod';
 import { TIPOS_UNIDAD } from '../configuracion/metodo.ts';
 import {
+  CATEGORIAS_ALERTA_LOGISTICA,
   ESTADOS_UNIDAD,
   ORIENTACIONES,
+  TIPOS_ALERTA_REGISTRABLES,
   TIPOS_ARCHIVO,
   TIPOS_DESVIACION,
   TIPOS_FOTO,
@@ -42,7 +44,15 @@ export const puntoSchema = z.object({
 });
 
 /** Entidades del modelo TOCE: ejecución de un método en una estación, sus unidades y tracks. */
-export const TIPOS_ENTIDAD = ['ejecucion', 'unidad', 'track', 'archivo', 'jornada', 'articulo'] as const;
+export const TIPOS_ENTIDAD = [
+  'ejecucion',
+  'unidad',
+  'track',
+  'archivo',
+  'jornada',
+  'articulo',
+  'alerta',
+] as const;
 
 const sobreBase = z.object({
   id: idEvento,
@@ -201,6 +211,31 @@ const ejecucionCerrada = z
     { message: 'Una desviación declarada requiere explicación', path: ['desviacion'] },
   );
 
+/**
+ * Alerta registrada en campo sin señal (D02 §9 y §13, RN-36). En el celular queda «pendiente de
+ * sincronización»; el servidor la crea `abierta`. El tipo que puede registrar cada rol lo decide
+ * `tiposDeAlerta` con el rol del usuario en la brigada (técnica: especialista y supervisor;
+ * logística: JdB). La logística lleva su categoría y es solo una excepción (RN-20, E-07).
+ */
+export const alertaRegistradaSchema = z
+  .object({
+    alerta_id: id,
+    brigada_id: id,
+    tipo: z.enum(TIPOS_ALERTA_REGISTRABLES),
+    categoria: z.enum(CATEGORIAS_ALERTA_LOGISTICA).nullable(),
+    titulo: z.string().trim().min(1).max(200),
+    descripcion: z.string().trim().max(4000).nullable(),
+    estacion_id: id.nullable(),
+    ejecucion_id: id.nullable(),
+    reserva_id: id.nullable(),
+    afecta_cronograma: z.boolean(),
+  })
+  .refine((p) => (p.tipo === 'logistica') === (p.categoria !== null), {
+    message: 'La alerta logística lleva categoría; la técnica no',
+    path: ['categoria'],
+  });
+export type AlertaRegistrada = z.infer<typeof alertaRegistradaSchema>;
+
 export const eventoSchema = z.discriminatedUnion('tipo', [
   evento('ejecucion_abierta', ejecucionAbierta),
   evento('unidad_guardada', unidadGuardada),
@@ -219,14 +254,7 @@ export const eventoSchema = z.discriminatedUnion('tipo', [
     z.object({ archivo_id: id, plantilla_id: id.nullable(), duracion_s: z.number().positive() }),
   ),
   evento('ficha_registrada', z.object({ archivo_ids: z.array(id).min(1), plantilla_id: id })),
-  evento(
-    'alerta_local_generada',
-    z.object({
-      regla_id: id,
-      clave_dedup: z.string().min(1).max(300),
-      entidad: z.object({ tipo: z.enum(TIPOS_ENTIDAD), id }),
-    }),
-  ),
+  evento('alerta_local_generada', alertaRegistradaSchema),
 ]);
 
 export type Evento = z.infer<typeof eventoSchema>;

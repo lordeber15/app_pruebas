@@ -32,6 +32,7 @@ export interface Alerta {
   actualizado_por: string | null;
   afecta_cronograma: Generated<boolean>;
   brigada_id: string | null;
+  categoria: string | null;
   cerrado_en: Timestamp | null;
   cerrado_por: string | null;
   cierre_comentario: string | null;

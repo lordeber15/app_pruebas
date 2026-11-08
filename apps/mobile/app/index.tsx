@@ -269,6 +269,16 @@ export default function Inicio() {
               </View>
               <Boton
                 variante="secundario"
+                texto="Registrar alerta"
+                alPresionar={() => router.push('/alerta/nueva')}
+              />
+              <Boton
+                variante="secundario"
+                texto="Mis alertas"
+                alPresionar={() => router.push('/alertas')}
+              />
+              <Boton
+                variante="secundario"
                 texto="Actualizar cronograma y métodos"
                 deshabilitado={!app.conectado}
                 ocupado={app.sincronizando || descargando}

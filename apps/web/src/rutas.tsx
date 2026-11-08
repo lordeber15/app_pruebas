@@ -12,6 +12,7 @@ import { useEffect } from 'react';
 import { api, ErrorApi } from './api.ts';
 import { Cargando } from './componentes/Ui.tsx';
 import { Dispositivos, Usuarios } from './paginas/Administracion.tsx';
+import { Alertas } from './paginas/Alertas.tsx';
 import { CambiarContrasena } from './paginas/Contrasena.tsx';
 import { Entrar } from './paginas/Entrar.tsx';
 import { Equipo, Estaciones, MarcoProyecto, Proyectos } from './paginas/Proyectos.tsx';
@@ -147,6 +148,11 @@ const revisiones = createRoute({
   path: '/revisiones',
   component: Revisiones,
 });
+const alertas = createRoute({
+  getParentRoute: () => proyecto,
+  path: '/alertas',
+  component: Alertas,
+});
 const cuenta = createRoute({
   getParentRoute: () => raiz,
   path: '/cuenta',
@@ -167,7 +173,7 @@ export const router = createRouter({
   routeTree: raiz.addChildren([
     entrar,
     inicio,
-    proyecto.addChildren([estaciones, equipo, revisiones]),
+    proyecto.addChildren([estaciones, equipo, revisiones, alertas]),
     cuenta,
     usuarios,
     dispositivos,

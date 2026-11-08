@@ -48,6 +48,19 @@ export const transicionarAlerta = (
 };
 
 /**
+ * Complemento (D02 §9: «responder/complementar»): agrega información sin cambiar el estado. Solo
+ * sobre una alerta que no está cerrada; para aportar a una cerrada primero se reabre.
+ */
+export const complementarAlerta = (
+  estado: EstadoAlerta,
+  texto: string,
+): Resultado<EstadoAlerta, MotivoRechazoAlerta> => {
+  if (estado === 'cerrada') return fallo('TRANSICION_INVALIDA');
+  if (!tieneTexto(texto)) return fallo('TEXTO_OBLIGATORIO');
+  return exito(estado);
+};
+
+/**
  * Solicitud de cambio de cronograma (D02 §10, RN-36): Coordinación propone; solo el Jefe de
  * Proyecto aprueba, rechaza o pide ajuste. Aprobar genera una versión vigente nueva (RN-35).
  *
