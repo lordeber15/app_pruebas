@@ -1,11 +1,9 @@
 import {
   esEstadoArchivo,
-  esEstadoTarea,
   tamanoMaximo,
   tipoContenidoEsperado,
   tipoPorContenido,
   transicionarArchivo,
-  transicionarTarea,
   type TipoArchivo,
   type VarianteArchivo,
 } from '@campo/core';
@@ -16,15 +14,12 @@ import type { Almacenamiento } from './almacenamiento.ts';
 /**
  * Trabajo `verificar_archivo` (doc. 03 §7.2): recalcula el SHA-256 de la variante subida, lo
  * compara con el manifiesto, valida el tipo por contenido, genera la miniatura y actualiza el
- * estado del archivo y de la tarea (RN-05). Es idempotente: si no hay nada pendiente, no hace nada.
+ * estado del archivo (RN-05, RN-17). Es idempotente: si no hay nada pendiente, no hace nada. La
+ * validación post-sincronización de la ejecución contra D01 es un trabajo aparte.
  */
 export type ResultadoVerificacion =
   | { readonly accion: 'nada' }
-  | {
-      readonly accion: 'verificado';
-      readonly variante: VarianteArchivo;
-      readonly tareaCompletada: boolean;
-    }
+  | { readonly accion: 'verificado'; readonly variante: VarianteArchivo }
   | { readonly accion: 'rechazado'; readonly variante: VarianteArchivo; readonly motivo: string };
 
 const ANCHO_MINIATURA = 400;
@@ -58,7 +53,6 @@ export const verificarArchivo = async (
     .select([
       'id',
       'proyecto_id',
-      'tarea_id',
       'tipo',
       'estado',
       'hash_preview',
@@ -134,31 +128,7 @@ export const verificarArchivo = async (
 
     if (motivo !== null) return { accion: 'rechazado', variante: p.variante, motivo };
 
-    // RN-05: la primera foto verificada lleva la tarea de "en tránsito" a "completada".
-    let tareaCompletada = false;
-    if (p.variante === 'preview' && tipo === 'foto' && archivo.tarea_id !== null) {
-      const tarea = await tx
-        .selectFrom('tarea')
-        .select(['id', 'estado'])
-        .where('id', '=', archivo.tarea_id)
-        .forUpdate()
-        .executeTakeFirst();
-      if (tarea !== undefined && esEstadoTarea(tarea.estado)) {
-        const r = transicionarTarea(tarea.estado, {
-          tipo: 'verificar_evidencia',
-          fotosVerificadas: 1,
-        });
-        if (r.ok) {
-          await tx
-            .updateTable('tarea')
-            .set((eb) => ({ estado: r.valor, version: eb('version', '+', 1) }))
-            .where('id', '=', tarea.id)
-            .execute();
-          tareaCompletada = true;
-        }
-      }
-    }
-    return { accion: 'verificado', variante: p.variante, tareaCompletada };
+    return { accion: 'verificado', variante: p.variante };
   });
 };
 

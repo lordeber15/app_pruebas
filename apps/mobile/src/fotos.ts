@@ -40,37 +40,11 @@ const procesar = async (uriCamara: string, ancho: number, alto: number) => {
 const manifiesto = (f: Awaited<ReturnType<typeof procesar>>) => ({
   archivo_id: f.archivoId,
   tipo: 'foto' as const,
-  evidencia_item_id: null,
-  categoria_id: null,
   hash_preview: f.hash,
   hash_original: null,
   tamanos: { preview: f.tamano, original: null },
   capturado_en: f.capturadoEn,
 });
-
-export const guardarFoto = async (
-  uriCamara: string,
-  ancho: number,
-  alto: number,
-  tarea: { id: string; asignacion_id: string | null },
-  evidenciaItemId: string | null,
-): Promise<string> => {
-  const f = await procesar(uriCamara, ancho, alto);
-  await ejecutar(
-    'INSERT INTO archivo_local (id, tarea_id, evidencia_item_id, tipo, uri, sha256, tamano, capturado_en) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-    [f.archivoId, tarea.id, evidenciaItemId, 'foto', f.uri, f.hash, f.tamano, f.capturadoEn],
-  );
-  await registrarEvento(
-    {
-      tipo: 'archivo_capturado',
-      asignacion_id: tarea.asignacion_id,
-      entidad: { tipo: 'archivo', id: f.archivoId },
-      payload: { ...manifiesto(f), tarea_id: tarea.id, evidencia_item_id: evidenciaItemId },
-    },
-    f.ubicacion,
-  );
-  return f.archivoId;
-};
 
 export interface DestinoFoto {
   readonly ejecucionId: string;
@@ -88,8 +62,8 @@ export const guardarFotoEjecucion = async (
 ): Promise<string> => {
   const f = await procesar(uriCamara, ancho, alto);
   await ejecutar(
-    `INSERT INTO archivo_local (id, tarea_id, evidencia_item_id, tipo, uri, sha256, tamano, capturado_en,
-       ejecucion_id, unidad_id, tipo_foto, orientacion) VALUES (?, '', NULL, 'foto', ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO archivo_local (id, tipo, uri, sha256, tamano, capturado_en,
+       ejecucion_id, unidad_id, tipo_foto, orientacion) VALUES (?, 'foto', ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       f.archivoId,
       f.uri,
@@ -105,11 +79,9 @@ export const guardarFotoEjecucion = async (
   await registrarEvento(
     {
       tipo: 'archivo_capturado',
-      asignacion_id: null,
       entidad: { tipo: 'archivo', id: f.archivoId },
       payload: {
         ...manifiesto(f),
-        tarea_id: null,
         ejecucion_id: d.ejecucionId,
         unidad_id: d.unidadId,
         tipo_foto: d.tipoFoto,

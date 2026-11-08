@@ -1,4 +1,11 @@
-import { ESTADOS_ARCHIVO, ESTADOS_ASIGNACION, ESTADOS_EVENTO, ESTADOS_TAREA } from '@campo/core';
+import {
+  ESTADOS_ARCHIVO,
+  ESTADOS_EJECUCION,
+  ESTADOS_EVENTO,
+  ESTADOS_RESERVA,
+  ROLES_BRIGADA,
+  VALORES_ROL_GLOBAL,
+} from '@campo/core';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { aplicarMigraciones } from '../src/migraciones.ts';
@@ -18,10 +25,11 @@ const conectar = async (rol: 'app_migrator' | 'app_rw'): Promise<pg.Client> => {
 
 // Ids fijos (UUID v7 sintéticos) para los datos de prueba.
 const id = (n: number): string => `0192f0c8-0000-7000-8000-${n.toString().padStart(12, '0')}`;
-const U = { supervisor: id(1), especialista: id(2), otro: id(3) };
+const U = { coordinacion: id(1), especialista: id(2), otro: id(3) };
 const PROY = id(10);
-const CUAD = id(20);
-const CUADERNO = id(30);
+const BRIGADA = id(20);
+const ESTACION = id(30);
+const METODO = id(31);
 const DISP = id(40);
 const DISP_OTRO = id(41);
 
@@ -32,23 +40,39 @@ beforeAll(async () => {
 
   await appRw.query(
     `INSERT INTO usuario (id, tipo_documento, num_documento, nombre, rol_global) VALUES
-       ($1, 'DNI', '10000001', 'Supervisora Sintética', 'supervisor'),
+       ($1, 'DNI', '10000001', 'Coordinadora Sintética', 'coordinacion'),
        ($2, 'DNI', '10000002', 'Especialista Sintético', 'ninguno'),
        ($3, 'DNI', '10000003', 'Otro Especialista', 'ninguno')`,
-    [U.supervisor, U.especialista, U.otro],
+    [U.coordinacion, U.especialista, U.otro],
   );
   await appRw.query(
     `INSERT INTO proyecto (id, nombre, validacion_activa) VALUES ($1, 'Línea base sintética', false)`,
     [PROY],
   );
+  await appRw.query(`INSERT INTO brigada (id, proyecto_id, nombre) VALUES ($1, $2, 'Brigada A')`, [
+    BRIGADA,
+    PROY,
+  ]);
   await appRw.query(
-    `INSERT INTO brigada (id, proyecto_id, nombre) VALUES ($1, $2, 'Brigada A')`,
-    [CUAD, PROY],
+    `INSERT INTO estacion (id, proyecto_id, codigo, geom)
+     VALUES ($1, $2, 'EST-01', ST_SetSRID(ST_MakePoint(-77, -12), 4326))`,
+    [ESTACION, PROY],
+  );
+  const conf = id(32);
+  const esp = id(33);
+  await appRw.query(
+    `INSERT INTO configuracion_metodologica (id, proyecto_id, numero, origen)
+     VALUES ($1, $2, 1, 'prueba')`,
+    [conf, PROY],
   );
   await appRw.query(
-    `INSERT INTO cuaderno (id, proyecto_id, brigada_id, responsable_id, titulo)
-     VALUES ($1, $2, $3, $4, 'Cuaderno 1')`,
-    [CUADERNO, PROY, CUAD, U.especialista],
+    `INSERT INTO especialidad (id, proyecto_id, codigo, nombre, es_fauna) VALUES ($1, $2, 'aves', 'Aves', true)`,
+    [esp, PROY],
+  );
+  await appRw.query(
+    `INSERT INTO metodo (id, configuracion_id, especialidad_id, codigo, nombre, clase, tipo_geometria, config)
+     VALUES ($1, $2, $3, 'aves.puntos', 'Puntos de conteo', 'todas', 'punto', '{}')`,
+    [METODO, conf, esp],
   );
   await appRw.query(
     `INSERT INTO dispositivo (id, usuario_id, plataforma, llave_publica, version_app) VALUES
@@ -65,35 +89,33 @@ afterAll(async () => {
 });
 
 let secuencia = 1000;
-interface DatosTarea {
-  proyecto_id?: string;
-  origen?: 'manual' | 'regla';
-  regla_id?: string | null;
-  clave_dedup?: string | null;
-}
 
-const nuevaTarea = async (extra: DatosTarea = {}): Promise<string> => {
-  const tareaId = id(secuencia++);
+const nuevaReserva = async (estacion = ESTACION, metodo = METODO): Promise<string> => {
+  const reservaId = id(secuencia++);
   await appRw.query(
-    `INSERT INTO tarea (id, proyecto_id, cuaderno_id, origen, regla_id, clave_dedup, tipo, titulo)
-     VALUES ($1, $2, $3, $4, $5, $6, 'tecnica', 'Tarea sintética')`,
-    [
-      tareaId,
-      extra.proyecto_id ?? PROY,
-      CUADERNO,
-      extra.origen ?? 'manual',
-      extra.regla_id ?? null,
-      extra.clave_dedup ?? null,
-    ],
+    `INSERT INTO reserva (id, proyecto_id, estacion_id, metodo_id, brigada_id, titulo, estado)
+     VALUES ($1, $2, $3, $4, $5, 'EST-01 · Puntos de conteo', 'asignada')`,
+    [reservaId, PROY, estacion, metodo, BRIGADA],
   );
-  return tareaId;
+  return reservaId;
 };
 
-const nuevaAsignacion = (tareaId: string, usuario = U.especialista, disp = DISP) =>
+const nuevaEjecucion = (reservaId: string | null, extra: { desviacion?: string } = {}) =>
   appRw.query(
-    `INSERT INTO asignacion (id, tarea_id, usuario_id, dispositivo_id, descargada_en)
-     VALUES ($1, $2, $3, $4, now())`,
-    [id(secuencia++), tareaId, usuario, disp],
+    `INSERT INTO ejecucion (id, proyecto_id, reserva_id, brigada_id, estacion_id, metodo_id,
+                            usuario_id, dispositivo_id, abierta_en, desviacion_tipo)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now(), $9)`,
+    [
+      id(secuencia++),
+      PROY,
+      reservaId,
+      BRIGADA,
+      ESTACION,
+      METODO,
+      U.especialista,
+      DISP,
+      extra.desviacion ?? 'ninguna',
+    ],
   );
 
 const nuevoEvento = async (estado = 'aplicado', motivo: string | null = null): Promise<string> => {
@@ -101,7 +123,7 @@ const nuevoEvento = async (estado = 'aplicado', motivo: string | null = null): P
   await appRw.query(
     `INSERT INTO evento (id, tipo, version_esquema, usuario_id, dispositivo_id, entidad_tipo,
                          entidad_id, payload, hora_dispositivo, estado, motivo)
-     VALUES ($1, 'comentario_creado', 1, $2, $3, 'tarea', $4, '{}', now(), $5, $6)`,
+     VALUES ($1, 'unidad_guardada', 1, $2, $3, 'unidad', $4, '{}', now(), $5, $6)`,
     [eventoId, U.especialista, DISP, id(9999), estado, motivo],
   );
   return eventoId;
@@ -128,112 +150,118 @@ describe('migraciones', () => {
     expect(mensajes).toEqual(['Sin migraciones pendientes.']);
   });
 
+  const valoresDelCheck = async (tabla: string, columna: string): Promise<string[]> => {
+    const { rows } = await migrador.query<{ def: string }>(
+      `SELECT pg_get_constraintdef(c.oid) AS def
+       FROM pg_constraint c JOIN pg_class t ON t.oid = c.conrelid
+      WHERE t.relname = $1 AND c.contype = 'c' AND pg_get_constraintdef(c.oid) LIKE $2`,
+      [tabla, `CHECK ((${columna} = ANY%`],
+    );
+    expect(rows).toHaveLength(1);
+    return [...(rows[0]?.def ?? '').matchAll(/'([a-z_]+)'::text/g)].flatMap((m) =>
+      m[1] === undefined ? [] : [m[1]],
+    );
+  };
+
   it.each([
-    ['tarea', 'estado', ESTADOS_TAREA],
-    ['asignacion', 'estado', ESTADOS_ASIGNACION],
     ['evento', 'estado', ESTADOS_EVENTO],
     ['archivo', 'estado', ESTADOS_ARCHIVO],
-  ] as const)(
-    'el CHECK de %s.%s coincide con los estados de core',
-    async (tabla, columna, estados) => {
-      const { rows } = await migrador.query<{ def: string }>(
-        `SELECT pg_get_constraintdef(c.oid) AS def
-         FROM pg_constraint c JOIN pg_class t ON t.oid = c.conrelid
-        WHERE t.relname = $1 AND c.contype = 'c' AND pg_get_constraintdef(c.oid) LIKE $2`,
-        [tabla, `CHECK ((${columna} = ANY%`],
-      );
-      expect(rows).toHaveLength(1);
-      const enBd = [...(rows[0]?.def ?? '').matchAll(/'([a-z_]+)'::text/g)].map((m) => m[1]);
-      expect(enBd.sort()).toEqual([...estados].sort());
-    },
-  );
+    ['ejecucion', 'estado', ESTADOS_EJECUCION],
+    ['usuario', 'rol_global', VALORES_ROL_GLOBAL],
+    ['miembro_brigada', 'rol', ROLES_BRIGADA],
+  ] as const)('el CHECK de %s.%s coincide con core', async (tabla, columna, valores) => {
+    expect((await valoresDelCheck(tabla, columna)).sort()).toEqual([...valores].sort());
+  });
+
+  it('los estados de reserva de core caben en el CHECK (que conserva los del modelo anterior)', async () => {
+    expect(await valoresDelCheck('reserva', 'estado')).toEqual(
+      expect.arrayContaining([...ESTADOS_RESERVA]),
+    );
+  });
+
+  it('las tablas del modelo vigente no conservan nombres del modelo anterior', async () => {
+    const { rows } = await migrador.query<{ nombre: string }>(
+      `SELECT t.relname || '.' || coalesce(a.attname, '') AS nombre
+         FROM pg_class t
+         JOIN pg_namespace n ON n.oid = t.relnamespace
+         LEFT JOIN pg_attribute a ON a.attrelid = t.oid AND a.attnum > 0 AND NOT a.attisdropped
+        WHERE n.nspname = 'app' AND t.relkind = 'r'
+          AND (t.relname ~ 'tarea|cuadrilla' OR a.attname ~ 'tarea|cuadrilla')
+          AND t.relname <> ALL (ARRAY['asignacion', 'comentario', 'evidencia_item', 'cuaderno'])`,
+    );
+    expect(rows.map((r) => r.nombre)).toEqual([]);
+  });
 });
 
 describe('invariantes en la base de datos', () => {
-  it('RN-02 una tarea no puede tener dos asignaciones vigentes', async () => {
-    const tarea = await nuevaTarea();
-    await nuevaAsignacion(tarea);
-    expect(await codigoError(nuevaAsignacion(tarea, U.otro, DISP_OTRO))).toBe('23505');
-  });
-
-  it('RN-02 tras revocar con motivo se puede crear otra asignación vigente', async () => {
-    const tarea = await nuevaTarea();
-    await nuevaAsignacion(tarea);
+  it('una sola reserva por estación × método', async () => {
+    const otraEstacion = id(secuencia++);
     await appRw.query(
-      `UPDATE asignacion SET estado = 'revocada', motivo_revocacion = 'Reasignación'
-        WHERE tarea_id = $1 AND estado = 'vigente'`,
-      [tarea],
+      `INSERT INTO estacion (id, proyecto_id, codigo, geom)
+       VALUES ($1, $2, $3, ST_SetSRID(ST_MakePoint(-77.1, -12.1), 4326))`,
+      [otraEstacion, PROY, `EST-${String(secuencia)}`],
     );
-    await expect(nuevaAsignacion(tarea, U.otro, DISP_OTRO)).resolves.toBeDefined();
+    await nuevaReserva(otraEstacion);
+    expect(await codigoError(nuevaReserva(otraEstacion))).toBe('23505');
   });
 
-  it('RN-07 CP-032 una asignación no se revoca sin motivo', async () => {
-    const tarea = await nuevaTarea();
-    await nuevaAsignacion(tarea);
-    const r = appRw.query(`UPDATE asignacion SET estado = 'revocada' WHERE tarea_id = $1`, [tarea]);
-    expect(await codigoError(r)).toBe('23514');
+  it('RN-19 varios especialistas registran su propia ejecución sobre la misma reserva', async () => {
+    const reserva = await nuevaReserva();
+    await nuevaEjecucion(reserva);
+    await expect(nuevaEjecucion(reserva)).resolves.toBeDefined();
   });
 
-  it('RN-22 CP-049 la misma clave de deduplicación no crea dos tareas en el proyecto', async () => {
-    const regla = id(secuencia++);
-    await appRw.query(
-      `INSERT INTO regla_alerta (id, proyecto_id, tipo, condicion, severidad, ambito, responsable_rol)
-       VALUES ($1, $2, 'checklist_incompleto', '{}', 'media', 'local', 'jefe')`,
-      [regla, PROY],
+  it('RN-40 un EVENTO se registra sin reserva', async () => {
+    await expect(nuevaEjecucion(null)).resolves.toBeDefined();
+  });
+
+  it('RF-M11 E-06 una desviación declarada exige explicación', async () => {
+    expect(await codigoError(nuevaEjecucion(null, { desviacion: 'parcial' }))).toBe('23514');
+  });
+
+  it('los roles del modelo anterior ya no se aceptan', async () => {
+    const r1 = appRw.query(`UPDATE usuario SET rol_global = 'supervisor' WHERE id = $1`, [
+      U.coordinacion,
+    ]);
+    expect(await codigoError(r1)).toBe('23514');
+    const r2 = appRw.query(
+      `INSERT INTO miembro_brigada (id, brigada_id, usuario_id, rol) VALUES ($1, $2, $3, 'logistico')`,
+      [id(secuencia++), BRIGADA, U.otro],
     );
-    const extra: DatosTarea = {
-      origen: 'regla',
-      regla_id: regla,
-      clave_dedup: 'regla:entidad:2026-11-05',
-    };
-    await nuevaTarea(extra);
-    expect(await codigoError(nuevaTarea(extra))).toBe('23505');
-  });
-
-  it('RN-22 una tarea por regla exige su clave de deduplicación', async () => {
-    expect(await codigoError(nuevaTarea({ origen: 'regla', regla_id: null }))).toBe('23514');
-  });
-
-  it('la tarea pertenece al mismo proyecto que su cuaderno', async () => {
-    const otroProyecto = id(secuencia++);
-    await appRw.query(
-      `INSERT INTO proyecto (id, nombre, validacion_activa) VALUES ($1, 'Otro proyecto', true)`,
-      [otroProyecto],
-    );
-    expect(await codigoError(nuevaTarea({ proyecto_id: otroProyecto }))).toBe('23503');
-  });
-
-  it('rechaza un estado de tarea desconocido', async () => {
-    const tarea = await nuevaTarea();
-    const r = appRw.query(`UPDATE tarea SET estado = 'en_revision' WHERE id = $1`, [tarea]);
-    expect(await codigoError(r)).toBe('23514');
+    expect(await codigoError(r2)).toBe('23514');
   });
 
   it('RN-12 un evento no aplicado exige motivo', async () => {
     expect(await codigoError(nuevoEvento('no_aplicado', null))).toBe('23514');
-    await expect(nuevoEvento('no_aplicado', 'TAREA_CERRADA')).resolves.toBeDefined();
+    await expect(nuevoEvento('no_aplicado', 'EJECUCION_AJENA')).resolves.toBeDefined();
   });
 
   it('RN-10 reenviar un evento con el mismo id no lo duplica', async () => {
     const eventoId = await nuevoEvento();
     const r = appRw.query(
       `INSERT INTO evento (id, tipo, version_esquema, usuario_id, entidad_tipo, entidad_id, payload, estado)
-       VALUES ($1, 'comentario_creado', 1, $2, 'tarea', $3, '{}', 'aplicado')`,
+       VALUES ($1, 'unidad_guardada', 1, $2, 'unidad', $3, '{}', 'aplicado')`,
       [eventoId, U.especialista, id(9999)],
     );
     expect(await codigoError(r)).toBe('23505');
   });
 
   it('actualizado_en se renueva al modificar una fila', async () => {
-    const tarea = await nuevaTarea();
-    const antes = await appRw.query<{ t: Date }>(
-      `SELECT actualizado_en t FROM tarea WHERE id = $1`,
-      [tarea],
+    const otraEstacion = id(secuencia++);
+    await appRw.query(
+      `INSERT INTO estacion (id, proyecto_id, codigo, geom)
+       VALUES ($1, $2, $3, ST_SetSRID(ST_MakePoint(-77.2, -12.2), 4326))`,
+      [otraEstacion, PROY, `EST-${String(secuencia)}`],
     );
-    await appRw.query(`UPDATE tarea SET titulo = 'Cambiada' WHERE id = $1`, [tarea]);
+    const reserva = await nuevaReserva(otraEstacion);
+    const antes = await appRw.query<{ t: Date }>(
+      `SELECT actualizado_en t FROM reserva WHERE id = $1`,
+      [reserva],
+    );
+    await appRw.query(`UPDATE reserva SET titulo = 'Cambiada' WHERE id = $1`, [reserva]);
     const despues = await appRw.query<{ t: Date }>(
-      `SELECT actualizado_en t FROM tarea WHERE id = $1`,
-      [tarea],
+      `SELECT actualizado_en t FROM reserva WHERE id = $1`,
+      [reserva],
     );
     expect(despues.rows[0]?.t.getTime()).toBeGreaterThan(antes.rows[0]?.t.getTime() ?? Infinity);
   });
@@ -271,7 +299,7 @@ describe('SEG-14 inmutabilidad de evento', () => {
       const r = migrador.query(
         `UPDATE evento SET payload = '{"x":1}', estado = 'resuelto_elegido',
                                   resuelto_por = $2, resuelto_en = now() WHERE id = $1`,
-        [eventoId, U.supervisor],
+        [eventoId, U.coordinacion],
       );
       expect(await codigoError(r)).toBe('42501');
     } finally {
@@ -283,7 +311,7 @@ describe('SEG-14 inmutabilidad de evento', () => {
     const eventoId = await nuevoEvento('duplicado', 'DUPLICADO');
     await appRw.query(`SELECT resolver_evento($1, 'resuelto_elegido', $2, 'Versión correcta')`, [
       eventoId,
-      U.supervisor,
+      U.coordinacion,
     ]);
     const { rows } = await appRw.query<{ estado: string; resuelto_por: string; payload: unknown }>(
       `SELECT estado, resuelto_por, payload FROM evento WHERE id = $1`,
@@ -291,7 +319,7 @@ describe('SEG-14 inmutabilidad de evento', () => {
     );
     expect(rows[0]).toMatchObject({
       estado: 'resuelto_elegido',
-      resuelto_por: U.supervisor,
+      resuelto_por: U.coordinacion,
       payload: {},
     });
   });
@@ -300,18 +328,18 @@ describe('SEG-14 inmutabilidad de evento', () => {
     const aplicado = await nuevoEvento();
     const r1 = appRw.query(`SELECT resolver_evento($1, 'resuelto_descartado', $2, null)`, [
       aplicado,
-      U.supervisor,
+      U.coordinacion,
     ]);
     expect(await codigoError(r1)).toBe('P0002');
 
-    const duplicado = await nuevoEvento('en_revision', 'ASIGNACION_REVOCADA');
+    const duplicado = await nuevoEvento('en_revision', 'EJECUCION_CERRADA');
     await appRw.query(`SELECT resolver_evento($1, 'resuelto_descartado', $2, null)`, [
       duplicado,
-      U.supervisor,
+      U.coordinacion,
     ]);
     const r2 = appRw.query(`SELECT resolver_evento($1, 'resuelto_elegido', $2, null)`, [
       duplicado,
-      U.supervisor,
+      U.coordinacion,
     ]);
     expect(await codigoError(r2)).toBe('P0002');
   });
@@ -320,14 +348,14 @@ describe('SEG-14 inmutabilidad de evento', () => {
     const eventoId = await nuevoEvento('duplicado', 'DUPLICADO');
     const r = appRw.query(`SELECT resolver_evento($1, 'aplicado', $2, null)`, [
       eventoId,
-      U.supervisor,
+      U.coordinacion,
     ]);
     expect(await codigoError(r)).toBe('23514');
   });
 });
 
 describe('sin borrado físico de datos de campo', () => {
-  it.each(['tarea', 'asignacion', 'archivo', 'registro_esfuerzo', 'usuario'])(
+  it.each(['reserva', 'ejecucion', 'unidad', 'track', 'archivo', 'alerta', 'usuario'])(
     'app_rw no puede borrar en %s',
     async (tabla) => {
       expect(await codigoError(appRw.query(`DELETE FROM ${tabla} WHERE false`))).toBe('42501');

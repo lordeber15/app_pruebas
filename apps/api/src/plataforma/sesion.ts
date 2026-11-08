@@ -1,3 +1,4 @@
+import { VALORES_ROL_GLOBAL, type ValorRolGlobal } from '@campo/core';
 import type { Db } from '@campo/db';
 import { fromNodeHeaders } from 'better-auth/node';
 import type { FastifyRequest } from 'fastify';
@@ -12,7 +13,7 @@ import { noAutenticado, ProblemaHttp } from './errores.ts';
 export interface Actor {
   readonly usuarioId: string;
   readonly sesionId: string;
-  readonly rolGlobal: 'supervisor' | 'admin' | 'ninguno';
+  readonly rolGlobal: ValorRolGlobal;
   readonly dispositivoId: string | null;
   readonly estadoDispositivo: 'activo' | 'baja_pendiente' | 'baja' | null;
 }
@@ -23,11 +24,10 @@ declare module 'fastify' {
   }
 }
 
-const ROLES_GLOBALES = ['supervisor', 'admin', 'ninguno'] as const;
 const ESTADOS_DISPOSITIVO = ['activo', 'baja_pendiente', 'baja'] as const;
 
 const comoRolGlobal = (r: string): Actor['rolGlobal'] =>
-  ROLES_GLOBALES.find((x) => x === r) ?? 'ninguno';
+  VALORES_ROL_GLOBAL.find((x) => x === r) ?? 'ninguno';
 const comoEstadoDispositivo = (e: string | null): Actor['estadoDispositivo'] =>
   ESTADOS_DISPOSITIVO.find((x) => x === e) ?? null;
 

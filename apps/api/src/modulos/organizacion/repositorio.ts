@@ -20,23 +20,19 @@ export const columnasProyecto = [
   'proyecto.hora_cierre_jornada',
 ] as const;
 
-/** Proyectos visibles: todos para el supervisor; si no, donde es jefe o miembro activo. */
-export const proyectosVisibles = (db: Db, usuarioId: string, esSupervisor: boolean) => {
+/** Proyectos visibles: todos para Coordinación y JdP; si no, donde es miembro activo. */
+export const proyectosVisibles = (db: Db, usuarioId: string, todos: boolean) => {
   let q = db.selectFrom('proyecto').select(columnasProyecto).orderBy('proyecto.nombre');
-  if (!esSupervisor) {
+  if (!todos) {
     q = q.where((eb) =>
       eb.exists(
         eb
-          .selectFrom('brigada as c')
-          .leftJoin('miembro_brigada as m', 'm.brigada_id', 'c.id')
-          .select('c.id')
-          .whereRef('c.proyecto_id', '=', 'proyecto.id')
-          .where((w) =>
-            w.or([
-              w('c.jefe_id', '=', usuarioId),
-              w.and([w('m.usuario_id', '=', usuarioId), w('m.estado', '=', 'activo')]),
-            ]),
-          ),
+          .selectFrom('brigada as b')
+          .innerJoin('miembro_brigada as m', 'm.brigada_id', 'b.id')
+          .select('b.id')
+          .whereRef('b.proyecto_id', '=', 'proyecto.id')
+          .where('m.usuario_id', '=', usuarioId)
+          .where('m.estado', '=', 'activo'),
       ),
     );
   }
@@ -49,8 +45,7 @@ export const buscarProyecto = (db: Db, id: string) =>
 export const brigadasDeProyecto = (db: Db, proyectoId: string) =>
   db
     .selectFrom('brigada')
-    .leftJoin('usuario as jefe', 'jefe.id', 'brigada.jefe_id')
-    .select(['brigada.id', 'brigada.nombre', 'brigada.jefe_id', 'jefe.nombre as jefe_nombre'])
+    .select(['brigada.id', 'brigada.codigo', 'brigada.nombre', 'brigada.region', 'brigada.tipo'])
     .where('brigada.proyecto_id', '=', proyectoId)
     .orderBy('brigada.nombre')
     .execute();
@@ -72,20 +67,22 @@ export const miembrosDeBrigada = (db: Db, brigadaId: string) =>
     .orderBy('u.nombre')
     .execute();
 
+/** Estaciones con sus atributos de A01 (RN-29), sin pedírselos a nadie. */
 export const estacionesDeProyecto = (db: Db, proyectoId: string) =>
   db
     .selectFrom('estacion')
     .select([
       'estacion.id',
       'estacion.codigo',
+      'estacion.region',
+      'estacion.uv',
+      'estacion.aid_aii',
+      'estacion.za_ef',
+      'estacion.zona_utm',
+      'estacion.este',
+      'estacion.norte',
       sql<number>`ST_Y(estacion.geom)`.as('lat'),
       sql<number>`ST_X(estacion.geom)`.as('lon'),
-      sql<
-        { id: string; metodologia_id: string; nombre: string; meta_esfuerzo: string | null }[]
-      >`coalesce((select json_agg(json_build_object('id', em.id, 'metodologia_id', em.metodologia_id,
-          'nombre', cm.nombre, 'meta_esfuerzo', em.meta_esfuerzo) order by cm.nombre)
-          from app.estacion_metodologia em join app.catalogo_metodologia cm on cm.id = em.metodologia_id
-          where em.estacion_id = estacion.id), '[]'::json)`.as('metodologias'),
     ])
     .where('estacion.proyecto_id', '=', proyectoId)
     .orderBy('estacion.codigo')

@@ -91,7 +91,6 @@ const sobre = <P>(tipo: string, entidad: { tipo: string; id: string }, payload: 
   id: generarId(),
   tipo,
   version_esquema: 1,
-  asignacion_id: null,
   entidad,
   hora_dispositivo: HORA,
   ubicacion: { lat: -10.1, lon: -75.2, precision_m: 6 },
@@ -107,7 +106,7 @@ const abrir = (
     { tipo: 'ejecucion', id: ejecucionId },
     {
       ejecucion_id: ejecucionId,
-      tarea_id: r.id,
+      reserva_id: r.id,
       estacion_id: r.estacion_id,
       metodo_id: r.metodo_id,
       abierta_en: HORA,
@@ -166,9 +165,6 @@ const foto = (ejecucionId: string, unidadId: string | null, archivoId = generarI
     {
       archivo_id: archivoId,
       tipo: 'foto',
-      tarea_id: null,
-      evidencia_item_id: null,
-      categoria_id: null,
       hash_preview: HASH,
       hash_original: null,
       tamanos: { preview: 800_000, original: null },
@@ -285,7 +281,7 @@ describe('RN-05 ciclo de una ejecución desde el celular', () => {
       estado: 'evidencia_pendiente',
       usuario_id: yo.usuario.id,
       dispositivo_id: yo.dispositivoId,
-      tarea_id: reserva.id,
+      reserva_id: reserva.id,
     });
     const u = await e.admin
       .selectFrom('unidad')
@@ -350,7 +346,7 @@ describe('RN-05 ciclo de una ejecución desde el celular', () => {
     const n = await e.admin
       .selectFrom('ejecucion')
       .select((eb) => eb.fn.countAll<string>().as('n'))
-      .where('tarea_id', '=', reserva.id)
+      .where('reserva_id', '=', reserva.id)
       .executeTakeFirstOrThrow();
     expect(Number(n.n)).toBe(2);
   });

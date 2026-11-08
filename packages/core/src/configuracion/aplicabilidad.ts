@@ -8,7 +8,7 @@ import type { ClaseAplicabilidad, CondicionAplicabilidad, Region } from './metod
  * - CONDICIONAL: solo si la condición explícita se cumple con los atributos de la estación.
  *   Si D01 no da un criterio derivable (`manual`), queda **pendiente** y deshabilitado hasta
  *   que la web lo confirme nominalmente.
- * - EVENTO: siempre disponible como registro complementario, sin asignación previa.
+ * - EVENTO: siempre disponible como registro complementario, sin reserva previa.
  * - ATRIBUTO: nunca aparece como método independiente.
  * - TRANSVERSAL (ABS): habilitado en toda estación de fauna, por grupo evaluado.
  *

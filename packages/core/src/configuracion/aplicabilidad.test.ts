@@ -33,7 +33,7 @@ describe('RN-28 clases de aplicabilidad (E-01)', () => {
     });
   });
 
-  it('EVENTO queda disponible como registro complementario sin asignación previa', () => {
+  it('EVENTO queda disponible como registro complementario sin reserva previa', () => {
     const r = resolverAplicabilidad({ clase: 'evento', condicion: null }, true, sinRegion);
     expect(r.habilitado).toBe(true);
     expect(r.presentacion).toBe('evento');

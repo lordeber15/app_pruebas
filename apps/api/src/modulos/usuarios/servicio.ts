@@ -1,3 +1,4 @@
+import type { ValorRolGlobal } from '@campo/core';
 import type { Db } from '@campo/db';
 import { usernameDeDocumento } from '../../plataforma/auth.ts';
 import { hashContrasena } from '../../plataforma/contrasena.ts';
@@ -8,7 +9,7 @@ export interface NuevoUsuario {
   readonly tipoDocumento: string;
   readonly numDocumento: string;
   readonly nombre: string;
-  readonly rolGlobal: 'supervisor' | 'admin' | 'ninguno';
+  readonly rolGlobal: ValorRolGlobal;
   readonly contrasena: string;
   readonly creadoPor: string | null;
 }

@@ -84,7 +84,7 @@ export const crearApp = async (config: Config, pool: pg.Pool): Promise<Aplicacio
 
   registrarRutasAuth(app, auth, config);
   await app.register(rutasDispositivos, { prefix: '/api/v1', auth, db });
-  await app.register(rutasPaquete, { prefix: '/api/v1', auth, db, config });
+  await app.register(rutasPaquete, { prefix: '/api/v1', auth, db });
   await app.register(rutasSync, { prefix: '/api/v1', auth, db, config });
   await app.register(rutasArchivos, { auth, db, config });
   await app.register(rutasWeb, { prefix: '/api/v1', auth, db, firmador: crearFirmador(config) });

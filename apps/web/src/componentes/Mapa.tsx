@@ -3,14 +3,11 @@ import type { GeoJSONSource, StyleSpecification } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { Protocol } from 'pmtiles';
 import { useEffect, useRef, useState } from 'react';
-import type { EstadoTarea } from '../api.ts';
 import capasBase from './capas-base.json';
-import { COLOR_ESTADO } from './Estado.tsx';
 
 /**
  * Mapa con MapLibre + PMTiles (ADR-005). El mapa base sale de /mapa/base.pmtiles, servido por la
- * propia instalación; si no está cargado, se muestran solo las tareas y estaciones sobre un fondo
- * neutro. Ningún servicio de mapas externo.
+ * propia instalación; si no está cargado, se muestran solo las estaciones sobre un fondo neutro. Ningún servicio de mapas externo.
  */
 let protocoloRegistrado = false;
 const registrarProtocolo = () => {
@@ -42,9 +39,9 @@ export interface PuntoMapa {
   readonly id: string;
   readonly lat: number;
   readonly lon: number;
-  readonly capa: 'tarea' | 'estacion';
   readonly titulo: string;
-  readonly estado?: EstadoTarea;
+  /** Estación en zona de amortiguamiento o ecosistema frágil (A01): se dibuja con un anillo doble. */
+  readonly zaEf?: boolean;
 }
 
 const hayMapaBase = async (): Promise<boolean> => {
@@ -93,37 +90,36 @@ export const Mapa = ({
           data: { type: 'FeatureCollection', features: [] },
         });
         m.addLayer({
-          id: 'estaciones',
+          id: 'za-ef',
           type: 'circle',
           source: 'puntos',
-          filter: ['==', ['get', 'capa'], 'estacion'],
+          filter: ['==', ['get', 'zaEf'], true],
           paint: {
-            'circle-radius': 5,
-            'circle-color': '#ffffff',
-            'circle-stroke-color': '#18231f',
+            'circle-radius': 10,
+            'circle-color': 'rgba(0,0,0,0)',
+            'circle-stroke-color': '#a86f1e',
             'circle-stroke-width': 2,
           },
         });
         m.addLayer({
-          id: 'tareas',
+          id: 'estaciones',
           type: 'circle',
           source: 'puntos',
-          filter: ['==', ['get', 'capa'], 'tarea'],
           paint: {
-            'circle-radius': 7,
-            'circle-color': ['get', 'color'],
+            'circle-radius': 6,
+            'circle-color': '#2e5e4e',
             'circle-stroke-color': '#ffffff',
             'circle-stroke-width': 2,
           },
         });
-        m.on('click', 'tareas', (ev) => {
+        m.on('click', 'estaciones', (ev) => {
           const id: unknown = ev.features?.[0]?.properties['id'];
           if (typeof id === 'string') elegir.current?.(id);
         });
-        m.on('mouseenter', 'tareas', () => {
+        m.on('mouseenter', 'estaciones', () => {
           m.getCanvas().style.cursor = 'pointer';
         });
-        m.on('mouseleave', 'tareas', () => {
+        m.on('mouseleave', 'estaciones', () => {
           m.getCanvas().style.cursor = '';
         });
         mapa.current = m;
@@ -145,11 +141,7 @@ export const Mapa = ({
       features: puntos.map((p) => ({
         type: 'Feature',
         geometry: { type: 'Point', coordinates: [p.lon, p.lat] },
-        properties: {
-          id: p.id,
-          capa: p.capa,
-          color: p.estado === undefined ? '#4a5a54' : COLOR_ESTADO[p.estado],
-        },
+        properties: { id: p.id, zaEf: p.zaEf === true },
       })),
     });
     if (puntos.length > 0) {
@@ -166,12 +158,12 @@ export const Mapa = ({
         style={{ height: alto }}
         className="w-full overflow-hidden rounded-md border border-linea"
         role="region"
-        aria-label="Mapa de tareas y estaciones"
+        aria-label="Mapa de estaciones"
       />
       {sinMapaBase ? (
         <p className="text-xs text-tinta-suave">
-          Sin mapa base cargado: se muestran solo las tareas y estaciones. Cargue el archivo
-          base.pmtiles en el servidor para ver el terreno.
+          Sin mapa base cargado: se muestran solo las estaciones. Cargue el archivo base.pmtiles en
+          el servidor para ver el terreno.
         </p>
       ) : null}
     </div>

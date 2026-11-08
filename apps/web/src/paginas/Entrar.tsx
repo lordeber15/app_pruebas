@@ -55,8 +55,7 @@ export const Entrar = () => {
           <circle cx="330" cy="92" r="7" fill="none" stroke="#e3ede8" strokeWidth="2" />
         </svg>
         <p className="max-w-sm text-xl font-semibold leading-snug">
-          Tareas, evidencias y esfuerzo de las brigadas, desde que se asignan hasta que se
-          validan.
+          Estaciones, métodos y ejecuciones de las brigadas, desde el campo hasta su revisión.
         </p>
       </section>
       <section className="flex items-center justify-center bg-hoja px-6 py-12">

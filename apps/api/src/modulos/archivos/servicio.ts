@@ -1,9 +1,11 @@
 import {
   esEstadoArchivo,
   extensionDe,
+  puedeIntentar,
   tamanoMaximo,
   tipoContenidoEsperado,
   transicionarArchivo,
+  type Rol,
   type TipoArchivo,
   type VarianteArchivo,
 } from '@campo/core';
@@ -11,6 +13,7 @@ import type { Db } from '@campo/db';
 import { sql } from 'kysely';
 import { generarId } from '../../plataforma/ids.ts';
 import type { ActorDispositivo } from '../../plataforma/sesion.ts';
+import { soloLoSuyo } from '../alcance/autorizacion.ts';
 
 /**
  * Autorización y registro de subidas (doc. 03 §10). tusd llama a la API en dos momentos:
@@ -57,10 +60,10 @@ export const autorizarSubida = async (
   const archivo = await db
     .selectFrom('archivo')
     .innerJoin('proyecto', 'proyecto.id', 'archivo.proyecto_id')
+    .leftJoin('ejecucion', 'ejecucion.id', 'archivo.ejecucion_id')
     .select([
       'archivo.id',
       'archivo.proyecto_id',
-      'archivo.tarea_id',
       'archivo.usuario_id',
       'archivo.tipo',
       'archivo.estado',
@@ -69,29 +72,20 @@ export const autorizarSubida = async (
       'archivo.tamano_preview',
       'archivo.tamano_original',
       'proyecto.subir_originales',
+      'ejecucion.usuario_id as ejecucion_usuario_id',
+      'ejecucion.dispositivo_id as ejecucion_dispositivo_id',
     ])
     .where('archivo.id', '=', m.archivoId)
     .executeTakeFirst();
-  // Mismo rechazo si no existe o es de otro: no se revela qué archivos existen.
+  // Mismo rechazo si no existe o es de otro: no se revela qué archivos existen. La foto sube desde
+  // el celular que registró su ejecución (también después de cerrarla, RN-05).
   if (
-    archivo === undefined ||
-    archivo.usuario_id !== actor.usuarioId ||
-    archivo.tarea_id === null
+    archivo?.usuario_id !== actor.usuarioId ||
+    archivo.ejecucion_usuario_id !== actor.usuarioId ||
+    archivo.ejecucion_dispositivo_id !== actor.dispositivoId
   ) {
     return noAutorizado;
   }
-
-  // La asignación de la tarea debe ser de este usuario y este dispositivo (vigente o ya finalizada:
-  // las fotos suben después de completar). Una asignación revocada no sube archivos.
-  const asignacion = await db
-    .selectFrom('asignacion')
-    .select('id')
-    .where('tarea_id', '=', archivo.tarea_id)
-    .where('usuario_id', '=', actor.usuarioId)
-    .where('dispositivo_id', '=', actor.dispositivoId)
-    .where('estado', 'in', ['vigente', 'finalizada'])
-    .executeTakeFirst();
-  if (asignacion === undefined) return noAutorizado;
 
   const tipo = comoTipo(archivo.tipo);
   if (tipo === null || !esEstadoArchivo(archivo.estado))
@@ -188,34 +182,33 @@ export type VarianteDescarga = 'miniatura' | 'preview' | 'original';
 
 /**
  * Ruta del objeto de la variante pedida si el archivo es visible para el actor y la variante está
- * verificada. El especialista solo ve sus propios archivos (RN-21, SEG-03).
+ * verificada, según la brigada de su ejecución. El especialista solo ve sus propios archivos
+ * (ERS §2.3, SEG-03).
  */
 export const rutaParaDescarga = async (
   db: Db,
   actor: { usuarioId: string },
-  rolEnTarea: (brigadaId: string) => Promise<string | null>,
+  rolEnBrigada: (brigadaId: string) => Promise<Rol | null>,
   archivoId: string,
   variante: VarianteDescarga,
 ): Promise<string | null> => {
   const a = await db
     .selectFrom('archivo')
-    .innerJoin('tarea', 'tarea.id', 'archivo.tarea_id')
-    .innerJoin('cuaderno', 'cuaderno.id', 'tarea.cuaderno_id')
+    .innerJoin('ejecucion', 'ejecucion.id', 'archivo.ejecucion_id')
     .select([
       'archivo.usuario_id',
       'archivo.estado',
       'archivo.ruta_miniatura',
       'archivo.ruta_preview',
       'archivo.ruta_original',
-      'cuaderno.brigada_id',
+      'ejecucion.brigada_id',
     ])
     .where('archivo.id', '=', archivoId)
     .executeTakeFirst();
-  if (a === undefined) return null;
-  const rol = await rolEnTarea(a.brigada_id);
-  if (rol === null) return null;
-  if ((rol === 'especialista' || rol === 'logistico') && a.usuario_id !== actor.usuarioId)
-    return null;
+  if (a?.brigada_id == null) return null;
+  const rol = await rolEnBrigada(a.brigada_id);
+  if (rol === null || !puedeIntentar(rol, 'consultar_seguimiento')) return null;
+  if (soloLoSuyo(rol) && a.usuario_id !== actor.usuarioId) return null;
 
   const previewLista = a.estado === 'preview_verificada' || a.estado === 'original_verificado';
   if (variante === 'miniatura') return previewLista ? a.ruta_miniatura : null;

@@ -48,9 +48,9 @@ export interface Alerta {
   id: string;
   origen: string;
   proyecto_id: string;
+  reserva_id: string | null;
   responsable_id: string | null;
   solicitud_cronograma_id: string | null;
-  tarea_id: string | null;
   tipo: string;
   titulo: string;
 }
@@ -89,13 +89,13 @@ export interface Archivo {
   orientacion: string | null;
   precision_m: number | null;
   proyecto_id: string;
+  reserva_id: string | null;
   ruta_miniatura: string | null;
   ruta_original: string | null;
   ruta_preview: string | null;
   seleccionada_reporte: Generated<boolean>;
   tamano_original: Int8 | null;
   tamano_preview: Int8;
-  tarea_id: string | null;
   tipo: string;
   tipo_foto: string | null;
   unidad_id: string | null;
@@ -313,6 +313,7 @@ export interface Ejecucion {
   abierta_en: Timestamp;
   actualizado_en: Generated<Timestamp>;
   actualizado_por: string | null;
+  brigada_id: string | null;
   cerrada_en: Timestamp | null;
   confirmaciones: Generated<Json>;
   creado_en: Generated<Timestamp>;
@@ -330,8 +331,8 @@ export interface Ejecucion {
   objetivo_campo: Numeric | null;
   proyecto_id: string;
   qa_evaluado_en: Timestamp | null;
+  reserva_id: string | null;
   resultado_qa: Json | null;
-  tarea_id: string | null;
   usuario_id: string;
   version: Generated<number>;
 }
@@ -512,25 +513,7 @@ export interface ReglaAlerta {
   tipo: string;
 }
 
-export interface SolicitudCronograma {
-  actualizado_en: Generated<Timestamp>;
-  actualizado_por: string | null;
-  alerta_id: string | null;
-  cambios: Json;
-  campania_id: string;
-  comentario_decision: string | null;
-  creado_en: Generated<Timestamp>;
-  creado_por: string | null;
-  decidido_en: Timestamp | null;
-  decidido_por: string | null;
-  estado: Generated<string>;
-  id: string;
-  motivo: string;
-  propuesto_por: string;
-  version_base_id: string;
-}
-
-export interface Tarea {
+export interface Reserva {
   actualizado_en: Generated<Timestamp>;
   actualizado_por: string | null;
   brigada_id: string | null;
@@ -547,12 +530,30 @@ export interface Tarea {
   id: string;
   metodo_id: string | null;
   metodologia_id: string | null;
-  origen: string;
+  origen: string | null;
   proyecto_id: string;
   regla_id: string | null;
-  tipo: string;
+  tipo: string | null;
   titulo: string;
   version: Generated<number>;
+}
+
+export interface SolicitudCronograma {
+  actualizado_en: Generated<Timestamp>;
+  actualizado_por: string | null;
+  alerta_id: string | null;
+  cambios: Json;
+  campania_id: string;
+  comentario_decision: string | null;
+  creado_en: Generated<Timestamp>;
+  creado_por: string | null;
+  decidido_en: Timestamp | null;
+  decidido_por: string | null;
+  estado: Generated<string>;
+  id: string;
+  motivo: string;
+  propuesto_por: string;
+  version_base_id: string;
 }
 
 export interface Track {
@@ -638,8 +639,8 @@ export interface DB {
   proyecto: Proyecto;
   registro_esfuerzo: RegistroEsfuerzo;
   regla_alerta: ReglaAlerta;
+  reserva: Reserva;
   solicitud_cronograma: SolicitudCronograma;
-  tarea: Tarea;
   track: Track;
   unidad: Unidad;
   usuario: Usuario;

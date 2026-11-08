@@ -5,20 +5,13 @@ const incluye =
   (x: string): x is T =>
     (valores as readonly string[]).includes(x);
 
-export const ESTADOS_TAREA = [
-  'pendiente',
-  'asignada',
-  'descargada',
-  'en_transito',
-  'completada',
-  'validada',
-  'observada',
-  'cerrada',
-] as const;
-export type EstadoTarea = (typeof ESTADOS_TAREA)[number];
-
-export const ESTADOS_ASIGNACION = ['vigente', 'devuelta', 'revocada', 'finalizada'] as const;
-export type EstadoAsignacion = (typeof ESTADOS_ASIGNACION)[number];
+/**
+ * Reserva estación × método (interna): la crea la carga de D01/A01 para la brigada y la fecha del
+ * cronograma vigente. `asignada` si tiene brigada; si no, `pendiente`. No se retiene por
+ * dispositivo: cada especialista abre su propia ejecución (RN-19).
+ */
+export const ESTADOS_RESERVA = ['pendiente', 'asignada'] as const;
+export type EstadoReserva = (typeof ESTADOS_RESERVA)[number];
 
 export const ESTADOS_EVENTO = [
   'aplicado',
@@ -40,17 +33,26 @@ export const ESTADOS_ARCHIVO = [
 ] as const;
 export type EstadoArchivo = (typeof ESTADOS_ARCHIVO)[number];
 
-export const ORIGENES_TAREA = ['manual', 'regla'] as const;
-export type OrigenTarea = (typeof ORIGENES_TAREA)[number];
-
-export const TIPOS_TAREA = ['tecnica', 'logistica'] as const;
-export type TipoTarea = (typeof TIPOS_TAREA)[number];
-
 export const TIPOS_ARCHIVO = ['foto', 'ficha', 'audio', 'comprobante'] as const;
 export type TipoArchivo = (typeof TIPOS_ARCHIVO)[number];
 
-export const ROLES = ['supervisor', 'jefe', 'especialista', 'logistico', 'admin'] as const;
+/**
+ * Roles TOCE (ERS §2.2, D02 §5). En la brigada: especialista, supervisor de campo (especialista
+ * con permiso adicional) y jefe de brigada (logístico). Globales: coordinación, jefe de proyecto y
+ * administrador técnico. Gabinete queda pendiente (P-14) y no tiene permisos.
+ */
+export const ROLES_BRIGADA = ['especialista', 'supervisor_campo', 'jefe_brigada'] as const;
+export type RolBrigada = (typeof ROLES_BRIGADA)[number];
+
+export const ROLES_GLOBALES = ['coordinacion', 'jefe_proyecto', 'admin'] as const;
+export type RolGlobal = (typeof ROLES_GLOBALES)[number];
+
+export const ROLES = [...ROLES_BRIGADA, ...ROLES_GLOBALES] as const;
 export type Rol = (typeof ROLES)[number];
+
+/** Rol global guardado en `usuario.rol_global`: `ninguno` si solo tiene roles de brigada. */
+export const VALORES_ROL_GLOBAL = [...ROLES_GLOBALES, 'ninguno'] as const;
+export type ValorRolGlobal = (typeof VALORES_ROL_GLOBAL)[number];
 
 // ── Modelo TOCE (ERS v4.0 §2, D02 §6, §9 y §10) ─────────────────────────────────────────────
 
@@ -144,6 +146,7 @@ export const esEstadoAlerta = incluye(ESTADOS_ALERTA);
 export const esEstadoSolicitudCronograma = incluye(ESTADOS_SOLICITUD_CRONOGRAMA);
 
 /** Guardas para valores que llegan de la base de datos como texto. */
-export const esEstadoTarea = incluye(ESTADOS_TAREA);
-export const esEstadoAsignacion = incluye(ESTADOS_ASIGNACION);
+export const esEstadoReserva = incluye(ESTADOS_RESERVA);
+export const esRolBrigada = incluye(ROLES_BRIGADA);
+export const esRolGlobal = incluye(ROLES_GLOBALES);
 export const esEstadoArchivo = incluye(ESTADOS_ARCHIVO);

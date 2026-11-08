@@ -19,7 +19,10 @@ export interface BaseDePrueba {
 
 const silencioso = { log: () => undefined, error: () => undefined };
 
-export const iniciarBaseDePrueba = async (): Promise<BaseDePrueba> => {
+/** `carpeta` permite migrar solo hasta cierto punto (pruebas de una migración sobre datos previos). */
+export const iniciarBaseDePrueba = async (
+  carpeta: string = CARPETA_MIGRACIONES,
+): Promise<BaseDePrueba> => {
   const contenedor: StartedPostgreSqlContainer = await new PostgreSqlContainer(IMAGEN)
     .withPlatform('linux/amd64')
     .withEnvironment({
@@ -39,7 +42,7 @@ export const iniciarBaseDePrueba = async (): Promise<BaseDePrueba> => {
   const url = (rol: RolBd): string =>
     `postgres://${rol}:${CLAVE}@${contenedor.getHost()}:${String(contenedor.getPort())}/campo`;
 
-  if (!(await aplicarMigraciones(url('app_migrator'), CARPETA_MIGRACIONES, silencioso))) {
+  if (!(await aplicarMigraciones(url('app_migrator'), carpeta, silencioso))) {
     await contenedor.stop();
     throw new Error('No se pudieron aplicar las migraciones en la base de prueba');
   }

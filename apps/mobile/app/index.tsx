@@ -15,7 +15,7 @@ import { useApp } from '../src/estado.ts';
 import { CLAVES, llavero } from '../src/plataforma.ts';
 import { ErrorServidor } from '../src/sesion.ts';
 import { sincronizar } from '../src/sync.ts';
-import { abrirJornada, cerrarJornada, jornadaAbierta } from '../src/tareas.ts';
+import { abrirJornada, cerrarJornada, jornadaAbierta } from '../src/jornada.ts';
 import { Aviso, BarraEstado, Boton, e, Etiqueta, Fila, Grupo, Separador, T } from '../src/ui.tsx';
 
 type Ruta = '/servidor' | '/entrar' | '/desbloquear';

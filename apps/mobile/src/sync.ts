@@ -8,9 +8,10 @@ import { ErrorServidor, olvidarSesion, pedir, servidor, tokenActual } from './se
 /**
  * Sincronización (doc. 02 §6.4, RN-18). Orden:
  * 1. Eventos de la outbox (incluye el manifiesto de archivos), en lotes de hasta 500.
- * 2. Fotos de 2 048 px: primero las de tareas completadas, luego el resto.
+ * 2. Fotos de 2 048 px: primero las de ejecuciones cerradas, luego el resto.
  * 3. Estado de los archivos: lo verificado por el servidor se borra del celular (RN-17).
- * 4. Bajada incremental: tareas nuevas, revocaciones, estados, comentarios y orden de baja.
+ * 4. Bajada incremental: estado de los archivos y orden de baja.
+ * 5. Paquete de campo (configuración, cronograma vigente y reservas), a lo más cada 30 min.
  */
 const LOTE = 500;
 const TROZO = 5 * 1024 * 1024;
@@ -102,14 +103,12 @@ const subirArchivo = async (base: string, token: string, a: FilaArchivo): Promis
 
 const subirArchivos = async (): Promise<void> => {
   const base = await servidor();
-  // RN-18: primero las fotos de ejecuciones cerradas (y de tareas completadas), luego el resto.
+  // RN-18: primero las fotos de ejecuciones cerradas, luego el resto.
   const pendientes = await consultar<FilaArchivo>(
     `SELECT a.id, a.uri, a.sha256, a.url_subida FROM archivo_local a
-       LEFT JOIN paquete_tarea t ON t.id = a.tarea_id
        LEFT JOIN ejecucion_local x ON x.id = a.ejecucion_id
       WHERE a.estado = 'pendiente'
-      ORDER BY CASE WHEN t.estado_local = 'completada' OR x.estado_local = 'cerrada' THEN 0 ELSE 1 END,
-               a.capturado_en`,
+      ORDER BY CASE WHEN x.estado_local = 'cerrada' THEN 0 ELSE 1 END, a.capturado_en`,
   );
   for (const a of pendientes) {
     const sesionActual = (await tokenActual()) ?? '';
@@ -162,60 +161,24 @@ const liberarVerificados = async (): Promise<void> => {
 };
 
 interface Cambio {
-  entidad: 'tarea' | 'comentario' | 'dispositivo' | 'archivo';
+  entidad: 'dispositivo' | 'archivo';
   id: string;
-  operacion: 'disponible' | 'revocada' | 'estado' | 'creado' | 'baja' | 'observada';
+  operacion: 'estado' | 'baja';
   datos: Record<string, unknown>;
 }
 
-/** Devuelve true si llegó la orden de baja (el llamador cierra la sesión). */
+/**
+ * Devuelve true si llegó la orden de baja (el llamador cierra la sesión). El estado de los
+ * archivos se resuelve con `liberarVerificados`; aquí solo importa la baja y el cursor.
+ */
 const bajarCambios = async (): Promise<boolean> => {
   const cursor = (await leerEstadoSync('cursor')) ?? '';
   const r = await pedir<{ cambios: Cambio[]; cursor: string }>(
     'GET',
     `/api/v1/sync/cambios${cursor === '' ? '' : `?desde=${encodeURIComponent(cursor)}`}`,
   );
-  let disponibles = 0;
-  for (const c of r.cambios) {
-    if (c.entidad === 'dispositivo' && c.operacion === 'baja') return true;
-    if (c.entidad === 'tarea' && c.operacion === 'disponible') disponibles++;
-    if (c.entidad === 'tarea' && c.operacion === 'revocada') {
-      await ejecutar(
-        'UPDATE paquete_tarea SET revocada = 1, motivo_revocacion = ? WHERE id = ? AND asignacion_id = ?',
-        [
-          typeof c.datos['motivo'] === 'string' ? c.datos['motivo'] : null,
-          c.id,
-          typeof c.datos['asignacion_id'] === 'string' ? c.datos['asignacion_id'] : '',
-        ],
-      );
-    }
-    // Observada: vuelve a este celular con una asignación nueva para corregir (doc. 02 §7.2).
-    if (
-      c.entidad === 'tarea' &&
-      c.operacion === 'observada' &&
-      typeof c.datos['asignacion_id'] === 'string'
-    ) {
-      await ejecutar(
-        "UPDATE paquete_tarea SET asignacion_id = ?, estado = 'descargada', estado_local = 'descargada' WHERE id = ?",
-        [c.datos['asignacion_id'], c.id],
-      );
-    }
-    if (
-      c.entidad === 'tarea' &&
-      c.operacion === 'estado' &&
-      typeof c.datos['estado'] === 'string'
-    ) {
-      await ejecutar('UPDATE paquete_tarea SET estado = ? WHERE id = ?', [c.datos['estado'], c.id]);
-    }
-    if (c.entidad === 'comentario' && c.operacion === 'creado') {
-      await ejecutar(
-        'INSERT OR IGNORE INTO comentario_local (id, tarea_id, texto, propio, creado_en) VALUES (?, ?, ?, 0, ?)',
-        [c.id, String(c.datos['tarea_id']), String(c.datos['texto']), String(c.datos['creado_en'])],
-      );
-    }
-  }
+  if (r.cambios.some((c) => c.entidad === 'dispositivo' && c.operacion === 'baja')) return true;
   await guardarEstadoSync('cursor', r.cursor);
-  await guardarEstadoSync('disponibles', String(disponibles));
   return false;
 };
 

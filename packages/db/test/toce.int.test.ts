@@ -259,21 +259,21 @@ describe('carga TOCE (A01 + D01)', () => {
     expect(resumen.estacion_metodo_pendientes).toBeGreaterThan(0);
   });
 
-  it('las tareas internas son una por estación × método habilitado, con brigada y fecha del cronograma', async () => {
+  it('las reservas son una por estación × método habilitado, con brigada y fecha del cronograma', async () => {
     const habilitados = await n(sql<{
       n: string;
     }>`SELECT count(*)::text AS n FROM app.estacion_metodo em JOIN app.metodo m ON m.id = em.metodo_id
       WHERE em.habilitado AND m.clase IN ('todas','condicional','transversal')`);
-    expect(resumen.tareas).toBe(habilitados);
+    expect(resumen.reservas).toBe(habilitados);
     const t = await uno(sql<{ estado: string; fecha: string; brigada: string }>`
       SELECT t.estado, to_char(t.fecha_programada, 'YYYY-MM-DD') AS fecha, b.codigo AS brigada
-        FROM app.tarea t JOIN app.estacion e ON e.id = t.estacion_id JOIN app.metodo m ON m.id = t.metodo_id
+        FROM app.reserva t JOIN app.estacion e ON e.id = t.estacion_id JOIN app.metodo m ON m.id = t.metodo_id
         JOIN app.brigada b ON b.id = t.brigada_id
        WHERE e.codigo = 'EM-52' AND m.codigo = 'epifitas.vasculares'`);
     expect(t).toEqual({ estado: 'asignada', fecha: '2026-12-13', brigada: 'B1' });
     const sherman = await uno(sql<{ fecha: string; brigada: string }>`
       SELECT to_char(t.fecha_programada, 'YYYY-MM-DD') AS fecha, b.codigo AS brigada
-        FROM app.tarea t JOIN app.estacion e ON e.id = t.estacion_id JOIN app.metodo m ON m.id = t.metodo_id
+        FROM app.reserva t JOIN app.estacion e ON e.id = t.estacion_id JOIN app.metodo m ON m.id = t.metodo_id
         JOIN app.brigada b ON b.id = t.brigada_id
        WHERE e.codigo = 'EM-52' AND m.codigo = 'mamiferos_menores_terrestres.sherman'`);
     expect(sherman).toEqual({ fecha: '2026-12-02', brigada: 'SELVA 2' });
@@ -287,7 +287,7 @@ describe('carga TOCE (A01 + D01)', () => {
     );
     const otra = await cargarToce(db, { proyectoId: PROY });
     expect(otra.configuracion_numero).toBe(1);
-    expect(otra.tareas).toBe(0);
+    expect(otra.reservas).toBe(0);
     expect(
       await n(
         sql<{

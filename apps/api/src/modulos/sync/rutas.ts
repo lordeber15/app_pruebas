@@ -54,8 +54,7 @@ export const rutasSync: FastifyPluginAsyncZod<Opciones> = (app, { auth, db, conf
       preHandler: requiereDispositivo(auth, db, { permitirBaja: true }),
       schema: { querystring: z.object({ desde: z.string().max(200).optional() }) },
     },
-    async (request) =>
-      cambiosDesde(db, actorDispositivo(request), request.query.desde, config.PAQUETE_MAX_TAREAS),
+    async (request) => cambiosDesde(db, actorDispositivo(request), request.query.desde),
   );
 
   return Promise.resolve();

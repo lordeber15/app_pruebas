@@ -18,7 +18,7 @@ const pool = crearPool(url, 2);
 const db = crearDb(pool);
 
 const usuarios = [
-  { numDocumento: '70000001', nombre: 'Supervisora Sintética', rolGlobal: 'supervisor' },
+  { numDocumento: '70000001', nombre: 'Coordinadora Sintética', rolGlobal: 'coordinacion' },
   { numDocumento: '70000002', nombre: 'Especialista Sintético', rolGlobal: 'ninguno' },
 ] as const;
 

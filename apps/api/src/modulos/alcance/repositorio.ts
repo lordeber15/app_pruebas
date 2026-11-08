@@ -1,4 +1,4 @@
-import type { TipoTarea } from '@campo/core';
+import { esRolBrigada, type RolBrigada } from '@campo/core';
 import type { Db } from '@campo/db';
 
 /**
@@ -6,28 +6,18 @@ import type { Db } from '@campo/db';
  * de core; aquí se resuelve el alcance concreto (brigada, propiedad) contra la base de datos.
  */
 
-export type RolCampo = 'especialista' | 'logistico';
-
-/** Tipo de tarea que cada rol de campo ejecuta (doc. 01 §2.3: el logístico, solo logísticas). */
-export const TIPO_POR_ROL: Readonly<Record<RolCampo, TipoTarea>> = {
-  especialista: 'tecnica',
-  logistico: 'logistica',
-};
-
-/** Roles de campo activos del usuario, por brigada. */
-export const rolesDeCampo = async (
+/** Roles activos del usuario en cada una de sus brigadas. */
+export const rolesEnBrigadas = async (
   db: Db,
   usuarioId: string,
-): Promise<ReadonlyMap<string, RolCampo>> => {
+): Promise<ReadonlyMap<string, RolBrigada>> => {
   const filas = await db
     .selectFrom('miembro_brigada')
     .select(['brigada_id', 'rol'])
     .where('usuario_id', '=', usuarioId)
     .where('estado', '=', 'activo')
     .execute();
-  const mapa = new Map<string, RolCampo>();
-  for (const f of filas) {
-    if (f.rol === 'especialista' || f.rol === 'logistico') mapa.set(f.brigada_id, f.rol);
-  }
+  const mapa = new Map<string, RolBrigada>();
+  for (const f of filas) if (esRolBrigada(f.rol)) mapa.set(f.brigada_id, f.rol);
   return mapa;
 };
