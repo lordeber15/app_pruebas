@@ -78,6 +78,35 @@ export type EstadoUnidad = (typeof ESTADOS_UNIDAD)[number];
 export const TIPOS_ALERTA = ['tecnica', 'logistica', 'post_sincronizacion'] as const;
 export type TipoAlerta = (typeof TIPOS_ALERTA)[number];
 
+/** Tipos que se registran desde campo o la web; las post-sincronización las genera el sistema. */
+export const TIPOS_ALERTA_REGISTRABLES = ['tecnica', 'logistica'] as const;
+export type TipoAlertaRegistrable = (typeof TIPOS_ALERTA_REGISTRABLES)[number];
+
+/**
+ * Categorías de una alerta logística del JdB (D02 §9, D04 §10, E-07): solo excepciones.
+ * La lista de ítems del checklist sigue pendiente (P-09); estas categorías vienen de D02.
+ */
+export const CATEGORIAS_ALERTA_LOGISTICA = [
+  'movilidad',
+  'materiales',
+  'hospedaje',
+  'apoyo_local',
+  'epp_documentos',
+  'viaticos',
+  'muestras_equipos',
+] as const;
+export type CategoriaAlertaLogistica = (typeof CATEGORIAS_ALERTA_LOGISTICA)[number];
+/** Textos de D02 §9 para la interfaz (web y móvil). */
+export const ETIQUETA_CATEGORIA_LOGISTICA: Readonly<Record<CategoriaAlertaLogistica, string>> = {
+  movilidad: 'Movilidad',
+  materiales: 'Materiales',
+  hospedaje: 'Hospedaje',
+  apoyo_local: 'Apoyo local',
+  epp_documentos: 'EPP / documentos',
+  viaticos: 'Viáticos',
+  muestras_equipos: 'Muestras / equipos',
+};
+
 export const ESTADOS_ALERTA = ['abierta', 'pendiente_respuesta', 'cerrada'] as const;
 export type EstadoAlerta = (typeof ESTADOS_ALERTA)[number];
 /** Estado solo del celular antes de sincronizar (D02 §9); nunca llega al servidor. */

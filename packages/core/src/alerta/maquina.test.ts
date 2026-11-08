@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ESTADOS_ALERTA, ESTADOS_SOLICITUD_CRONOGRAMA } from '../estados.ts';
 import {
+  complementarAlerta,
   TRANSICIONES_ALERTA,
   TRANSICIONES_SOLICITUD_CRONOGRAMA,
   transicionarAlerta,
@@ -83,6 +84,30 @@ describe('RN-36 solicitud de cambio de cronograma (E-08)', () => {
     expect(transicionarSolicitudCronograma('ajuste_solicitado', { tipo: 'ajustar' })).toEqual({
       ok: true,
       valor: 'pendiente',
+    });
+  });
+});
+
+describe('RN-36 alertas: complementar sin cambiar el estado', () => {
+  it('abierta y pendiente de respuesta conservan su estado', () => {
+    expect(complementarAlerta('abierta', 'Se adjunta detalle')).toEqual({
+      ok: true,
+      valor: 'abierta',
+    });
+    expect(complementarAlerta('pendiente_respuesta', 'Detalle')).toEqual({
+      ok: true,
+      valor: 'pendiente_respuesta',
+    });
+  });
+
+  it('una cerrada no se complementa y el texto es obligatorio', () => {
+    expect(complementarAlerta('cerrada', 'Tarde')).toEqual({
+      ok: false,
+      motivo: 'TRANSICION_INVALIDA',
+    });
+    expect(complementarAlerta('abierta', '   ')).toEqual({
+      ok: false,
+      motivo: 'TEXTO_OBLIGATORIO',
     });
   });
 });

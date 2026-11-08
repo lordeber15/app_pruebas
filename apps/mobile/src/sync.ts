@@ -45,6 +45,11 @@ const enviarEventos = async (): Promise<void> => {
         "UPDATE outbox SET estado = 'enviado', resultado = ?, motivo = ?, resuelto_en = ? WHERE id = ?",
         [res.estado, res.motivo ?? null, ahora, res.id],
       );
+      await ejecutar('UPDATE alerta_local SET resultado = ?, motivo = ? WHERE evento_id = ?', [
+        res.estado,
+        res.motivo ?? null,
+        res.id,
+      ]);
     }
     await ejecutar('DELETE FROM outbox WHERE resuelto_en IS NOT NULL AND resuelto_en < ?', [
       new Date(Date.now() - SIETE_DIAS).toISOString(),

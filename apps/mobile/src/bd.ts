@@ -6,6 +6,7 @@ import { open, type DB, type Scalar } from '@op-engineering/op-sqlite';
  * - ejecucion_local, unidad_local, track_local: lo trabajado en campo.
  * - outbox: eventos pendientes; se envían en orden y se conservan 7 días tras su resultado.
  * - archivo_local: fotos con su estado de subida; se borran solo al confirmar su hash (RN-17).
+ * - alerta_local: alertas registradas en campo y la respuesta del servidor a su evento.
  */
 let bd: DB | null = null;
 
@@ -35,6 +36,13 @@ const ESQUEMA = [
   `CREATE TABLE IF NOT EXISTS track_local (
      id TEXT PRIMARY KEY, ejecucion_id TEXT NOT NULL, unidad_id TEXT NOT NULL, puntos TEXT NOT NULL DEFAULT '[]',
      enviado INTEGER NOT NULL DEFAULT 0)`,
+  // Alertas registradas en este celular (D02 §13): «pendiente de envío» hasta que el servidor
+  // responde su evento; `resultado` y `motivo` guardan esa respuesta.
+  `CREATE TABLE IF NOT EXISTS alerta_local (
+     id TEXT PRIMARY KEY, evento_id TEXT NOT NULL, brigada_id TEXT NOT NULL, tipo TEXT NOT NULL,
+     categoria TEXT, titulo TEXT NOT NULL, descripcion TEXT, estacion_id TEXT, ejecucion_id TEXT,
+     reserva_id TEXT, afecta_cronograma INTEGER NOT NULL DEFAULT 0, creado_en TEXT NOT NULL,
+     resultado TEXT, motivo TEXT)`,
 ];
 
 /** Tablas locales del modelo anterior: se quitan al actualizar la app (no guardan fotos). */
@@ -132,6 +140,7 @@ export const borrarTodo = async (): Promise<void> => {
     'ejecucion_local',
     'unidad_local',
     'track_local',
+    'alerta_local',
   ]) {
     await b.execute(`DELETE FROM ${t}`);
   }

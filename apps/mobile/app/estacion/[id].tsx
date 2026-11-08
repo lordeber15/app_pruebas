@@ -153,6 +153,12 @@ export default function Estacion() {
           </Grupo>
         ) : null}
 
+        <Boton
+          variante="secundario"
+          texto="Registrar alerta en esta estación"
+          alPresionar={() => router.push({ pathname: '/alerta/nueva', params: { estacionId: id } })}
+        />
+
         {porConfirmar.length > 0 ? (
           <View style={{ gap: 8 }}>
             <Text style={T.subtitulo}>Por confirmar ({porConfirmar.length})</Text>

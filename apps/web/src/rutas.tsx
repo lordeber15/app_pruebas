@@ -12,6 +12,7 @@ import { useEffect } from 'react';
 import { api, ErrorApi } from './api.ts';
 import { Cargando } from './componentes/Ui.tsx';
 import { Dispositivos, Usuarios } from './paginas/Administracion.tsx';
+import { Alertas } from './paginas/Alertas.tsx';
 import { CambiarContrasena } from './paginas/Contrasena.tsx';
 import { EjecucionDetalle, Ejecuciones } from './paginas/Ejecuciones.tsx';
 import { Entrar } from './paginas/Entrar.tsx';
@@ -158,6 +159,11 @@ const ejecucion = createRoute({
   path: '/ejecuciones/$ejecucionId',
   component: EjecucionDetalle,
 });
+const alertas = createRoute({
+  getParentRoute: () => proyecto,
+  path: '/alertas',
+  component: Alertas,
+});
 const cuenta = createRoute({
   getParentRoute: () => raiz,
   path: '/cuenta',
@@ -178,7 +184,7 @@ export const router = createRouter({
   routeTree: raiz.addChildren([
     entrar,
     inicio,
-    proyecto.addChildren([estaciones, equipo, ejecuciones, ejecucion, revisiones]),
+    proyecto.addChildren([estaciones, equipo, ejecuciones, ejecucion, revisiones, alertas]),
     cuenta,
     usuarios,
     dispositivos,

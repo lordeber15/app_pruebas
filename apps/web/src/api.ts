@@ -233,3 +233,55 @@ export interface EjecucionDetalle extends Omit<
     candidata_reporte: boolean;
   }[];
 }
+
+// ── Alertas (D02 §9, RN-36) ──
+
+export type TipoAlerta = 'tecnica' | 'logistica' | 'post_sincronizacion';
+export type EstadoAlerta = 'abierta' | 'pendiente_respuesta' | 'cerrada';
+export type TipoMensajeAlerta = 'respuesta' | 'complemento' | 'consulta' | 'cierre' | 'reapertura';
+
+export interface AlertaFila {
+  id: string;
+  tipo: TipoAlerta;
+  categoria: string | null;
+  estado: EstadoAlerta;
+  origen: 'usuario' | 'sistema';
+  titulo: string;
+  afecta_cronograma: boolean;
+  creado_en: string;
+  hora_dispositivo: string | null;
+  actualizado_en: string;
+  brigada_id: string | null;
+  brigada_nombre: string | null;
+  estacion_id: string | null;
+  estacion_codigo: string | null;
+  ejecucion_id: string | null;
+  autor_nombre: string | null;
+}
+
+export interface MensajeAlerta {
+  id: string;
+  tipo: TipoMensajeAlerta;
+  texto: string;
+  creado_en: string;
+  autor_id: string;
+  autor_nombre: string;
+}
+
+export interface AlertaDetalle extends AlertaFila {
+  proyecto_id: string;
+  descripcion: string | null;
+  metodo_nombre: string | null;
+  reserva_id: string | null;
+  cerrado_en: string | null;
+  cerrado_por_nombre: string | null;
+  cierre_comentario: string | null;
+  mensajes: MensajeAlerta[];
+  /** Pista para la interfaz; la API vuelve a autorizar cada acción. */
+  permisos: {
+    puede_responder: boolean;
+    puede_consultar: boolean;
+    puede_cerrar: boolean;
+    puede_reabrir: boolean;
+  };
+}

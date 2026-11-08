@@ -8,6 +8,7 @@ import {
   trackRegistrado,
   unidadGuardada,
 } from './ejecucion.ts';
+import { alertaRegistrada } from './alerta.ts';
 import * as repo from './repositorio.ts';
 
 /**
@@ -176,12 +177,13 @@ export const decidir = async (tx: Db, actor: ActorDispositivo, e: Evento): Promi
       return jornadaIniciada(tx, actor, e);
     case 'jornada_cerrada':
       return jornadaCerrada(tx, actor, e);
-    // Se guardan completos y se podrán aplicar cuando existan sus flujos: checklist e
-    // incidencias del JdB, audios y fichas (P-14) y alertas registradas en campo.
+    case 'alerta_local_generada':
+      return alertaRegistrada(tx, actor, e);
+    // Se guardan completos y se podrán aplicar cuando existan sus flujos: checklist del JdB
+    // (P-09), audios y fichas (P-14).
     case 'checklist_respondido':
     case 'nota_voz_registrada':
     case 'ficha_registrada':
-    case 'alerta_local_generada':
     case 'articulo_marcado':
       return noAplicado('NO_IMPLEMENTADO');
   }
