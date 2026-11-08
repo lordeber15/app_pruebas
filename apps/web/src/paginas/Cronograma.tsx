@@ -387,6 +387,11 @@ const Solicitud = ({ s, aprobar }: { s: SolicitudCronograma; aprobar: boolean })
           <Decision solicitud={s} accion="pedir-ajuste" />
           <Decision solicitud={s} accion="rechazar" />
         </div>
+      ) : s.estado === 'pendiente' ? (
+        <p className="text-sm text-tinta-suave">
+          Espera la decisión del Jefe de Proyecto: solo ese rol aprueba, pide ajuste o rechaza (RN-36).
+          Ingrese con un usuario de rol global «Jefe de Proyecto» para decidir.
+        </p>
       ) : null}
       <AvisoError error={aprobacion.error} />
     </li>

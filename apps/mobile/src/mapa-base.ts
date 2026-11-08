@@ -33,11 +33,38 @@ export const estiloNeutro = (): StyleSpecification => ({
   layers: [{ id: 'fondo', type: 'background', paint: { 'background-color': FONDO_NEUTRO } }],
 });
 
-/** Lee la carpeta del mapa base; sin archivo local devuelve el fondo neutro. */
-export const prepararMapaBase = (): MapaBase => {
+/**
+ * Mapa base del propio servidor (`/mapa/base.pmtiles`, el mismo de la web), leído por rangos solo
+ * con señal: es un respaldo mientras no exista el recorte por brigada (bloque 8). MapLibre guarda
+ * en su caché lo ya visto, pero eso no reemplaza el paquete sin conexión.
+ */
+const estiloServidor = (servidor: string): StyleSpecification => {
+  const base = servidor.replace(/\/$/, '');
+  return {
+    version: 8,
+    glyphs: `${base}/mapa/glifos/{fontstack}/{range}.pbf`,
+    sources: {
+      protomaps: {
+        type: 'vector',
+        url: `pmtiles://${base}/mapa/base.pmtiles`,
+        attribution: '© OpenStreetMap',
+      },
+    },
+    layers: capasBase as StyleSpecification['layers'],
+  };
+};
+
+/**
+ * Elige el mapa base: el recorte local si existe; si no, con señal, el del servidor; sin ninguno,
+ * el fondo neutro (las estaciones se dibujan igual).
+ */
+export const prepararMapaBase = (servidor: string | null = null): MapaBase => {
   const carpeta = new Directory(Paths.document, 'mapa');
   const pmtiles = new File(carpeta, 'brigada.pmtiles');
-  if (!pmtiles.exists) return { estilo: estiloNeutro(), conTeselas: false };
+  if (!pmtiles.exists)
+    return servidor === null
+      ? { estilo: estiloNeutro(), conTeselas: false }
+      : { estilo: estiloServidor(servidor), conTeselas: true };
 
   const glifos = new Directory(carpeta, 'glifos');
   const conGlifos = RANGOS_GLIFOS.every(
