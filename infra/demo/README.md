@@ -81,16 +81,16 @@ El dominio debe ser exactamente el de `preparar.sh`. Las URL firmadas de las fot
      node src/crear-coordinacion.ts DNI 12345678 "Nombre Apellido"
    ```
 
-2. Cargue la configuración TOCE (D01 por método y A01 con estaciones, brigadas y cronograma) en un proyecto nuevo:
+2. Entre a `https://demo.suempresa.pe` con el DNI y la contraseña temporal del paso 1. Le pedirá crear una propia: al menos 8 caracteres con mayúscula, minúscula y número.
+
+3. Cree el proyecto con **Nuevo proyecto** y, dentro de él, en **Estaciones**, pulse **Cargar configuración TOCE (D01 y A01)**. Crea los 33 métodos, las 102 estaciones, las brigadas, el cronograma base y las reservas, y muestra el resumen. Repetirla no duplica nada.
+
+   También puede hacerse por consola:
 
    ```
    docker compose -f infra/demo/docker-compose.demo.yml run --rm api \
      node ../../packages/db/src/cargar-toce.ts --crear "TOCE"
    ```
-
-   Muestra cuántos métodos, estaciones, brigadas, filas del cronograma y reservas cargó. Volver a ejecutarlo con `--proyecto <id>` no duplica nada.
-
-3. Entre a `https://demo.suempresa.pe` con el DNI y la contraseña temporal del paso 1. Le pedirá crear una propia: al menos 8 caracteres con mayúscula, minúscula y número.
 
 ## Circuito de la demo
 
@@ -118,14 +118,21 @@ Las migraciones se aplican solas y no borran nada:
 - **Roles:** el supervisor pasa a Coordinación y el logístico o jefe de cada brigada pasa a Jefe de Brigada.
 - **Contraseñas:** todos los usuarios existentes deberán crear una contraseña propia en su próximo ingreso.
 
-Después cargue TOCE con el paso 2 de *Primer ingreso* si aún no lo hizo.
+Después cargue TOCE con el paso 3 de *Primer ingreso* si aún no lo hizo.
 
-## Mapa base (opcional)
+## Mapa base
 
-Sin mapa base, la web muestra las estaciones sobre un fondo neutro. Para ver el terreno, copie un archivo PMTiles con el nombre `base.pmtiles` en `infra/demo/mapa/`. No hace falta reiniciar.
+Sin mapa base, la web muestra las estaciones sobre un fondo neutro. Para ver el terreno, copie el archivo `base.pmtiles` en `infra/demo/mapa/` de la VPS. No hace falta reiniciar ni reconstruir.
 
-- El de PoC-01 cubre Lima (19 MB): `poc/poc-01-mapa/assets/mapa/base.pmtiles`.
-- Para otra zona, genérelo con `poc/poc-01-mapa/scripts/generar-datos.sh` (vea su README).
+El archivo no está en git (pesa 210 MB). Se genera en cualquier equipo con Docker, desde la raíz del repositorio. Este comando extrae todo el Perú hasta el zoom 13 desde el mapa público de Protomaps (OpenStreetMap):
+
+```
+docker run --rm -v "$PWD/infra/demo/mapa:/out" protomaps/go-pmtiles extract \
+  https://build.protomaps.com/20261106.pmtiles /out/base.pmtiles \
+  --bbox=-81.4,-18.4,-68.6,-0.0 --maxzoom=13
+```
+
+Si esa fecha ya no existe, use una reciente con el formato `AAAAMMDD`. Luego súbalo a la VPS, por ejemplo con `scp infra/demo/mapa/base.pmtiles usuario@su-vps:/ruta/del/repo/infra/demo/mapa/`.
 
 ## Operación
 
