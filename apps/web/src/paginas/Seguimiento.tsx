@@ -19,6 +19,7 @@ import {
   th,
   Vacio,
 } from '../componentes/Ui.tsx';
+import { Paginacion, usePaginaCliente } from '../componentes/Paginacion.tsx';
 import { useProyectoId } from './Proyectos.tsx';
 
 /** Estados de la ejecución en el servidor, en el lenguaje del modelo visible. */
@@ -105,77 +106,82 @@ const Estados = ({ f }: { f: FilaSeguimiento }) => {
   );
 };
 
-const TablaBrigada = ({ b }: { b: BrigadaSeguimiento }) => (
-  <section className="flex flex-col gap-3" aria-labelledby={`brigada-${b.id}`}>
-    <div className="flex flex-wrap items-baseline justify-between gap-2">
-      <h2 id={`brigada-${b.id}`} className="text-lg font-semibold">
-        {nombreBrigada(b)}
-      </h2>
-      <p className="text-sm" role="status">
-        {b.ultima_sincronizacion === null ? (
-          <span className="text-ocre">
-            <span aria-hidden="true">⚠ </span>Aún no se recibe ninguna sincronización de esta
-            brigada.
-          </span>
-        ) : (
-          <>
-            Última sincronización:{' '}
-            <strong className="cifras">{fechaHora(b.ultima_sincronizacion)}</strong>
-            {b.dispositivos.length > 1 ? ` (${String(b.dispositivos.length)} dispositivos)` : ''}
-          </>
-        )}
-      </p>
-    </div>
-    {b.solo_propias ? (
-      <p className="text-sm text-tinta-suave">Se muestra solo el esfuerzo de sus ejecuciones.</p>
-    ) : null}
-    {b.filas.length === 0 ? (
-      <Vacio titulo="Esta brigada no tiene métodos programados ni ejecuciones recibidas" />
-    ) : (
-      <Tabla titulo={`Avance de ${nombreBrigada(b)}`}>
-        <thead>
-          <tr>
-            <th className={th}>Estación</th>
-            <th className={th}>Especialidad y método</th>
-            <th className={th}>Programada</th>
-            <th className={th}>Objetivo aplicable</th>
-            <th className={th}>Avance elemental</th>
-            <th className={th}>Ejecuciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {b.filas.map((f) => (
-            <tr key={`${f.estacion_id}|${f.metodo_id}`}>
-              <td className={`${td} font-semibold`}>
-                {f.estacion_codigo}
-                {f.za_ef === null || f.za_ef === '' ? null : (
-                  <span className="ml-1 rounded bg-ocre-claro px-1 text-xs font-normal text-ocre">
-                    ZA/EF
-                  </span>
-                )}
-              </td>
-              <td className={td}>
-                <span className="text-tinta-suave">{f.especialidad_nombre}</span>
-                <br />
-                {f.metodo_nombre}
-              </td>
-              <td className={`${td} cifras whitespace-nowrap`}>{f.fecha_programada ?? '—'}</td>
-              <td className={td}>
-                <Objetivo f={f} />
-              </td>
-              <td className={td}>
-                <Avance f={f} />
-              </td>
-              <td className={td}>
-                <Estados f={f} />
-              </td>
+const TablaBrigada = ({ b }: { b: BrigadaSeguimiento }) => {
+  // Filas estación × método de una brigada: ya llegan completas, se paginan en el cliente.
+  const pag = usePaginaCliente(b.filas);
+  return (
+    <section className="flex flex-col gap-3" aria-labelledby={`brigada-${b.id}`}>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 id={`brigada-${b.id}`} className="text-lg font-semibold">
+          {nombreBrigada(b)}
+        </h2>
+        <p className="text-sm" role="status">
+          {b.ultima_sincronizacion === null ? (
+            <span className="text-ocre">
+              <span aria-hidden="true">⚠ </span>Aún no se recibe ninguna sincronización de esta
+              brigada.
+            </span>
+          ) : (
+            <>
+              Última sincronización:{' '}
+              <strong className="cifras">{fechaHora(b.ultima_sincronizacion)}</strong>
+              {b.dispositivos.length > 1 ? ` (${String(b.dispositivos.length)} dispositivos)` : ''}
+            </>
+          )}
+        </p>
+      </div>
+      {b.solo_propias ? (
+        <p className="text-sm text-tinta-suave">Se muestra solo el esfuerzo de sus ejecuciones.</p>
+      ) : null}
+      {b.filas.length === 0 ? (
+        <Vacio titulo="Esta brigada no tiene métodos programados ni ejecuciones recibidas" />
+      ) : (
+        <Tabla titulo={`Avance de ${nombreBrigada(b)}`}>
+          <thead>
+            <tr>
+              <th className={th}>Estación</th>
+              <th className={th}>Especialidad y método</th>
+              <th className={th}>Programada</th>
+              <th className={th}>Objetivo aplicable</th>
+              <th className={th}>Avance elemental</th>
+              <th className={th}>Ejecuciones</th>
             </tr>
-          ))}
-        </tbody>
-      </Tabla>
-    )}
-  </section>
-);
+          </thead>
+          <tbody>
+            {pag.visibles.map((f) => (
+              <tr key={`${f.estacion_id}|${f.metodo_id}`}>
+                <td className={`${td} font-semibold`}>
+                  {f.estacion_codigo}
+                  {f.za_ef === null || f.za_ef === '' ? null : (
+                    <span className="ml-1 rounded bg-ocre-claro px-1 text-xs font-normal text-ocre">
+                      ZA/EF
+                    </span>
+                  )}
+                </td>
+                <td className={td}>
+                  <span className="text-tinta-suave">{f.especialidad_nombre}</span>
+                  <br />
+                  {f.metodo_nombre}
+                </td>
+                <td className={`${td} cifras whitespace-nowrap`}>{f.fecha_programada ?? '—'}</td>
+                <td className={td}>
+                  <Objetivo f={f} />
+                </td>
+                <td className={td}>
+                  <Avance f={f} />
+                </td>
+                <td className={td}>
+                  <Estados f={f} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </Tabla>
+      )}
+      <Paginacion etiqueta={`Páginas de ${nombreBrigada(b)}`} {...pag.props} />
+    </section>
+  );
+};
 
 /** Dashboard de seguimiento (D02 §12, RF-W01, E-09). */
 export const Seguimiento = () => {

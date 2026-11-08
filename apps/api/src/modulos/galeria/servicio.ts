@@ -1,6 +1,8 @@
 import { nivelPermiso, puedeIntentar, type Rol } from '@campo/core';
 import type { Db } from '@campo/db';
 import { sql } from 'kysely';
+import { z } from 'zod';
+import type { Firmador } from '../../plataforma/almacenamiento.ts';
 import { noAutorizado, ProblemaHttp } from '../../plataforma/errores.ts';
 import type { Actor } from '../../plataforma/sesion.ts';
 import {
@@ -14,8 +16,10 @@ import {
 /**
  * Galería de fotos verificadas (D02 §8 y §11, E-10 parcial).
  *
- * - Solo fotos con la versión de 2 048 px verificada en el servidor; las miniaturas y vistas se
- *   piden con `GET /archivos/:id/url`, que vuelve a autorizar y firma por ≤ 15 min.
+ * - Solo fotos con la versión de 2 048 px verificada en el servidor. Cada página trae la URL
+ *   firmada (≤ 15 min) de la miniatura; la vista de 2 048 px se pide con `GET /archivos/:id/url`,
+ *   que vuelve a autorizar.
+ * - Paginación por cursor estable (capturado_en desc, id desc).
  * - Alcance como en las ejecuciones: Coordinación y JdP todo; JdB y Supervisor su brigada; el
  *   especialista solo lo suyo.
  * - «Candidata para el reporte diario»: especialista (sus fotos), Supervisor (su brigada),
@@ -26,7 +30,8 @@ import {
 
 /** Zona horaria para el filtro por día, hasta que exista la del proyecto (CLAUDE.md, huecos). */
 const ZONA_HORARIA = 'America/Lima';
-const LIMITE = 300;
+export const LIMITE_GALERIA = 48;
+export const LIMITE_GALERIA_MAXIMO = 100;
 
 export interface FiltrosGaleria {
   readonly brigada?: string | undefined;
@@ -37,11 +42,43 @@ export interface FiltrosGaleria {
   readonly seleccion?: 'todas' | 'candidatas' | 'seleccionadas' | undefined;
 }
 
-export const listarGaleria = async (
+export interface PaginaGaleria {
+  /** Cursor opaco de la página anterior (`siguiente`); sin él, la primera página. */
+  readonly cursor?: string | undefined;
+  readonly limite?: number | undefined;
+}
+
+/**
+ * Cursor estable sobre el orden (capturado_en desc, id desc): el instante con microsegundos tal
+ * como lo guarda PostgreSQL (texto UTC) y el id. Opaco para el cliente (base64url de JSON).
+ */
+const cursorSchema = z.tuple([
+  z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/),
+  z.uuid(),
+]);
+const codificarCursor = (instante: string, id: string): string =>
+  Buffer.from(JSON.stringify([instante, id])).toString('base64url');
+const decodificarCursor = (cursor: string): readonly [string, string] => {
+  try {
+    const r = cursorSchema.safeParse(JSON.parse(Buffer.from(cursor, 'base64url').toString()));
+    if (r.success) return r.data;
+  } catch {
+    // Cae al error de abajo.
+  }
+  throw new ProblemaHttp(400, 'CURSOR_INVALIDO', 'El cursor de la galería no es válido.');
+};
+
+/**
+ * Alcance común de la galería y de su agregado por estación: brigadas visibles del actor (con el
+ * filtro de brigada), fotos verificadas y, donde el rol solo ve lo suyo, solo las del actor. Los
+ * filtros activos se aplican igual en los dos, así el mapa cuenta lo mismo que muestra la lista.
+ */
+const alcanceGaleria = async (
   db: Db,
   actor: Actor,
   proyectoId: string,
   f: FiltrosGaleria,
+  opciones: { readonly conEstacion: boolean },
 ) => {
   const proyecto = await db
     .selectFrom('proyecto')
@@ -57,16 +94,53 @@ export const listarGaleria = async (
   const puedeSeleccionar = (rol: Rol) => nivelPermiso(rol, 'emitir_reporte_diario') === 'total';
   const seleccionar =
     visibles.some(([, rol]) => puedeSeleccionar(rol)) || veTodosLosProyectos(actor);
-  if (elegidas.length === 0) return { fotos: [], truncado: false, puede_seleccionar: seleccionar };
+  if (elegidas.length === 0) return { consulta: null, seleccionar, rolDe: new Map<string, Rol>() };
 
   const ids = elegidas.map(([id]) => id);
   const soloPropias = elegidas.filter(([, rol]) => soloLoSuyo(rol)).map(([id]) => id);
-  const rolDe = new Map(elegidas);
 
   let q = db
     .selectFrom('archivo as a')
     .innerJoin('ejecucion as x', 'x.id', 'a.ejecucion_id')
     .innerJoin('estacion as e', 'e.id', 'x.estacion_id')
+    .where('a.proyecto_id', '=', proyectoId)
+    .where('a.tipo', '=', 'foto')
+    .where('a.estado', 'in', ['preview_verificada', 'original_verificado'])
+    .where('x.brigada_id', 'in', ids);
+  if (soloPropias.length > 0) {
+    q = q.where((eb) =>
+      eb.or([eb('x.brigada_id', 'not in', soloPropias), eb('a.usuario_id', '=', actor.usuarioId)]),
+    );
+  }
+  if (opciones.conEstacion && f.estacion !== undefined) {
+    q = q.where('x.estacion_id', '=', f.estacion);
+  }
+  if (f.metodo !== undefined) q = q.where('x.metodo_id', '=', f.metodo);
+  if (f.fecha !== undefined) {
+    q = q.where(
+      sql<boolean>`(a.capturado_en AT TIME ZONE ${ZONA_HORARIA})::date = ${f.fecha}::date`,
+    );
+  }
+  if (f.seleccion === 'candidatas') q = q.where('a.candidata_reporte', '=', true);
+  if (f.seleccion === 'seleccionadas') q = q.where('a.seleccionada_reporte', '=', true);
+  return { consulta: q, seleccionar, rolDe: new Map(elegidas) };
+};
+
+export const listarGaleria = async (
+  db: Db,
+  firmador: Firmador,
+  actor: Actor,
+  proyectoId: string,
+  f: FiltrosGaleria & PaginaGaleria,
+) => {
+  const limite = Math.min(f.limite ?? LIMITE_GALERIA, LIMITE_GALERIA_MAXIMO);
+  const desde = f.cursor === undefined ? null : decodificarCursor(f.cursor);
+  const { consulta, seleccionar, rolDe } = await alcanceGaleria(db, actor, proyectoId, f, {
+    conEstacion: true,
+  });
+  if (consulta === null) return { fotos: [], siguiente: null, puede_seleccionar: seleccionar };
+
+  let q = consulta
     .innerJoin('metodo as m', 'm.id', 'x.metodo_id')
     .innerJoin('especialidad as s', 's.id', 'm.especialidad_id')
     .innerJoin('usuario as us', 'us.id', 'a.usuario_id')
@@ -74,7 +148,10 @@ export const listarGaleria = async (
     .leftJoin('brigada as b', 'b.id', 'x.brigada_id')
     .select([
       'a.id',
-      'a.capturado_en',
+      sql<string>`to_char(a.capturado_en AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`.as(
+        'orden',
+      ),
+      'a.ruta_miniatura',
       'a.tipo_foto',
       'a.orientacion',
       'a.candidata_reporte',
@@ -92,47 +169,75 @@ export const listarGaleria = async (
       'm.nombre as metodo_nombre',
       's.nombre as especialidad_nombre',
       'un.codigo as unidad_codigo',
-    ])
-    .where('a.proyecto_id', '=', proyectoId)
-    .where('a.tipo', '=', 'foto')
-    .where('a.estado', 'in', ['preview_verificada', 'original_verificado'])
-    .where('x.brigada_id', 'in', ids);
-  if (soloPropias.length > 0) {
-    q = q.where((eb) =>
-      eb.or([eb('x.brigada_id', 'not in', soloPropias), eb('a.usuario_id', '=', actor.usuarioId)]),
-    );
-  }
-  if (f.estacion !== undefined) q = q.where('x.estacion_id', '=', f.estacion);
-  if (f.metodo !== undefined) q = q.where('x.metodo_id', '=', f.metodo);
-  if (f.fecha !== undefined) {
+    ]);
+  if (desde !== null) {
+    // Comparación de filas: estable aunque varias fotos compartan el mismo instante.
     q = q.where(
-      sql<boolean>`(a.capturado_en AT TIME ZONE ${ZONA_HORARIA})::date = ${f.fecha}::date`,
+      sql<boolean>`(a.capturado_en, a.id) < (${desde[0]}::timestamptz, ${desde[1]}::uuid)`,
     );
   }
-  if (f.seleccion === 'candidatas') q = q.where('a.candidata_reporte', '=', true);
-  if (f.seleccion === 'seleccionadas') q = q.where('a.seleccionada_reporte', '=', true);
-
   const filas = await q
     .orderBy('a.capturado_en', 'desc')
-    .orderBy('a.id')
-    .limit(LIMITE + 1)
+    .orderBy('a.id', 'desc')
+    .limit(limite + 1)
     .execute();
+  const pagina = filas.slice(0, limite);
+  const ultima = pagina.at(-1);
   return {
-    truncado: filas.length > LIMITE,
+    siguiente:
+      filas.length > limite && ultima !== undefined
+        ? codificarCursor(ultima.orden, ultima.id)
+        : null,
     puede_seleccionar: seleccionar,
-    fotos: filas.slice(0, LIMITE).map((a) => {
-      const rol = a.brigada_id === null ? undefined : rolDe.get(a.brigada_id);
-      const nivel = rol === undefined ? 'no' : nivelPermiso(rol, 'marcar_candidata');
-      return {
-        ...a,
-        capturado_en: new Date(a.capturado_en).toISOString(),
-        puede_marcar:
-          nivel === 'total' ||
-          (nivel === 'alcance' &&
-            (!soloLoSuyo(rol ?? 'admin') || a.usuario_id === actor.usuarioId)),
-      };
-    }),
+    fotos: await Promise.all(
+      pagina.map(async (fila) => {
+        // La ruta del objeto nunca sale al cliente; `orden` es el instante con microsegundos.
+        const { orden, ruta_miniatura, ...a } = fila;
+        const rol = a.brigada_id === null ? undefined : rolDe.get(a.brigada_id);
+        const nivel = rol === undefined ? 'no' : nivelPermiso(rol, 'marcar_candidata');
+        return {
+          ...a,
+          capturado_en: new Date(orden).toISOString(),
+          // Miniatura firmada (≤ 15 min) ya autorizada por el alcance de arriba; la vista de
+          // 2 048 px se pide aparte con `GET /archivos/:id/url`, solo al abrir el visor.
+          miniatura_url:
+            ruta_miniatura === null
+              ? null
+              : await firmador.firmar(ruta_miniatura, { tipoContenido: 'image/jpeg' }),
+          puede_marcar:
+            nivel === 'total' ||
+            (nivel === 'alcance' &&
+              (!soloLoSuyo(rol ?? 'admin') || a.usuario_id === actor.usuarioId)),
+        };
+      }),
+    ),
   };
+};
+
+/**
+ * Agregado para el mini mapa: una fila por estación con fotos visibles y su número, con el mismo
+ * alcance y los mismos filtros de la galería salvo el de estación (el mapa sirve para elegirla).
+ */
+export const estacionesGaleria = async (
+  db: Db,
+  actor: Actor,
+  proyectoId: string,
+  f: FiltrosGaleria,
+) => {
+  const { consulta } = await alcanceGaleria(db, actor, proyectoId, f, { conEstacion: false });
+  if (consulta === null) return { estaciones: [] };
+  const filas = await consulta
+    .select([
+      'e.id as estacion_id',
+      'e.codigo',
+      sql<number>`ST_Y(ST_PointOnSurface(e.geom))`.as('lat'),
+      sql<number>`ST_X(ST_PointOnSurface(e.geom))`.as('lon'),
+      sql<number>`count(*)::int`.as('fotos'),
+    ])
+    .groupBy('e.id')
+    .orderBy('e.codigo')
+    .execute();
+  return { estaciones: filas };
 };
 
 /** Foto con su brigada y el rol del actor ahí; 404 si no está a su alcance. */

@@ -1,9 +1,10 @@
 import {
   CATEGORIAS_ALERTA_LOGISTICA,
   ETIQUETA_CATEGORIA_LOGISTICA,
+  LIMITE_PAGINA_POR_DEFECTO,
   type CategoriaAlertaLogistica,
 } from '@campo/core';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import {
   api,
@@ -29,6 +30,7 @@ import {
   th,
   Vacio,
 } from '../componentes/Ui.tsx';
+import { Paginacion, usePaginaCursor } from '../componentes/Paginacion.tsx';
 import { puede, useYo } from '../sesion.ts';
 import { useProyectoId } from './Proyectos.tsx';
 
@@ -110,12 +112,15 @@ export const Alertas = () => {
     ...(tipo === '' ? {} : { tipo }),
     ...(brigada === '' ? {} : { brigada }),
   }).toString();
+  // Paginada por cursor en la API; cambiar un filtro vuelve a la primera página.
+  const pag = usePaginaCursor(filtro);
   const q = useQuery({
-    queryKey: ['alertas', proyectoId, filtro],
+    queryKey: ['alertas', proyectoId, filtro, pag.cursor ?? null],
     queryFn: () =>
-      api.get<{ alertas: AlertaFila[] }>(
-        `/proyectos/${proyectoId}/alertas${filtro === '' ? '' : `?${filtro}`}`,
+      api.get<{ alertas: AlertaFila[]; siguiente_cursor: string | null }>(
+        `/proyectos/${proyectoId}/alertas?limite=${String(LIMITE_PAGINA_POR_DEFECTO)}${filtro === '' ? '' : `&${filtro}`}${pag.parametro}`,
       ),
+    placeholderData: keepPreviousData,
   });
 
   return (
@@ -236,6 +241,10 @@ export const Alertas = () => {
           </tbody>
         </Tabla>
       ) : null}
+      <Paginacion
+        etiqueta="Páginas de alertas"
+        {...pag.props(q.data?.siguiente_cursor, q.isPlaceholderData)}
+      />
       {elegida === null ? null : (
         <Detalle key={elegida} id={elegida} alCerrar={() => setElegida(null)} />
       )}

@@ -268,7 +268,9 @@ export const descargarPaquete = async (
   }
   const expira = new Date(Date.now() + ttlSegundos * 1000);
   return {
-    url: await firmador.firmar(p.ruta_objeto, `mapa-${p.id}-v${String(p.version)}.pmtiles`),
+    url: await firmador.firmar(p.ruta_objeto, {
+      nombre: `mapa-${p.id}-v${String(p.version)}.pmtiles`,
+    }),
     expira_en: expira.toISOString(),
     tamano: p.tamano,
     sha256: p.sha256,

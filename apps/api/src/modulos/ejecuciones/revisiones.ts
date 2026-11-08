@@ -2,6 +2,7 @@ import { puedeModificar } from '@campo/core';
 import type { Db } from '@campo/db';
 import { sql } from 'kysely';
 import { ProblemaHttp } from '../../plataforma/errores.ts';
+import { despuesDe, instanteCursor, pagina, type Cursor } from '../../plataforma/paginacion.ts';
 import type { Actor } from '../../plataforma/sesion.ts';
 import { brigadasVisibles, exigirEnBrigada, noEncontrado } from '../alcance/autorizacion.ts';
 
@@ -21,13 +22,19 @@ const ejecucionDelEvento = sql<
   string | null
 >`coalesce(case when evento.entidad_tipo = 'ejecucion' then evento.entidad_id::text end, evento.payload->>'ejecucion_id')`;
 
-export const listarRevisiones = async (db: Db, actor: Actor, proyectoId: string) => {
+/** Por cursor, las más antiguas primero (hora_servidor asc, id asc): se resuelven en orden. */
+export const listarRevisiones = async (
+  db: Db,
+  actor: Actor,
+  proyectoId: string,
+  p: { readonly limite: number; readonly cursor: Cursor | null },
+) => {
   const mapa = await brigadasVisibles(db, actor, proyectoId);
   const gestionables = [...mapa]
     .filter(([, rol]) => puedeModificar(rol, 'resolver_revisiones'))
     .map(([id]) => id);
-  if (gestionables.length === 0) return [];
-  return db
+  if (gestionables.length === 0) return { filas: [], siguiente_cursor: null };
+  let q = db
     .selectFrom('evento')
     .innerJoin('ejecucion', (j) => j.on(sql<boolean>`ejecucion.id::text = ${ejecucionDelEvento}`))
     .innerJoin('estacion', 'estacion.id', 'ejecucion.estacion_id')
@@ -44,13 +51,20 @@ export const listarRevisiones = async (db: Db, actor: Actor, proyectoId: string)
       'estacion.codigo as estacion_codigo',
       'metodo.nombre as metodo_nombre',
       'usuario.nombre as usuario_nombre',
+      instanteCursor('evento.hora_servidor').as('_cursor_t'),
     ])
     .where('evento.estado', 'in', ['en_revision', 'duplicado'])
     .where('ejecucion.proyecto_id', '=', proyectoId)
-    .where('ejecucion.brigada_id', 'in', gestionables)
+    .where('ejecucion.brigada_id', 'in', gestionables);
+  if (p.cursor !== null) {
+    q = q.where(despuesDe('evento.hora_servidor', 'evento.id', p.cursor, 'asc'));
+  }
+  const filas = await q
     .orderBy('evento.hora_servidor')
-    .limit(500)
+    .orderBy('evento.id')
+    .limit(p.limite + 1)
     .execute();
+  return pagina(filas, p.limite);
 };
 
 export const resolverRevision = async (

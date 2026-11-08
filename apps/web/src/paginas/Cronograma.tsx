@@ -24,6 +24,7 @@ import {
   th,
   Vacio,
 } from '../componentes/Ui.tsx';
+import { Paginacion, usePaginaCliente } from '../componentes/Paginacion.tsx';
 import { useYo } from '../sesion.ts';
 import { ACTIVIDAD, AsignarEstacion, BorradorBase } from './CronogramaArmado.tsx';
 import { useProyectoId } from './Proyectos.tsx';
@@ -389,8 +390,8 @@ const Solicitud = ({ s, aprobar }: { s: SolicitudCronograma; aprobar: boolean })
         </div>
       ) : s.estado === 'pendiente' ? (
         <p className="text-sm text-tinta-suave">
-          Espera la decisión del Jefe de Proyecto: solo ese rol aprueba, pide ajuste o rechaza (RN-36).
-          Ingrese con un usuario de rol global «Jefe de Proyecto» para decidir.
+          Espera la decisión del Jefe de Proyecto: solo ese rol aprueba, pide ajuste o rechaza
+          (RN-36). Ingrese con un usuario de rol global «Jefe de Proyecto» para decidir.
         </p>
       ) : null}
       <AvisoError error={aprobacion.error} />
@@ -435,6 +436,10 @@ export const Cronograma = () => {
   const todos = q.data?.items ?? [];
   const esVigente = v?.estado === 'vigente';
   const items = todos.filter((i) => brigada === '' || i.brigada_id === brigada);
+  // Versión y brigada ya vienen completas para la propuesta: tabla y solicitudes se paginan en el
+  // cliente (las elegidas se conservan al cambiar de página porque se guardan por id).
+  const pagItems = usePaginaCliente(items, `${String(v?.numero)}|${brigada}`);
+  const pagSolicitudes = usePaginaCliente(solicitudes.data?.solicitudes ?? []);
   const nombreBrigada = new Map(
     (brigadas.data?.brigadas ?? []).map((b) => [b.id, b.codigo ?? b.nombre]),
   );
@@ -547,7 +552,7 @@ export const Cronograma = () => {
                 </tr>
               </thead>
               <tbody>
-                {items.map((i) => {
+                {pagItems.visibles.map((i) => {
                   const cambio = i.agregada
                     ? 'Agregada'
                     : i.base_fecha !== i.fecha || i.base_brigada_id !== i.brigada_id
@@ -589,6 +594,7 @@ export const Cronograma = () => {
               </tbody>
             </Tabla>
           )}
+          <Paginacion etiqueta="Páginas de actividades del cronograma" {...pagItems.props} />
 
           {proponer ? (
             <Propuesta
@@ -616,10 +622,11 @@ export const Cronograma = () => {
             <Vacio titulo="Aún no hay solicitudes de reprogramación" />
           ) : null}
           <ul className="flex flex-col gap-3">
-            {solicitudes.data?.solicitudes.map((s) => (
+            {pagSolicitudes.visibles.map((s) => (
               <Solicitud key={s.id} s={s} aprobar={aprueba} />
             ))}
           </ul>
+          <Paginacion etiqueta="Páginas de solicitudes" {...pagSolicitudes.props} />
         </section>
       ) : null}
     </>
