@@ -182,8 +182,8 @@ export type VarianteDescarga = 'miniatura' | 'preview' | 'original';
 
 /**
  * Ruta del objeto de la variante pedida si el archivo es visible para el actor y la variante está
- * verificada, según la brigada de su ejecución. El especialista solo ve sus propios archivos
- * (ERS §2.3, SEG-03).
+ * verificada, según la brigada de su ejecución, con el tipo de contenido para servirlo `inline`
+ * (la miniatura siempre es JPEG). El especialista solo ve sus propios archivos (ERS §2.3, SEG-03).
  */
 export const rutaParaDescarga = async (
   db: Db,
@@ -191,12 +191,13 @@ export const rutaParaDescarga = async (
   rolEnBrigada: (brigadaId: string) => Promise<Rol | null>,
   archivoId: string,
   variante: VarianteDescarga,
-): Promise<string | null> => {
+): Promise<{ clave: string; tipoContenido: string } | null> => {
   const a = await db
     .selectFrom('archivo')
     .innerJoin('ejecucion', 'ejecucion.id', 'archivo.ejecucion_id')
     .select([
       'archivo.usuario_id',
+      'archivo.tipo',
       'archivo.estado',
       'archivo.ruta_miniatura',
       'archivo.ruta_preview',
@@ -211,7 +212,19 @@ export const rutaParaDescarga = async (
   if (soloLoSuyo(rol) && a.usuario_id !== actor.usuarioId) return null;
 
   const previewLista = a.estado === 'preview_verificada' || a.estado === 'original_verificado';
-  if (variante === 'miniatura') return previewLista ? a.ruta_miniatura : null;
-  if (variante === 'preview') return previewLista ? a.ruta_preview : null;
-  return a.estado === 'original_verificado' ? a.ruta_original : null;
+  const tipoContenido = a.tipo === 'audio' ? 'audio/mp4' : 'image/jpeg';
+  const clave =
+    variante === 'miniatura'
+      ? previewLista
+        ? a.ruta_miniatura
+        : null
+      : variante === 'preview'
+        ? previewLista
+          ? a.ruta_preview
+          : null
+        : a.estado === 'original_verificado'
+          ? a.ruta_original
+          : null;
+  if (clave === null) return null;
+  return { clave, tipoContenido: variante === 'miniatura' ? 'image/jpeg' : tipoContenido };
 };

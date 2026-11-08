@@ -108,7 +108,7 @@ export const crearApp = async (config: Config, pool: pg.Pool): Promise<Aplicacio
   await app.register(rutasCronograma, { prefix: '/api/v1', auth, db, alCambiarCronograma });
   await app.register(rutasSeguimiento, { prefix: '/api/v1', auth, db });
   await app.register(rutasEstaciones, { prefix: '/api/v1', auth, db });
-  await app.register(rutasGaleria, { prefix: '/api/v1', auth, db });
+  await app.register(rutasGaleria, { prefix: '/api/v1', auth, db, firmador });
   await app.register(rutasMapas, {
     prefix: '/api/v1',
     auth,

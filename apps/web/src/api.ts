@@ -493,11 +493,23 @@ export interface FotoGaleria {
   metodo_nombre: string;
   especialidad_nombre: string;
   unidad_codigo: string | null;
+  /** URL firmada (≤ 15 min) de la miniatura; null si el worker aún no la generó. */
+  miniatura_url: string | null;
   puede_marcar: boolean;
 }
 
+/** Una página de la galería; `siguiente` es el cursor de la próxima o null si no hay más. */
 export interface Galeria {
   fotos: FotoGaleria[];
-  truncado: boolean;
+  siguiente: string | null;
   puede_seleccionar: boolean;
+}
+
+/** Agregado por estación para el mini mapa de la galería. */
+export interface EstacionGaleria {
+  estacion_id: string;
+  codigo: string;
+  lat: number;
+  lon: number;
+  fotos: number;
 }

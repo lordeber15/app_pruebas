@@ -268,15 +268,18 @@ export const rutasWeb: FastifyPluginAsyncZod<Opciones> = (
     },
     async (request) => {
       const a = actor(request);
-      const clave = await rutaParaDescarga(
+      const objeto = await rutaParaDescarga(
         db,
         a,
         (c) => rolEnBrigada(db, a, c),
         request.params.id,
         request.query.variante,
       );
-      if (clave === null) throw noEncontrado('El archivo');
-      return { url: await firmador.firmar(clave) };
+      if (objeto === null) throw noEncontrado('El archivo');
+      // `inline` + tipo explícito: el navegador muestra la foto en lugar de descargarla.
+      return {
+        url: await firmador.firmar(objeto.clave, { tipoContenido: objeto.tipoContenido }),
+      };
     },
   );
 
