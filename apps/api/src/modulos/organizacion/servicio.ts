@@ -1,3 +1,4 @@
+import type { RolBrigada, ValorRolGlobal } from '@campo/core';
 import type { Db } from '@campo/db';
 import { sql } from 'kysely';
 import { randomBytes } from 'node:crypto';
@@ -6,13 +7,12 @@ import { ProblemaHttp } from '../../plataforma/errores.ts';
 import { generarId } from '../../plataforma/ids.ts';
 import type { Actor } from '../../plataforma/sesion.ts';
 import {
-  exigirAdministracion,
-  exigirSupervisor,
+  exigirGlobal,
   noEncontrado,
   rolEnBrigada,
+  veTodosLosProyectos,
 } from '../alcance/autorizacion.ts';
 import { crearUsuario } from '../usuarios/servicio.ts';
-import { punto } from '../sync/repositorio.ts';
 import * as repo from './repositorio.ts';
 
 /** RN-27: hasta 6 proyectos activos por instalación. */
@@ -38,7 +38,7 @@ export interface DatosProyecto {
 }
 
 export const crearProyecto = async (db: Db, actor: Actor, d: DatosProyecto) => {
-  exigirSupervisor(actor);
+  exigirGlobal(actor, 'configurar_proyecto');
   return db.transaction().execute(async (tx) => {
     // Candado de transacción: dos altas simultáneas no pueden superar el máximo.
     await bloquearCupoProyectos(tx);
@@ -73,7 +73,7 @@ export const actualizarProyecto = async (
   id: string,
   d: Partial<DatosProyecto> & { estado?: 'activo' | 'cerrado' },
 ) => {
-  exigirSupervisor(actor);
+  exigirGlobal(actor, 'configurar_proyecto');
   await db.transaction().execute(async (tx) => {
     const actual = await tx
       .selectFrom('proyecto')
@@ -105,7 +105,7 @@ export const actualizarProyecto = async (
 };
 
 export const listarProyectos = (db: Db, actor: Actor) =>
-  repo.proyectosVisibles(db, actor.usuarioId, actor.rolGlobal === 'supervisor');
+  repo.proyectosVisibles(db, actor.usuarioId, veTodosLosProyectos(actor));
 
 /** Detalle del proyecto si es visible para el actor. */
 export const verProyecto = async (db: Db, actor: Actor, id: string) => {
@@ -117,14 +117,8 @@ export const verProyecto = async (db: Db, actor: Actor, id: string) => {
 
 // ── Brigadas y miembros ───────────────────────────────────────────────────
 
-export const crearBrigada = async (
-  db: Db,
-  actor: Actor,
-  proyectoId: string,
-  nombre: string,
-  jefeId: string | null,
-) => {
-  exigirSupervisor(actor);
+export const crearBrigada = async (db: Db, actor: Actor, proyectoId: string, nombre: string) => {
+  exigirGlobal(actor, 'configurar_proyecto');
   if ((await repo.buscarProyecto(db, proyectoId)) === undefined) throw noEncontrado('El proyecto');
   const id = generarId();
   await db
@@ -133,7 +127,6 @@ export const crearBrigada = async (
       id,
       proyecto_id: proyectoId,
       nombre,
-      jefe_id: jefeId,
       creado_por: actor.usuarioId,
       actualizado_por: actor.usuarioId,
     })
@@ -145,14 +138,13 @@ export const actualizarBrigada = async (
   db: Db,
   actor: Actor,
   id: string,
-  d: { nombre?: string; jefeId?: string | null },
+  d: { nombre?: string },
 ) => {
-  exigirSupervisor(actor);
+  exigirGlobal(actor, 'configurar_proyecto');
   const r = await db
     .updateTable('brigada')
     .set({
       ...(d.nombre === undefined ? {} : { nombre: d.nombre }),
-      ...(d.jefeId === undefined ? {} : { jefe_id: d.jefeId }),
       actualizado_por: actor.usuarioId,
     })
     .where('id', '=', id)
@@ -170,8 +162,11 @@ export const listarBrigadas = async (db: Db, actor: Actor, proyectoId: string) =
 
 export const listarMiembros = async (db: Db, actor: Actor, brigadaId: string) => {
   const rol = await rolEnBrigada(db, actor, brigadaId);
-  // Los miembros solo los ven el supervisor y el jefe (RN-25: nada de terceros al especialista).
-  if (rol !== 'supervisor' && rol !== 'jefe') throw noEncontrado('La brigada');
+  // Los miembros los ven Coordinación, JdP y el Jefe de Brigada de la suya (RN-25: nada de
+  // terceros al especialista ni al supervisor de campo).
+  if (rol !== 'coordinacion' && rol !== 'jefe_proyecto' && rol !== 'jefe_brigada') {
+    throw noEncontrado('La brigada');
+  }
   return repo.miembrosDeBrigada(db, brigadaId);
 };
 
@@ -180,9 +175,9 @@ export const agregarMiembro = async (
   actor: Actor,
   brigadaId: string,
   usuarioId: string,
-  rol: 'especialista' | 'logistico',
+  rol: RolBrigada,
 ) => {
-  exigirSupervisor(actor);
+  exigirGlobal(actor, 'configurar_proyecto');
   const id = generarId();
   try {
     await db
@@ -208,7 +203,7 @@ export const cambiarMiembro = async (
   miembroId: string,
   estado: 'activo' | 'retirado',
 ) => {
-  exigirSupervisor(actor);
+  exigirGlobal(actor, 'configurar_proyecto');
   const r = await db
     .updateTable('miembro_brigada')
     .set({ estado, actualizado_por: actor.usuarioId })
@@ -217,93 +212,7 @@ export const cambiarMiembro = async (
   if (r.numUpdatedRows === 0n) throw noEncontrado('El miembro');
 };
 
-// ── Estaciones y metodologías ──────────────────────────────────────────────
-
-export const listarMetodologias = (db: Db) =>
-  db
-    .selectFrom('catalogo_metodologia')
-    .select(['id', 'nombre', 'unidad', 'requiere_transecto'])
-    .orderBy('nombre')
-    .execute();
-
-export const crearMetodologia = async (
-  db: Db,
-  actor: Actor,
-  d: { nombre: string; unidad: string; requiereTransecto: boolean },
-) => {
-  exigirSupervisor(actor);
-  const id = generarId();
-  try {
-    await db
-      .insertInto('catalogo_metodologia')
-      .values({
-        id,
-        nombre: d.nombre,
-        unidad: d.unidad,
-        requiere_transecto: d.requiereTransecto,
-        creado_por: actor.usuarioId,
-        actualizado_por: actor.usuarioId,
-      })
-      .execute();
-  } catch (e) {
-    unico(e, 'METODOLOGIA_EXISTE', 'Ya existe una metodología con ese nombre.');
-  }
-  return id;
-};
-
-export const crearEstacion = async (
-  db: Db,
-  actor: Actor,
-  proyectoId: string,
-  d: { codigo: string; lat: number; lon: number },
-) => {
-  exigirSupervisor(actor);
-  if ((await repo.buscarProyecto(db, proyectoId)) === undefined) throw noEncontrado('El proyecto');
-  const id = generarId();
-  try {
-    await db
-      .insertInto('estacion')
-      .values({
-        id,
-        proyecto_id: proyectoId,
-        codigo: d.codigo,
-        geom: punto(d.lon, d.lat),
-        creado_por: actor.usuarioId,
-        actualizado_por: actor.usuarioId,
-      })
-      .execute();
-  } catch (e) {
-    unico(e, 'ESTACION_EXISTE', 'Ya existe una estación con ese código en el proyecto.');
-  }
-  return id;
-};
-
-export const programarMetodologia = async (
-  db: Db,
-  actor: Actor,
-  estacionId: string,
-  metodologiaId: string,
-  meta: number | null,
-) => {
-  exigirSupervisor(actor);
-  const id = generarId();
-  try {
-    await db
-      .insertInto('estacion_metodologia')
-      .values({
-        id,
-        estacion_id: estacionId,
-        metodologia_id: metodologiaId,
-        meta_esfuerzo: meta === null ? null : String(meta),
-        creado_por: actor.usuarioId,
-        actualizado_por: actor.usuarioId,
-      })
-      .execute();
-  } catch (e) {
-    unico(e, 'METODOLOGIA_PROGRAMADA', 'Esa metodología ya está en la estación.');
-  }
-  return id;
-};
+// ── Estaciones (A01) ─────────────────────────────────────────────────────────
 
 export const listarEstaciones = async (db: Db, actor: Actor, proyectoId: string) => {
   await verProyecto(db, actor, proyectoId);
@@ -325,18 +234,18 @@ export const altaUsuario = async (
     tipoDocumento: string;
     numDocumento: string;
     nombre: string;
-    rolGlobal: 'supervisor' | 'admin' | 'ninguno';
+    rolGlobal: ValorRolGlobal;
   },
 ) => {
-  exigirAdministracion(actor);
+  exigirGlobal(actor, 'administrar_usuarios');
   const contrasena = contrasenaTemporal();
   const id = await crearUsuario(db, { ...d, contrasena, creadoPor: actor.usuarioId });
   return { id, contrasenaTemporal: contrasena };
 };
 
 export const listarUsuarios = (db: Db, actor: Actor) => {
-  // El supervisor necesita la lista para armar brigadas; el administrador, para gestionarlos.
-  exigirAdministracion(actor);
+  // Coordinación y JdP la necesitan para armar brigadas; el administrador, para gestionarlos.
+  exigirGlobal(actor, 'administrar_usuarios');
   return db
     .selectFrom('usuario')
     .select(['id', 'tipo_documento', 'num_documento', 'nombre', 'rol_global', 'estado'])
@@ -348,9 +257,9 @@ export const cambiarUsuario = async (
   db: Db,
   actor: Actor,
   id: string,
-  d: { estado?: 'activo' | 'inactivo'; rolGlobal?: 'supervisor' | 'admin' | 'ninguno' },
+  d: { estado?: 'activo' | 'inactivo'; rolGlobal?: ValorRolGlobal },
 ) => {
-  exigirAdministracion(actor);
+  exigirGlobal(actor, 'administrar_usuarios');
   if (id === actor.usuarioId && (d.estado === 'inactivo' || d.rolGlobal !== undefined)) {
     throw new ProblemaHttp(
       409,
@@ -375,7 +284,7 @@ export const cambiarUsuario = async (
 };
 
 export const restablecerContrasena = async (db: Db, actor: Actor, id: string) => {
-  exigirAdministracion(actor);
+  exigirGlobal(actor, 'administrar_usuarios');
   const contrasena = contrasenaTemporal();
   const r = await db
     .updateTable('auth_account')
@@ -389,7 +298,7 @@ export const restablecerContrasena = async (db: Db, actor: Actor, id: string) =>
 };
 
 export const listarDispositivos = (db: Db, actor: Actor) => {
-  exigirAdministracion(actor);
+  exigirGlobal(actor, 'administrar_usuarios');
   return db
     .selectFrom('dispositivo')
     .innerJoin('usuario', 'usuario.id', 'dispositivo.usuario_id')
@@ -408,7 +317,7 @@ export const listarDispositivos = (db: Db, actor: Actor) => {
 
 /** Baja remota (RF-M17): se ejecuta en la siguiente conexión del celular. */
 export const darDeBaja = async (db: Db, actor: Actor, id: string) => {
-  exigirAdministracion(actor);
+  exigirGlobal(actor, 'administrar_usuarios');
   const r = await db
     .updateTable('dispositivo')
     .set({ estado: 'baja_pendiente', actualizado_por: actor.usuarioId })

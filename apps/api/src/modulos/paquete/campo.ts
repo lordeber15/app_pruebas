@@ -61,7 +61,7 @@ export const paqueteCampo = async (db: Db, usuarioId: string) => {
     .execute();
 
   const reservas = await db
-    .selectFrom('tarea')
+    .selectFrom('reserva')
     .select([
       'id',
       'estacion_id',
@@ -71,7 +71,6 @@ export const paqueteCampo = async (db: Db, usuarioId: string) => {
     ])
     .where('brigada_id', 'in', brigadaIds)
     .where('metodo_id', 'is not', null)
-    .where('estado', '!=', 'cerrada')
     .execute();
 
   const estacionIds = [

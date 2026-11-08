@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { api, type Usuario } from '../api.ts';
+import { api, ETIQUETA_ROL_GLOBAL, type Usuario } from '../api.ts';
 import {
   AvisoError,
   Boton,
@@ -18,11 +18,7 @@ import {
 import { useYo } from '../sesion.ts';
 import { FormularioDialogo } from './Proyectos.tsx';
 
-const ROL: Readonly<Record<Usuario['rol_global'], string>> = {
-  supervisor: 'Supervisor',
-  admin: 'Administrador',
-  ninguno: 'Personal de campo',
-};
+const ROL = ETIQUETA_ROL_GLOBAL;
 
 /** La contraseña temporal se muestra una sola vez; no queda guardada en ningún lado. */
 const ContrasenaTemporal = ({
@@ -159,9 +155,10 @@ export const Usuarios = () => {
                 }
                 className={claseEntrada}
               >
-                <option value="ninguno">Personal de campo</option>
-                <option value="supervisor">Supervisor</option>
-                <option value="admin">Administrador</option>
+                <option value="ninguno">{ROL.ninguno}</option>
+                <option value="coordinacion">{ROL.coordinacion}</option>
+                <option value="jefe_proyecto">{ROL.jefe_proyecto}</option>
+                <option value="admin">{ROL.admin}</option>
               </select>
             )}
           </Campo>

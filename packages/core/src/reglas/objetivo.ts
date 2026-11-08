@@ -1,5 +1,4 @@
 import type { ConfiguracionMetodo } from '../configuracion/metodo.ts';
-import { avanceEsfuerzo } from '../esfuerzo.ts';
 import type { Avance, EstacionEvaluacion, Objetivo } from './tipos.ts';
 
 /**
@@ -89,8 +88,15 @@ const objetivo = (
   texto: texto ?? `${String(cantidad)} ${unidadTexto}`,
 });
 
-/** Avance elemental = ejecutado / objetivo aplicable (RN-38). Sin objetivo no hay porcentaje. */
+/**
+ * Avance elemental = ejecutado / objetivo aplicable (RN-38), en porcentaje con un decimal y sin
+ * tope si se excede. Sin objetivo (o con objetivo 0) no hay porcentaje.
+ */
 export const calcularAvance = (ejecutado: number, objetivo: Objetivo): Avance => {
-  const a = avanceEsfuerzo(ejecutado, objetivo.cantidad);
-  return { ejecutado: a.total, objetivo: a.meta, porcentaje: a.porcentaje };
+  const meta = objetivo.cantidad;
+  return {
+    ejecutado,
+    objetivo: meta,
+    porcentaje: meta === null || meta <= 0 ? null : Math.round((ejecutado / meta) * 1000) / 10,
+  };
 };

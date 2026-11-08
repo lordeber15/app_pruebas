@@ -53,24 +53,31 @@ export const api = {
 
 // ── Tipos de las respuestas ──
 
-export type EstadoTarea =
-  | 'pendiente'
-  | 'asignada'
-  | 'descargada'
-  | 'en_transito'
-  | 'completada'
-  | 'validada'
-  | 'observada'
-  | 'cerrada';
+/** Roles TOCE (ERS §2.2). Globales: Coordinación, Jefe de Proyecto, Administrador técnico. */
+export type RolGlobal = 'coordinacion' | 'jefe_proyecto' | 'admin' | 'ninguno';
+/** En la brigada: especialista, supervisor de campo y jefe de brigada. */
+export type RolBrigada = 'especialista' | 'supervisor_campo' | 'jefe_brigada';
+
+export const ETIQUETA_ROL_GLOBAL: Readonly<Record<RolGlobal, string>> = {
+  coordinacion: 'Coordinación',
+  jefe_proyecto: 'Jefe de Proyecto',
+  admin: 'Administrador técnico',
+  ninguno: 'Personal de campo',
+};
+
+export const ETIQUETA_ROL_BRIGADA: Readonly<Record<RolBrigada, string>> = {
+  especialista: 'Especialista',
+  supervisor_campo: 'Supervisor de campo',
+  jefe_brigada: 'Jefe de Brigada',
+};
 
 export interface Yo {
   id: string;
   nombre: string;
   tipo_documento: string;
   num_documento: string;
-  rol_global: 'supervisor' | 'admin' | 'ninguno';
-  brigadas_jefe: string[];
-  membresias: { brigada_id: string; rol: string }[];
+  rol_global: RolGlobal;
+  membresias: { brigada_id: string; rol: RolBrigada }[];
 }
 
 export interface Proyecto {
@@ -85,15 +92,16 @@ export interface Proyecto {
 
 export interface Brigada {
   id: string;
+  codigo: string | null;
   nombre: string;
-  jefe_id: string | null;
-  jefe_nombre: string | null;
+  region: 'COSTA' | 'SIERRA' | 'SELVA' | null;
+  tipo: 'regular' | 'complementaria' | 'especial';
 }
 
 export interface Miembro {
   id: string;
   usuario_id: string;
-  rol: 'especialista' | 'logistico';
+  rol: RolBrigada;
   estado: 'activo' | 'retirado';
   nombre: string;
   tipo_documento: string;
@@ -105,117 +113,23 @@ export interface Usuario {
   tipo_documento: string;
   num_documento: string;
   nombre: string;
-  rol_global: 'supervisor' | 'admin' | 'ninguno';
+  rol_global: RolGlobal;
   estado: 'activo' | 'inactivo';
 }
 
-export interface Cuaderno {
-  id: string;
-  titulo: string;
-  brigada_id: string;
-  brigada_nombre: string;
-  responsable_id: string;
-  responsable_nombre: string;
-  validacion_activa: boolean | null;
-  estado: string;
-  tareas: string | null;
-}
-
-export interface FilaTarea {
-  id: string;
-  titulo: string;
-  estado: EstadoTarea;
-  origen: 'manual' | 'regla';
-  tipo: 'tecnica' | 'logistica';
-  actualizado_en: string;
-  cuaderno_titulo: string;
-  brigada_nombre: string;
-  responsable_nombre: string;
-  lat: number | null;
-  lon: number | null;
-}
-
+/** Estación con sus atributos de A01 (RN-29). */
 export interface Estacion {
   id: string;
   codigo: string;
+  region: string | null;
+  uv: string | null;
+  aid_aii: string | null;
+  za_ef: string | null;
+  zona_utm: string | null;
+  este: string | null;
+  norte: string | null;
   lat: number;
   lon: number;
-  metodologias: {
-    id: string;
-    metodologia_id: string;
-    nombre: string;
-    meta_esfuerzo: string | null;
-  }[];
-}
-
-export interface Metodologia {
-  id: string;
-  nombre: string;
-  unidad: string;
-  requiere_transecto: boolean;
-}
-
-export interface DetalleTarea {
-  tarea: {
-    id: string;
-    titulo: string;
-    descripcion: string | null;
-    estado: EstadoTarea;
-    origen: 'manual' | 'regla';
-    tipo: 'tecnica' | 'logistica';
-    proyecto_id: string;
-    cuaderno_id: string;
-    cuaderno_titulo: string;
-    brigada_nombre: string;
-    responsable_nombre: string;
-    estacion_codigo: string | null;
-    metodologia_nombre: string | null;
-    validacion_activa: boolean;
-    lat: number | null;
-    lon: number | null;
-    creado_en: string;
-  };
-  asignaciones: {
-    id: string;
-    estado: string;
-    descargada_en: string;
-    finalizada_en: string | null;
-    motivo_revocacion: string | null;
-    usuario_nombre: string;
-  }[];
-  archivos: {
-    id: string;
-    tipo: string;
-    estado: string;
-    capturado_en: string;
-    precision_m: number | null;
-    lat: number | null;
-    lon: number | null;
-    tiene_miniatura: boolean;
-  }[];
-  comentarios: { id: string; texto: string; creado_en: string; autor_nombre: string }[];
-  eventos: {
-    id: string;
-    tipo: string;
-    estado: string;
-    motivo: string | null;
-    hora_servidor: string;
-    usuario_nombre: string;
-  }[];
-  evidencias: { id: string; descripcion: string; orden: number }[];
-  permisos: { gestionar: boolean; comentar: boolean };
-}
-
-export interface Avance {
-  brigadas: { id: string; nombre: string; estados: Partial<Record<EstadoTarea, number>> }[];
-  esfuerzo: {
-    id: string;
-    estacion: string;
-    metodologia: string;
-    unidad: string;
-    total: number;
-    meta: number | null;
-  }[];
 }
 
 export interface Revision {
@@ -224,7 +138,8 @@ export interface Revision {
   estado: 'en_revision' | 'duplicado';
   motivo: string | null;
   hora_servidor: string;
-  tarea_id: string;
-  tarea_titulo: string;
+  ejecucion_id: string;
+  estacion_codigo: string;
+  metodo_nombre: string;
   usuario_nombre: string;
 }

@@ -250,7 +250,7 @@ export const estacionParaReglas = (e: EstacionPaquete) => ({
 
 export interface EjecucionLocal {
   id: string;
-  tarea_id: string | null;
+  reserva_id: string | null;
   estacion_id: string;
   metodo_id: string;
   estado_local: 'en_curso' | 'cerrada';
@@ -339,18 +339,17 @@ export const abrirEjecucion = async (
   const abiertaEn = new Date().toISOString();
   await registrarEvento({
     tipo: 'ejecucion_abierta',
-    asignacion_id: null,
     entidad: { tipo: 'ejecucion', id },
     payload: {
       ejecucion_id: id,
-      tarea_id: metodo.reservaId,
+      reserva_id: metodo.reservaId,
       estacion_id: estacionId,
       metodo_id: metodo.metodo.id,
       abierta_en: abiertaEn,
     },
   });
   await ejecutar(
-    'INSERT INTO ejecucion_local (id, tarea_id, estacion_id, metodo_id, abierta_en) VALUES (?, ?, ?, ?, ?)',
+    'INSERT INTO ejecucion_local (id, reserva_id, estacion_id, metodo_id, abierta_en) VALUES (?, ?, ?, ?, ?)',
     [id, metodo.reservaId, estacionId, metodo.metodo.id, abiertaEn],
   );
   avisarCambio();
@@ -491,7 +490,6 @@ const enviarUnidad = async (id: string): Promise<void> => {
   }
   const eventoId = await registrarEvento({
     tipo: 'unidad_guardada',
-    asignacion_id: null,
     entidad: { tipo: 'unidad', id: u.id },
     payload,
   });
@@ -540,7 +538,6 @@ export const cerrarTrack = async (unidadId: string): Promise<void> => {
   if (puntos.length < 2) return;
   await registrarEvento({
     tipo: 'track_registrado',
-    asignacion_id: null,
     entidad: { tipo: 'track', id: t.id },
     payload: { track_id: t.id, ejecucion_id: t.ejecucion_id, unidad_id: unidadId, puntos },
   });
@@ -698,7 +695,6 @@ export const cerrarEjecucion = async (
   const cerradaEn = new Date().toISOString();
   await registrarEvento({
     tipo: 'ejecucion_cerrada',
-    asignacion_id: null,
     entidad: { tipo: 'ejecucion', id: ejecucionId },
     payload: {
       ejecucion_id: ejecucionId,

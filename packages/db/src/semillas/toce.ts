@@ -6,7 +6,7 @@
  *   convertidas del Excel sin inferencias.
  *
  * Es idempotente: volver a ejecutarla actualiza la configuración vigente (si ninguna ejecución la
- * usa), no duplica estaciones, brigadas, cronograma ni tareas, y respeta las decisiones nominales
+ * usa), no duplica estaciones, brigadas, cronograma ni reservas, y respeta las decisiones nominales
  * tomadas en la web sobre la matriz estación–método (RN-28, P-01).
  */
 import { promises as fs } from 'node:fs';
@@ -86,7 +86,7 @@ export interface ResumenCargaToce {
   readonly cronograma_items: number;
   readonly estacion_metodo: number;
   readonly estacion_metodo_pendientes: number;
-  readonly tareas: number;
+  readonly reservas: number;
 }
 
 const uuid = crearGeneradorUuidV7((n) => globalThis.crypto.getRandomValues(new Uint8Array(n)));
@@ -348,8 +348,8 @@ export const cargarToce = async (
       }
     }
 
-    // 9. Tareas = reservas estación × método programadas para la brigada del cronograma vigente.
-    let tareas = 0;
+    // 9. Reservas estación × método programadas para la brigada del cronograma vigente.
+    let reservas = 0;
     for (const h of habilitados) {
       const m = metodos.get(h.metodo);
       const items = itemPorEstacion.get(h.estacion) ?? [];
@@ -363,15 +363,15 @@ export const cargarToce = async (
       const codigoEstacion =
         [...estacionId.entries()].find(([, id]) => id === h.estacion)?.[0] ?? '';
       const r = await sql<{ id: string }>`
-        INSERT INTO app.tarea (id, proyecto_id, cuaderno_id, origen, tipo, estacion_id, metodo_id, brigada_id,
-                               fecha_programada, cronograma_item_id, geom, titulo, estado, creado_por)
-        SELECT ${uuid()}, ${proyectoId}, NULL, 'manual', 'tecnica', ${h.estacion}, ${metodoId.get(h.metodo) ?? null},
+        INSERT INTO app.reserva (id, proyecto_id, estacion_id, metodo_id, brigada_id,
+                                 fecha_programada, cronograma_item_id, geom, titulo, estado, creado_por)
+        SELECT ${uuid()}, ${proyectoId}, ${h.estacion}, ${metodoId.get(h.metodo) ?? null},
                ${item?.brigada ?? null}, ${item?.fecha ?? null}, ${item?.id ?? null}, e.geom,
                ${`${codigoEstacion} · ${m?.nombre ?? h.metodo}`}, ${item === undefined ? 'pendiente' : 'asignada'}, ${usuarioId}
           FROM app.estacion e WHERE e.id = ${h.estacion}
         ON CONFLICT (estacion_id, metodo_id) WHERE metodo_id IS NOT NULL DO NOTHING
         RETURNING id`.execute(trx);
-      tareas += r.rows.length;
+      reservas += r.rows.length;
     }
 
     const cuenta = async (q: Promise<Fila<{ n: string }>>): Promise<number> =>
@@ -391,7 +391,7 @@ export const cargarToce = async (
       ),
       estacion_metodo: filasMatriz,
       estacion_metodo_pendientes: pendientes,
-      tareas,
+      reservas,
     };
   });
 };

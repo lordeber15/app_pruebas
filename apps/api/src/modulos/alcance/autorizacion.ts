@@ -1,24 +1,23 @@
-import { nivelPermiso, type Accion, type Rol } from '@campo/core';
+import { esRolBrigada, esRolGlobal, nivelPermiso, type Accion, type Rol } from '@campo/core';
 import type { Db } from '@campo/db';
 import { noAutorizado, ProblemaHttp } from '../../plataforma/errores.ts';
 import type { Actor } from '../../plataforma/sesion.ts';
 
 /**
  * Autorización por rol + alcance (CLAUDE.md, Seguridad). El nivel lo da la matriz de core
- * (doc. 01 §2.3); aquí se resuelve qué rol tiene el actor en una brigada concreta.
+ * (ERS §2.3); aquí se resuelve qué rol tiene el actor en una brigada concreta.
  *
- * - Supervisor (rol global): todos los proyectos.
- * - Jefe: la brigada de la que es jefe.
- * - Especialista o logístico: miembro activo de la brigada; además solo lo suyo.
- * - Administrador (rol global): solo usuarios y dispositivos.
+ * - Coordinación y Jefe de Proyecto (roles globales): todas las brigadas.
+ * - Especialista, Supervisor de campo y Jefe de Brigada: miembro activo de la brigada; el
+ *   especialista además solo ve lo suyo.
+ * - Administrador técnico (rol global): solo usuarios y dispositivos; ninguna brigada.
  */
 export const rolEnBrigada = async (
   db: Db,
   actor: Actor,
   brigadaId: string,
 ): Promise<Rol | null> => {
-  if (actor.rolGlobal === 'supervisor') return 'supervisor';
-  const c = await db
+  const brigada = await db
     .selectFrom('brigada')
     .leftJoin('miembro_brigada as m', (j) =>
       j
@@ -26,13 +25,14 @@ export const rolEnBrigada = async (
         .on('m.usuario_id', '=', actor.usuarioId)
         .on('m.estado', '=', 'activo'),
     )
-    .select(['brigada.jefe_id', 'm.rol'])
+    .select(['brigada.id', 'm.rol'])
     .where('brigada.id', '=', brigadaId)
     .executeTakeFirst();
-  if (c === undefined) return null;
-  if (c.jefe_id === actor.usuarioId) return 'jefe';
-  if (c.rol === 'especialista' || c.rol === 'logistico') return c.rol;
-  return null;
+  if (brigada === undefined) return null;
+  if (actor.rolGlobal === 'coordinacion' || actor.rolGlobal === 'jefe_proyecto') {
+    return actor.rolGlobal;
+  }
+  return brigada.rol !== null && esRolBrigada(brigada.rol) ? brigada.rol : null;
 };
 
 /** Exige que el actor pueda modificar en esa brigada. Devuelve su rol ahí. */
@@ -48,23 +48,25 @@ export const exigirEnBrigada = async (
   return rol;
 };
 
-/** Acciones de nivel global (configurar proyecto, crear brigadas): solo el supervisor. */
-export const exigirSupervisor = (actor: Actor): void => {
-  if (actor.rolGlobal !== 'supervisor') throw noAutorizado();
+/**
+ * Acciones de nivel global (configurar el proyecto, administrar usuarios): exigen un rol global
+ * con permiso total para la acción.
+ */
+export const exigirGlobal = (actor: Actor, accion: Accion): void => {
+  const rol = esRolGlobal(actor.rolGlobal) ? actor.rolGlobal : null;
+  if (rol === null || nivelPermiso(rol, accion) !== 'total') throw noAutorizado();
 };
 
-/** Usuarios y dispositivos: supervisor o administrador (doc. 01 §2.3). */
-export const exigirAdministracion = (actor: Actor): void => {
-  const rol = actor.rolGlobal === 'ninguno' ? null : actor.rolGlobal;
-  if (rol === null || nivelPermiso(rol, 'administrar_usuarios') !== 'total') throw noAutorizado();
-};
+/** ¿Ve todos los proyectos? Solo Coordinación y Jefe de Proyecto. */
+export const veTodosLosProyectos = (actor: Actor): boolean =>
+  actor.rolGlobal === 'coordinacion' || actor.rolGlobal === 'jefe_proyecto';
 
 export const noEncontrado = (que: string): ProblemaHttp =>
   new ProblemaHttp(404, 'NO_ENCONTRADO', `${que} no existe o no está a su alcance.`);
 
 /**
  * Brigadas visibles para el actor en un proyecto, con su rol en cada una.
- * Supervisor: todas. Jefe: las suyas. Miembro: la suya (pero solo verá lo propio).
+ * Coordinación y JdP: todas. Miembros: la suya (el especialista solo verá lo propio).
  */
 export const brigadasVisibles = async (
   db: Db,
@@ -79,17 +81,17 @@ export const brigadasVisibles = async (
         .on('m.usuario_id', '=', actor.usuarioId)
         .on('m.estado', '=', 'activo'),
     )
-    .select(['brigada.id', 'brigada.jefe_id', 'm.rol'])
+    .select(['brigada.id', 'm.rol'])
     .where('brigada.proyecto_id', '=', proyectoId)
     .execute();
   const mapa = new Map<string, Rol>();
-  for (const c of brigadas) {
-    if (actor.rolGlobal === 'supervisor') mapa.set(c.id, 'supervisor');
-    else if (c.jefe_id === actor.usuarioId) mapa.set(c.id, 'jefe');
-    else if (c.rol === 'especialista' || c.rol === 'logistico') mapa.set(c.id, c.rol);
+  for (const b of brigadas) {
+    if (actor.rolGlobal === 'coordinacion' || actor.rolGlobal === 'jefe_proyecto') {
+      mapa.set(b.id, actor.rolGlobal);
+    } else if (b.rol !== null && esRolBrigada(b.rol)) mapa.set(b.id, b.rol);
   }
   return mapa;
 };
 
-/** ¿El rol solo ve lo suyo (doc. 01 §2.3: en avance, mapa y galería el especialista ve lo suyo)? */
-export const soloLoSuyo = (rol: Rol): boolean => rol === 'especialista' || rol === 'logistico';
+/** ERS §2.3: en el seguimiento (dashboard, mapa, galería) el especialista solo ve lo suyo. */
+export const soloLoSuyo = (rol: Rol): boolean => rol === 'especialista';

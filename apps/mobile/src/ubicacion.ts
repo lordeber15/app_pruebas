@@ -35,7 +35,7 @@ export const leerPosicion = async (esperaMs = 20_000): Promise<Lectura | null> =
 /**
  * Track del recorrido (RN-24): ~15 m o ~20 s, lo que ocurra primero (decisión técnica vigente).
  * ⚑ Solo en primer plano: con la pantalla apagada no registra. El registro en segundo plano
- * (CA-10) necesita el módulo de tareas en segundo plano y un binario nuevo.
+ * (CA-10) necesita un módulo de procesos en segundo plano y un binario nuevo.
  */
 export const seguirRecorrido = (alLeer: (l: Lectura) => void): Promise<{ remove: () => void }> =>
   Location.watchPositionAsync(

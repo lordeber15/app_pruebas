@@ -13,7 +13,9 @@ import {
  * Contrato de sincronización v1 (doc. 03 §9). Lo usan la app al generar eventos y la API al
  * recibirlos; la API valida además el estado con la máquina de estados.
  *
- * `gasto_registrado` no está: los gastos son de la Fase 2.
+ * `gasto_registrado` no está: los gastos son de la Fase 2. Los eventos del modelo anterior
+ * (tareas, asignaciones, evidencias y esfuerzo por metodología) ya no existen: si un celular
+ * antiguo los envía, se guardan completos como `no_aplicado` con `ESQUEMA_INVALIDO` (RN-12).
  */
 
 const id = z.uuid();
@@ -39,19 +41,8 @@ export const puntoSchema = z.object({
   coordinates: z.tuple([longitud, latitud]),
 });
 
-export const TIPOS_ENTIDAD = [
-  'tarea',
-  'evidencia_item',
-  'archivo',
-  'jornada',
-  'estacion_metodologia',
-  'articulo',
-  'comentario',
-  // Modelo TOCE (ERS v4.0): ejecución de un método en una estación, sus unidades y tracks.
-  'ejecucion',
-  'unidad',
-  'track',
-] as const;
+/** Entidades del modelo TOCE: ejecución de un método en una estación, sus unidades y tracks. */
+export const TIPOS_ENTIDAD = ['ejecucion', 'unidad', 'track', 'archivo', 'jornada', 'articulo'] as const;
 
 const sobreBase = z.object({
   id: idEvento,
@@ -62,7 +53,6 @@ const sobreBase = z.object({
    */
   usuario_id: id.optional(),
   dispositivo_id: id.optional(),
-  asignacion_id: id.nullable(),
   entidad: z.object({ tipo: z.enum(TIPOS_ENTIDAD), id }),
   /** RN-09: dato informativo; el orden lo da `hora_servidor`. */
   hora_dispositivo: hora,
@@ -78,9 +68,6 @@ const archivoCapturado = z
   .object({
     archivo_id: id,
     tipo: z.enum(TIPOS_ARCHIVO),
-    tarea_id: id.nullable(),
-    evidencia_item_id: id.nullable(),
-    categoria_id: id.nullable(),
     hash_preview: sha256,
     hash_original: sha256.nullable(),
     tamanos: z.object({
@@ -89,11 +76,11 @@ const archivoCapturado = z
     }),
     capturado_en: hora,
     /**
-     * Modelo TOCE (F-02): la foto se asocia a la ejecución y, si corresponde, a la unidad, con su
-     * tipo (contexto, metodológica…) y orientación cardinal. Si viene `ejecucion_id`, `tarea_id`
-     * es nulo: la ejecución ya identifica estación y método.
+     * F-02: la foto se asocia a la ejecución (que ya identifica estación y método) y, si
+     * corresponde, a la unidad, con su tipo (contexto, metodológica…) y orientación cardinal.
+     * Nula solo en fichas y audios sin ejecución (sistematización, P-14).
      */
-    ejecucion_id: id.nullable().optional(),
+    ejecucion_id: id.nullable(),
     unidad_id: id.nullable().optional(),
     tipo_foto: z.enum(TIPOS_FOTO).nullable().optional(),
     orientacion: z.enum(ORIENTACIONES).nullable().optional(),
@@ -130,8 +117,8 @@ const datosFormulario = z.record(z.string().regex(/^[a-z][a-z0-9_]*$/), valorCam
 
 const ejecucionAbierta = z.object({
   ejecucion_id: id,
-  /** Reserva interna estación × método; nula en EVENTOS, que no tienen reserva (RN-40). */
-  tarea_id: id.nullable(),
+  /** Reserva estación × método; nula en EVENTOS, que no tienen reserva (RN-40). */
+  reserva_id: id.nullable(),
   estacion_id: id,
   metodo_id: id,
   abierta_en: hora,
@@ -214,28 +201,6 @@ const ejecucionCerrada = z
     { message: 'Una desviación declarada requiere explicación', path: ['desviacion'] },
   );
 
-const transectoFinalizado = z
-  .object({
-    estacion_metodologia_id: id,
-    inicio: hora,
-    fin: hora,
-    puntos: z
-      .array(
-        z.object({
-          lat: latitud,
-          lon: longitud,
-          altitud_m: z.number().nullable(),
-          precision_m: z.number().nonnegative().nullable(),
-          hora,
-        }),
-      )
-      .min(1),
-  })
-  .refine((p) => Date.parse(p.fin) >= Date.parse(p.inicio), {
-    message: 'El fin no puede ser anterior al inicio',
-    path: ['fin'],
-  });
-
 export const eventoSchema = z.discriminatedUnion('tipo', [
   evento('ejecucion_abierta', ejecucionAbierta),
   evento('unidad_guardada', unidadGuardada),
@@ -247,53 +212,13 @@ export const eventoSchema = z.discriminatedUnion('tipo', [
     'checklist_respondido',
     z.object({ articulos: z.array(z.object({ id, llevado: z.boolean() })).min(1) }),
   ),
-  evento(
-    'evidencia_item_creado',
-    z.object({
-      tarea_id: id,
-      descripcion: textoCorto,
-      geom: puntoSchema.nullable(),
-      orden: z.number().int().nonnegative(),
-    }),
-  ),
   evento('archivo_capturado', archivoCapturado),
+  evento('articulo_marcado', z.object({ articulo_id: id, marcado: z.boolean() })),
   evento(
     'nota_voz_registrada',
     z.object({ archivo_id: id, plantilla_id: id.nullable(), duracion_s: z.number().positive() }),
   ),
   evento('ficha_registrada', z.object({ archivo_ids: z.array(id).min(1), plantilla_id: id })),
-  evento(
-    'esfuerzo_registrado',
-    z.object({
-      estacion_metodologia_id: id,
-      fase: textoCorto,
-      cantidad: z.number().nonnegative(),
-      fecha: z.iso.date(),
-    }),
-  ),
-  evento(
-    'observacion_registrada',
-    z.object({
-      estacion_metodologia_id: id,
-      especie_texto: textoCorto,
-      conteo: z.number().int().nonnegative(),
-    }),
-  ),
-  evento('transecto_finalizado', transectoFinalizado),
-  evento(
-    'comentario_creado',
-    z.object({ tarea_id: id, texto: z.string().trim().min(1).max(2000) }),
-  ),
-  // RN-04: completar exige al menos una foto anunciada.
-  evento('tarea_completada', z.object({ tarea_id: id, archivo_ids: z.array(id).min(1) })),
-  evento(
-    'validacion_registrada',
-    z.object({ tarea_id: id, comentario: z.string().max(2000).nullable() }),
-  ),
-  evento(
-    'observacion_validacion',
-    z.object({ tarea_id: id, comentario: z.string().max(2000).nullable() }),
-  ),
   evento(
     'alerta_local_generada',
     z.object({
@@ -301,11 +226,6 @@ export const eventoSchema = z.discriminatedUnion('tipo', [
       clave_dedup: z.string().min(1).max(300),
       entidad: z.object({ tipo: z.enum(TIPOS_ENTIDAD), id }),
     }),
-  ),
-  evento('articulo_marcado', z.object({ articulo_id: id, marcado: z.boolean() })),
-  evento(
-    'verificacion_registrada',
-    z.object({ estacion_metodologia_id: id, especialista_id: id, conforme: z.boolean() }),
   ),
 ]);
 

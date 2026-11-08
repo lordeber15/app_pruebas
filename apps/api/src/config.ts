@@ -25,7 +25,6 @@ const esquema = z.object({
   /** Intentos de login por IP por minuto. Holgado: muchos celulares comparten IP (NAT del operador). */
   RATE_LIMIT_LOGIN_IP: z.coerce.number().int().positive().default(30),
   SYNC_MAX_EVENTOS_LOTE: z.coerce.number().int().positive().default(500),
-  PAQUETE_MAX_TAREAS: z.coerce.number().int().positive().default(200),
 });
 
 export type Config = z.infer<typeof esquema>;

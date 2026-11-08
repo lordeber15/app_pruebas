@@ -33,7 +33,6 @@ let admin: Db;
 let db: Db;
 
 let proyectoId: string;
-let cuadernoId: string;
 let usuarioId: string;
 
 beforeAll(async () => {
@@ -64,8 +63,6 @@ beforeAll(async () => {
 
   usuarioId = generarId();
   proyectoId = generarId();
-  const brigadaId = generarId();
-  cuadernoId = generarId();
   await admin
     .insertInto('usuario')
     .values({
@@ -78,20 +75,6 @@ beforeAll(async () => {
   await admin
     .insertInto('proyecto')
     .values({ id: proyectoId, nombre: 'Proyecto sintético', validacion_activa: false })
-    .execute();
-  await admin
-    .insertInto('brigada')
-    .values({ id: brigadaId, proyecto_id: proyectoId, nombre: 'Brigada' })
-    .execute();
-  await admin
-    .insertInto('cuaderno')
-    .values({
-      id: cuadernoId,
-      proyecto_id: proyectoId,
-      brigada_id: brigadaId,
-      responsable_id: usuarioId,
-      titulo: 'Cuaderno',
-    })
     .execute();
 });
 
@@ -110,23 +93,6 @@ const jpeg = (ancho = 1200): Promise<Buffer> =>
     .jpeg()
     .toBuffer();
 
-const nuevaTarea = async (estado = 'en_transito'): Promise<string> => {
-  const id = generarId();
-  await admin
-    .insertInto('tarea')
-    .values({
-      id,
-      proyecto_id: proyectoId,
-      cuaderno_id: cuadernoId,
-      origen: 'manual',
-      tipo: 'tecnica',
-      titulo: 'Tarea',
-      estado,
-    })
-    .execute();
-  return id;
-};
-
 interface Variante {
   readonly contenido: Buffer;
   readonly hashAnunciado?: string;
@@ -135,13 +101,11 @@ interface Variante {
 /** Archivo con su preview (y original) ya subidos a S3, como tras el post-finish de tusd. */
 const archivoSubido = async (opciones: {
   tipo?: 'foto' | 'ficha' | 'audio';
-  tareaId?: string;
   preview: Variante;
   original?: Variante;
   estado?: string;
 }) => {
   const id = generarId();
-  const tareaId = opciones.tareaId ?? (await nuevaTarea());
   const clavePreview = `proyectos/${proyectoId}/archivos/${id}/preview/${generarId()}.jpg`;
   await s3.send(
     new PutObjectCommand({ Bucket: BUCKET, Key: clavePreview, Body: opciones.preview.contenido }),
@@ -163,7 +127,6 @@ const archivoSubido = async (opciones: {
       id,
       proyecto_id: proyectoId,
       usuario_id: usuarioId,
-      tarea_id: tareaId,
       tipo: opciones.tipo ?? 'foto',
       hash_preview: opciones.preview.hashAnunciado ?? sha(opciones.preview.contenido),
       hash_original:
@@ -179,7 +142,7 @@ const archivoSubido = async (opciones: {
       capturado_en: new Date(),
     })
     .execute();
-  return { id, tareaId };
+  return { id };
 };
 
 const fila = (id: string) =>
@@ -188,28 +151,24 @@ const fila = (id: string) =>
     .select(['estado', 'ruta_miniatura', 'ruta_original'])
     .where('id', '=', id)
     .executeTakeFirstOrThrow();
-const estadoTarea = async (id: string) =>
-  (await admin.selectFrom('tarea').select('estado').where('id', '=', id).executeTakeFirstOrThrow())
-    .estado;
 
 describe('verificar_archivo (doc. 03 §7.2)', () => {
-  it('RN-05 una foto con hash correcto se verifica, genera miniatura y completa la tarea', async () => {
-    const { id, tareaId } = await archivoSubido({ preview: { contenido: await jpeg() } });
+  it('RN-05 una foto con hash correcto se verifica y genera su miniatura', async () => {
+    const { id } = await archivoSubido({ preview: { contenido: await jpeg() } });
     const r = await verificarArchivo(db, almacen, id);
-    expect(r).toEqual({ accion: 'verificado', variante: 'preview', tareaCompletada: true });
+    expect(r).toEqual({ accion: 'verificado', variante: 'preview' });
     expect(await fila(id)).toMatchObject({
       estado: 'preview_verificada',
       ruta_miniatura: miniaturaDe(proyectoId, id),
     });
-    expect(await estadoTarea(tareaId)).toBe('completada');
     const mini = await s3.send(
       new HeadObjectCommand({ Bucket: BUCKET, Key: miniaturaDe(proyectoId, id) }),
     );
     expect(mini.ContentType).toBe('image/jpeg');
   });
 
-  it('RN-17 un hash distinto deja el archivo en error y la tarea en tránsito', async () => {
-    const { id, tareaId } = await archivoSubido({
+  it('RN-17 un hash distinto deja el archivo en error', async () => {
+    const { id } = await archivoSubido({
       preview: { contenido: await jpeg(), hashAnunciado: 'f'.repeat(64) },
     });
     expect(await verificarArchivo(db, almacen, id)).toMatchObject({
@@ -217,7 +176,6 @@ describe('verificar_archivo (doc. 03 §7.2)', () => {
       motivo: 'HASH_DISTINTO',
     });
     expect((await fila(id)).estado).toBe('error');
-    expect(await estadoTarea(tareaId)).toBe('en_transito');
   });
 
   it('SEG-08 un archivo que no es JPEG se rechaza por contenido aunque su hash coincida', async () => {
@@ -249,7 +207,6 @@ describe('verificar_archivo (doc. 03 §7.2)', () => {
     expect(await verificarArchivo(db, almacen, id)).toEqual({
       accion: 'verificado',
       variante: 'original',
-      tareaCompletada: false,
     });
     expect((await fila(id)).estado).toBe('original_verificado');
   });
@@ -276,19 +233,8 @@ describe('verificar_archivo (doc. 03 §7.2)', () => {
     const { id } = await archivoSubido({ tipo: 'audio', preview: { contenido: m4a } });
     expect(await verificarArchivo(db, almacen, id)).toMatchObject({
       accion: 'verificado',
-      tareaCompletada: false,
     });
     expect(await fila(id)).toMatchObject({ estado: 'preview_verificada', ruta_miniatura: null });
-  });
-
-  it('una foto subida antes de completar no cambia la tarea descargada', async () => {
-    const tareaId = await nuevaTarea('descargada');
-    const { id } = await archivoSubido({ tareaId, preview: { contenido: await jpeg() } });
-    expect(await verificarArchivo(db, almacen, id)).toMatchObject({
-      accion: 'verificado',
-      tareaCompletada: false,
-    });
-    expect(await estadoTarea(tareaId)).toBe('descargada');
   });
 
   it('es idempotente: un archivo ya verificado no se vuelve a procesar', async () => {
@@ -314,14 +260,13 @@ describe('cola con pg-boss', () => {
       pino({ level: 'silent' }),
     );
     try {
-      const { id, tareaId } = await archivoSubido({ preview: { contenido: await jpeg() } });
+      const { id } = await archivoSubido({ preview: { contenido: await jpeg() } });
       await poolAdmin.query('select pg_notify($1, $2)', ['archivo_subido', id]);
       const limite = Date.now() + 30_000;
       while ((await fila(id)).estado !== 'preview_verificada' && Date.now() < limite) {
         await new Promise((r) => setTimeout(r, 250));
       }
       expect((await fila(id)).estado).toBe('preview_verificada');
-      expect(await estadoTarea(tareaId)).toBe('completada');
     } finally {
       await trabajos.detener();
     }

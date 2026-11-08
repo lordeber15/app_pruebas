@@ -11,7 +11,7 @@ import {
 import { useApp } from './estado.ts';
 import { sincronizar } from './sync.ts';
 
-/** Paleta de la web (cuaderno de campo), con contraste alto para leer a pleno sol. */
+/** Paleta de la web (libreta de campo), con contraste alto para leer a pleno sol. */
 export const C = {
   papel: '#F5F7F4',
   hoja: '#FFFFFF',

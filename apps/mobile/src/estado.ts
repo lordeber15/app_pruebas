@@ -36,7 +36,7 @@ export const actualizarPendientes = async (): Promise<void> => {
     "SELECT count(*) AS n FROM outbox WHERE estado = 'pendiente'",
   );
   const [a] = await consultar<{ n: number }>(
-    "SELECT count(*) AS n FROM archivo_local WHERE estado != 'verificado'",
+    "SELECT count(*) AS n FROM archivo_local WHERE estado NOT IN ('verificado', 'anterior')",
   );
   useApp.setState({ eventosPendientes: e?.n ?? 0, archivosPendientes: a?.n ?? 0 });
 };

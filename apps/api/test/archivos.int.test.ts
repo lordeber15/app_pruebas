@@ -2,13 +2,13 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { generarId } from '../src/plataforma/ids.ts';
 import {
   conToken,
-  descargar,
-  enviarLote,
-  especialistaEnCampo,
+  ejecucionConFoto,
+  enCampo,
   iniciarEntorno,
-  nuevaTarea,
+  nuevaLlave,
   nuevoEscenario,
   SECRETO_HOOKS,
+  tokenDe,
   type Entorno,
   type Escenario,
 } from './entorno.ts';
@@ -29,38 +29,17 @@ const HASH_O = 'bb'.repeat(32);
 const TAM_P = 900_000;
 const TAM_O = 6_000_000;
 
-/** Especialista con una foto anunciada (manifiesto aplicado) de una tarea descargada. */
+/** Especialista con una foto anunciada (manifiesto aplicado) de su propia ejecución. */
 const fotoAnunciada = async (tipo: 'foto' | 'audio' = 'foto') => {
-  const yo = await especialistaEnCampo(e, esc);
-  const tareaId = await nuevaTarea(e, esc, yo.cuadernoId);
-  const asignacionId =
-    (await descargar(e, yo.token, [tareaId])).json<{ asignaciones: { asignacion_id: string }[] }>()
-      .asignaciones[0]?.asignacion_id ?? '';
-  const archivoId = generarId();
-  const r = await enviarLote(e, yo.token, [
-    {
-      id: generarId(),
-      tipo: 'archivo_capturado',
-      version_esquema: 1,
-      asignacion_id: asignacionId,
-      entidad: { tipo: 'archivo', id: archivoId },
-      hora_dispositivo: '2026-11-10T15:42:07-05:00',
-      ubicacion: null,
-      payload: {
-        archivo_id: archivoId,
-        tipo,
-        tarea_id: tareaId,
-        evidencia_item_id: null,
-        categoria_id: null,
-        hash_preview: HASH_P,
-        hash_original: tipo === 'foto' ? HASH_O : null,
-        tamanos: { preview: TAM_P, original: tipo === 'foto' ? TAM_O : null },
-        capturado_en: '2026-11-10T15:41:00-05:00',
-      },
-    },
-  ]);
-  expect(r.json<{ resultados: { estado: string }[] }>().resultados[0]?.estado).toBe('aplicado');
-  return { yo, tareaId, asignacionId, archivoId };
+  const yo = await enCampo(e, esc.brigadaId);
+  const { ejecucionId, archivoId } = await ejecucionConFoto(e, esc, yo, {
+    tipo,
+    hashPreview: HASH_P,
+    hashOriginal: tipo === 'foto' ? HASH_O : null,
+    tamanoPreview: TAM_P,
+    tamanoOriginal: TAM_O,
+  });
+  return { yo, ejecucionId, archivoId };
 };
 
 const hook = (cuerpo: object, secreto: string | null = SECRETO_HOOKS) =>
@@ -140,7 +119,7 @@ describe('pre-create (doc. 03 §10)', () => {
 
   it('SEG-01 SEG-03 no se sube un archivo de otro usuario', async () => {
     const { archivoId } = await fotoAnunciada();
-    const intruso = await especialistaEnCampo(e, esc);
+    const intruso = await enCampo(e, esc.brigadaId);
     const r = (await hook(preCreate(intruso.token, meta(archivoId)))).json<RespuestaHook>();
     expect([r.HTTPResponse?.StatusCode, codigo(r)]).toEqual([403, 'NO_AUTORIZADO']);
   });
@@ -217,14 +196,22 @@ describe('pre-create (doc. 03 §10)', () => {
     expect(codigo(r)).toBe('YA_VERIFICADO');
   });
 
-  it('RN-08 con la asignación revocada no se suben archivos', async () => {
-    const { yo, asignacionId, archivoId } = await fotoAnunciada();
-    await e.admin
-      .updateTable('asignacion')
-      .set({ estado: 'revocada', motivo_revocacion: 'Reasignada' })
-      .where('id', '=', asignacionId)
-      .execute();
-    const r = (await hook(preCreate(yo.token, meta(archivoId)))).json<RespuestaHook>();
+  it('la foto sube solo desde el celular que registró la ejecución', async () => {
+    const { yo, archivoId } = await fotoAnunciada();
+    // El mismo usuario en otro celular: nueva sesión vinculada a otro dispositivo.
+    const token = await tokenDe(e, yo.usuario.username, yo.usuario.contrasena);
+    await e.app.inject({
+      method: 'POST',
+      url: '/api/v1/dispositivos/activar',
+      headers: conToken(token),
+      payload: {
+        plataforma: 'android',
+        llave_publica: nuevaLlave().publicaSpki,
+        version_app: '0.1.0',
+        token_push: null,
+      },
+    });
+    const r = (await hook(preCreate(token, meta(archivoId)))).json<RespuestaHook>();
     expect(codigo(r)).toBe('NO_AUTORIZADO');
   });
 });

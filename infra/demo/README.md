@@ -74,35 +74,61 @@ El dominio debe ser exactamente el de `preparar.sh`. Las URL firmadas de las fot
 
 ## Primer ingreso
 
-Cree el primer supervisor. La contraseña temporal se muestra una sola vez:
+1. Cree el primer usuario de Coordinación. La contraseña temporal se muestra una sola vez:
 
-```
-docker compose -f infra/demo/docker-compose.demo.yml run --rm api \
-  node src/crear-supervisor.ts DNI 12345678 "Nombre Apellido"
-```
+   ```
+   docker compose -f infra/demo/docker-compose.demo.yml run --rm api \
+     node src/crear-coordinacion.ts DNI 12345678 "Nombre Apellido"
+   ```
 
-Entre a `https://demo.suempresa.pe` con ese DNI y esa contraseña. Desde **Usuarios** cree al resto de las personas. Cada alta muestra su contraseña temporal una sola vez.
+2. Cargue la configuración TOCE (D01 por método y A01 con estaciones, brigadas y cronograma) en un proyecto nuevo:
+
+   ```
+   docker compose -f infra/demo/docker-compose.demo.yml run --rm api \
+     node ../../packages/db/src/cargar-toce.ts --crear "TOCE"
+   ```
+
+   Muestra cuántos métodos, estaciones, brigadas, filas del cronograma y reservas cargó. Volver a ejecutarlo con `--proyecto <id>` no duplica nada.
+
+3. Entre a `https://demo.suempresa.pe` con el DNI y la contraseña del paso 1.
 
 ## Circuito de la demo
 
-1. **Usuarios**: cree a un especialista (rol *Personal de campo*).
-2. **Proyectos**: cree un proyecto. Marque la validación si quiere mostrar la validación de tareas.
-3. **Equipo y cuadernos**: cree una cuadrilla, elija su jefe, agregue al especialista y cree un cuaderno con él como responsable.
-4. **Estaciones**: cree una metodología (por ejemplo, Trampas Sherman en trampas-noche), una estación y programe la metodología con una meta.
-5. **Centro de tareas**: cree tareas en el cuaderno, con su estación y metodología o con coordenadas.
-6. En el celular: instale el APK, escriba `https://demo.suempresa.pe` como servidor, ingrese con el especialista y descargue las tareas. Trabaje sin señal si quiere: fotos, puntos de evidencia y esfuerzo. Complete la tarea y sincronice.
-7. En la web: la tarea pasa por *Evidencia en tránsito* hasta *Completada* cuando llega la foto. Ábrala, revise las fotos y valídela u obsérvela. Vea el **Avance** y el **Mapa**.
+1. **Usuarios**: cree a los especialistas (rol *Personal de campo*). Cada alta muestra su contraseña temporal una sola vez.
+2. **Proyectos → TOCE → Brigadas**: agregue a cada especialista a su brigada, por ejemplo SELVA 2, con el rol *Especialista* o *Supervisor de campo*. El *Jefe de Brigada* es el rol logístico y no ejecuta métodos.
+3. **Proyectos → TOCE → Estaciones**: revise las estaciones de A01 con sus atributos (región, UV, AID/AII, ZA/EF) en el mapa y en la tabla.
+4. En el celular: instale el APK, escriba `https://demo.suempresa.pe` como servidor e ingrese con el especialista. La app descarga el paquete de campo de su brigada.
+5. En el celular, siga el flujo **Estación → Especialidad → Método → Unidad → Ejecución**: vea lo que D01 exige al iniciar el método, registre unidades con su geometría, fotos de contexto y datos, y use **Revisar y cerrar**. Funciona sin señal; sincronice al volver.
+6. En la web, **Revisiones** muestra lo que llegó tarde a una ejecución ya cerrada para conservarlo o descartarlo.
+
+⚑ En construcción: tablero de avance por brigada, estación y método; alertas; cronograma vigente y aprobación de cambios; galería; y la validación post-sincronización contra D01. Hasta entonces, una ejecución cerrada queda en *evidencia pendiente*.
+
+## Actualizar una demo existente
+
+Desde la carpeta del repositorio:
+
+```
+git pull
+docker compose -f infra/demo/docker-compose.demo.yml up -d --build
+```
+
+Las migraciones se aplican solas y no borran nada:
+
+- **Datos del modelo anterior** (cuadernos, tareas y asignaciones): quedan guardados sin uso.
+- **Roles:** el supervisor pasa a Coordinación y el logístico o jefe de cada brigada pasa a Jefe de Brigada.
+
+Después cargue TOCE con el paso 2 de *Primer ingreso* si aún no lo hizo.
 
 ## Mapa base (opcional)
 
-Sin mapa base, la web muestra las tareas y estaciones sobre un fondo neutro. Para ver el terreno, copie un archivo PMTiles con el nombre `base.pmtiles` en `infra/demo/mapa/`. No hace falta reiniciar.
+Sin mapa base, la web muestra las estaciones sobre un fondo neutro. Para ver el terreno, copie un archivo PMTiles con el nombre `base.pmtiles` en `infra/demo/mapa/`. No hace falta reiniciar.
 
 - El de PoC-01 cubre Lima (19 MB): `poc/poc-01-mapa/assets/mapa/base.pmtiles`.
 - Para otra zona, genérelo con `poc/poc-01-mapa/scripts/generar-datos.sh` (vea su README).
 
 ## Operación
 
-| Tarea | Comando (desde la carpeta del repositorio) |
+| Acción | Comando (desde la carpeta del repositorio) |
 |---|---|
 | Ver registros | `docker compose -f infra/demo/docker-compose.demo.yml logs -f api worker` |
 | Actualizar a una versión nueva | `git pull` y luego `docker compose -f infra/demo/docker-compose.demo.yml up -d --build` (aplica las migraciones solo) |

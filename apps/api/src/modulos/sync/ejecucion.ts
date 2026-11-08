@@ -1,4 +1,10 @@
-import { esEstadoEjecucion, transicionarEjecucion, type Evento } from '@campo/core';
+import {
+  esEstadoEjecucion,
+  esRolBrigada,
+  puedeIntentar,
+  transicionarEjecucion,
+  type Evento,
+} from '@campo/core';
 import type { Db } from '@campo/db';
 import { sql } from 'kysely';
 import type { ActorDispositivo } from '../../plataforma/sesion.ts';
@@ -26,14 +32,21 @@ const aplicado = (efectos: NonNullable<Decision['efectos']>): Decision => ({
 /** Estados en los que el celular todavía puede modificar la ejecución. */
 const EDITABLE = ['en_curso'] as const;
 
-const brigadasDelUsuario = (tx: Db, usuarioId: string) =>
-  tx
-    .selectFrom('miembro_brigada as mb')
-    .innerJoin('brigada as b', 'b.id', 'mb.brigada_id')
-    .select(['b.id', 'b.proyecto_id'])
-    .where('mb.usuario_id', '=', usuarioId)
-    .where('mb.estado', '=', 'activo')
-    .execute();
+/** Brigadas activas del usuario y si su rol ahí ejecuta métodos (el JdB no, ERS §2.3). */
+const brigadasDelUsuario = async (tx: Db, usuarioId: string) =>
+  (
+    await tx
+      .selectFrom('miembro_brigada as mb')
+      .innerJoin('brigada as b', 'b.id', 'mb.brigada_id')
+      .select(['b.id', 'b.proyecto_id', 'mb.rol'])
+      .where('mb.usuario_id', '=', usuarioId)
+      .where('mb.estado', '=', 'activo')
+      .execute()
+  ).map((b) => ({
+    id: b.id,
+    proyecto_id: b.proyecto_id,
+    ejecuta: esRolBrigada(b.rol) && puedeIntentar(b.rol, 'ejecutar_metodos'),
+  }));
 
 /** GeoJSON de la geometría capturada (RN-30): punto, línea, polígono o multipunto. */
 export const geojsonDe = (g: Geometria): object | null => {
@@ -114,29 +127,32 @@ export const ejecucionAbierta = async (
   }
   const brigadas = await brigadasDelUsuario(tx, actor.usuarioId);
 
-  if (p.tarea_id === null) {
-    // Solo los EVENTOS se registran sin reserva (D01 hoja 00, RN-40).
+  let brigadaId: string;
+  if (p.reserva_id === null) {
+    // Solo los EVENTOS se registran sin reserva (D01 hoja 00, RN-40), en la brigada del usuario.
     if (metodo.clase !== 'evento') return noAplicado('RESERVA_REQUERIDA');
-    if (!brigadas.some((b) => b.proyecto_id === metodo.proyecto_id)) {
-      return noAplicado('FUERA_DE_ALCANCE');
-    }
+    const propia = brigadas.find((b) => b.proyecto_id === metodo.proyecto_id && b.ejecuta);
+    if (propia === undefined) return noAplicado('FUERA_DE_ALCANCE');
+    brigadaId = propia.id;
   } else {
-    const tarea = await tx
-      .selectFrom('tarea')
+    const reserva = await tx
+      .selectFrom('reserva')
       .select(['id', 'estacion_id', 'metodo_id', 'brigada_id'])
-      .where('id', '=', p.tarea_id)
+      .where('id', '=', p.reserva_id)
       .executeTakeFirst();
     if (
-      tarea === undefined ||
-      tarea.estacion_id !== p.estacion_id ||
-      tarea.metodo_id !== p.metodo_id
+      reserva === undefined ||
+      reserva.estacion_id !== p.estacion_id ||
+      reserva.metodo_id !== p.metodo_id
     ) {
       return noAplicado('REFERENCIA_INVALIDA');
     }
     // Mismo motivo si la brigada es otra: no se revela qué reservas existen fuera del alcance.
-    if (tarea.brigada_id === null || !brigadas.some((b) => b.id === tarea.brigada_id)) {
+    const enBrigada = reserva.brigada_id;
+    if (enBrigada === null || !brigadas.some((b) => b.id === enBrigada && b.ejecuta)) {
       return noAplicado('FUERA_DE_ALCANCE');
     }
+    brigadaId = enBrigada;
   }
 
   return aplicado(async (t) => {
@@ -145,7 +161,8 @@ export const ejecucionAbierta = async (
       .values({
         id: p.ejecucion_id,
         proyecto_id: metodo.proyecto_id,
-        tarea_id: p.tarea_id,
+        reserva_id: p.reserva_id,
+        brigada_id: brigadaId,
         estacion_id: p.estacion_id,
         metodo_id: p.metodo_id,
         usuario_id: actor.usuarioId,

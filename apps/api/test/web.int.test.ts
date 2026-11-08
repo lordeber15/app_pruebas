@@ -1,15 +1,15 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { generarId } from '../src/plataforma/ids.ts';
 import {
-  completada,
+  abrir,
+  agregarMiembro,
+  enCampo,
   entrar,
-  especialistaEnCampo,
-  forzarEstado,
   iniciarEntorno,
-  nuevaTarea,
+  lote,
   organizacion,
   pedir,
-  retener,
+  persona,
   type Entorno,
   type Organizacion,
 } from './entorno.ts';
@@ -25,15 +25,6 @@ afterAll(async () => {
   await e.cerrar();
 });
 
-const estadoDe = async (id: string) =>
-  (
-    await e.admin
-      .selectFrom('tarea')
-      .select('estado')
-      .where('id', '=', id)
-      .executeTakeFirstOrThrow()
-  ).estado;
-
 describe('proyectos (RF-W11)', () => {
   it('RN-27 CP-053 no se puede activar un séptimo proyecto', async () => {
     const activos = await e.admin
@@ -42,13 +33,13 @@ describe('proyectos (RF-W11)', () => {
       .where('estado', '=', 'activo')
       .executeTakeFirstOrThrow();
     for (let i = Number(activos.n); i < 6; i++) {
-      const r = await pedir(e, o.supervisor.token, 'POST', '/proyectos', {
+      const r = await pedir(e, o.coordinacion.token, 'POST', '/proyectos', {
         nombre: `P${String(i)}`,
         validacion_activa: false,
       });
       expect(r.statusCode).toBe(201);
     }
-    const septimo = await pedir(e, o.supervisor.token, 'POST', '/proyectos', {
+    const septimo = await pedir(e, o.coordinacion.token, 'POST', '/proyectos', {
       nombre: 'Séptimo',
       validacion_activa: false,
     });
@@ -63,417 +54,179 @@ describe('proyectos (RF-W11)', () => {
       .execute();
   });
 
-  it('el jefe ve solo los proyectos donde tiene brigada; el administrador no ve proyectos', async () => {
-    const jefe = (await pedir(e, o.jefeA.token, 'GET', '/proyectos')).json<{
-      proyectos: { id: string }[];
-    }>();
-    expect(jefe.proyectos.map((p) => p.id)).toEqual([o.esc.proyectoId]);
-    const admin = (await pedir(e, o.admin.token, 'GET', '/proyectos')).json<{
-      proyectos: unknown[];
-    }>();
-    expect(admin.proyectos).toEqual([]);
+  it('los miembros ven solo los proyectos de su brigada; el Administrador técnico no ve proyectos', async () => {
+    for (const p of [o.jefeA, o.supervisorA, o.especialista]) {
+      const r = (await pedir(e, p.token, 'GET', '/proyectos')).json<{
+        proyectos: { id: string }[];
+      }>();
+      expect(r.proyectos.map((x) => x.id)).toEqual([o.esc.proyectoId]);
+    }
+    expect((await pedir(e, o.admin.token, 'GET', '/proyectos')).json()).toEqual({ proyectos: [] });
+  });
+
+  it('Coordinación y el Jefe de Proyecto ven todos los proyectos', async () => {
+    for (const p of [o.coordinacion, o.jefeProyecto]) {
+      const r = (await pedir(e, p.token, 'GET', '/proyectos')).json<{
+        proyectos: { id: string }[];
+      }>();
+      expect(r.proyectos.map((x) => x.id)).toContain(o.esc.proyectoId);
+    }
   });
 });
 
-describe('cuadernos y tareas', () => {
-  it('el jefe crea tareas en su brigada y nacen asignadas', async () => {
-    const r = await pedir(e, o.jefeA.token, 'POST', '/tareas', {
-      cuaderno_id: o.cuadernoA,
-      titulo: 'Evaluar trampas',
-    });
+describe('brigadas, miembros y estaciones', () => {
+  it('Coordinación agrega miembros con los roles TOCE y rechaza los del modelo anterior', async () => {
+    const nueva = (await persona(e)).id;
+    const r = await pedir(
+      e,
+      o.coordinacion.token,
+      'POST',
+      `/brigadas/${o.esc.brigadaId}/miembros`,
+      {
+        usuario_id: nueva,
+        rol: 'supervisor_campo',
+      },
+    );
     expect(r.statusCode).toBe(201);
-    expect(await estadoDe(r.json<{ id: string }>().id)).toBe('asignada');
-  });
-
-  it('RN-01 el responsable del cuaderno debe ser miembro de la brigada', async () => {
-    const r = await pedir(e, o.supervisor.token, 'POST', '/cuadernos', {
-      brigada_id: o.esc.brigadaId,
-      responsable_id: o.especialistaB.id,
-      titulo: 'Cuaderno inválido',
-    });
-    expect(r.statusCode).toBe(409);
-  });
-
-  it('una tarea con metodología no programada en la estación se rechaza', async () => {
-    const r = await pedir(e, o.supervisor.token, 'POST', '/tareas', {
-      cuaderno_id: o.cuadernoA,
-      titulo: 'X',
-      estacion_id: o.esc.estacionId,
-      metodologia_id: generarId(),
-    });
-    expect(r.statusCode).toBe(409);
-  });
-
-  it('CP-042 el especialista solo ve sus propias tareas en el centro de tareas', async () => {
-    const propia = await nuevaTarea(e, o.esc, o.cuadernoA);
-    const deOtro = await nuevaTarea(e, { ...o.esc, brigadaId: o.brigadaB }, o.cuadernoB);
-    const r = await pedir(
+    const viejo = await pedir(
       e,
-      o.especialista.token,
-      'GET',
-      `/proyectos/${o.esc.proyectoId}/tareas?limite=100`,
+      o.coordinacion.token,
+      'POST',
+      `/brigadas/${o.esc.brigadaId}/miembros`,
+      {
+        usuario_id: o.jefeB.id,
+        rol: 'logistico',
+      },
     );
-    const ids = r.json<{ tareas: { id: string }[] }>().tareas.map((t) => t.id);
-    expect(ids).toContain(propia);
-    expect(ids).not.toContain(deOtro);
-  });
-
-  it('CP-042 filtra por estado y pagina con cursor', async () => {
-    const t1 = await nuevaTarea(e, o.esc, o.cuadernoA);
-    await forzarEstado(e, t1, 'validada');
-    const r = await pedir(
-      e,
-      o.supervisor.token,
-      'GET',
-      `/proyectos/${o.esc.proyectoId}/tareas?estado=validada&limite=1`,
+    expect(viejo.statusCode).toBe(400);
+    const miembros = (
+      await pedir(e, o.jefeA.token, 'GET', `/brigadas/${o.esc.brigadaId}/miembros`)
+    ).json<{ miembros: { usuario_id: string; rol: string }[] }>().miembros;
+    expect(miembros).toContainEqual(
+      expect.objectContaining({ usuario_id: nueva, rol: 'supervisor_campo' }),
     );
-    const cuerpo = r.json<{ tareas: { estado: string }[]; siguiente: string | null }>();
-    expect(cuerpo.tareas.every((t) => t.estado === 'validada')).toBe(true);
-    expect(cuerpo.tareas).toHaveLength(1);
-  });
-});
-
-describe('reasignación y revocación (RN-07)', () => {
-  it('CP-031 una tarea retenida no se reasigna sin revocar', async () => {
-    const t = await nuevaTarea(e, o.esc, o.cuadernoA);
-    await retener(e, t, o.especialista.id);
-    const r = await pedir(e, o.supervisor.token, 'POST', `/tareas/${t}/reasignar`, {
-      cuaderno_id: o.cuadernoA,
-    });
-    expect(r.json()).toMatchObject({ status: 409, codigo: 'TAREA_RETENIDA' });
-  });
-
-  it('CP-032 revocar sin motivo se rechaza', async () => {
-    const t = await nuevaTarea(e, o.esc, o.cuadernoA);
-    await retener(e, t, o.especialista.id);
-    const r = await pedir(e, o.jefeA.token, 'POST', `/tareas/${t}/revocar`, { motivo: '  ' });
-    expect(r.json()).toMatchObject({ codigo: 'MOTIVO_OBLIGATORIO' });
-  });
-
-  it('RN-07 revocar con motivo libera la tarea, que luego se reasigna a otro cuaderno', async () => {
-    const t = await nuevaTarea(e, o.esc, o.cuadernoA);
-    const { asignacionId } = await retener(e, t, o.especialista.id);
-    const r = await pedir(e, o.jefeA.token, 'POST', `/tareas/${t}/revocar`, {
-      motivo: 'Cambio de zona',
-    });
-    expect(r.json()).toEqual({ estado: 'asignada' });
-    const a = await e.admin
-      .selectFrom('asignacion')
-      .select(['estado', 'motivo_revocacion'])
-      .where('id', '=', asignacionId)
-      .executeTakeFirstOrThrow();
-    expect(a).toEqual({ estado: 'revocada', motivo_revocacion: 'Cambio de zona' });
-    const otroCuaderno = (
-      await pedir(e, o.supervisor.token, 'POST', '/cuadernos', {
-        brigada_id: o.esc.brigadaId,
-        responsable_id: o.logistico.id,
-        titulo: 'Logística',
-      })
-    ).json<{ id: string }>().id;
-    expect(
-      (
-        await pedir(e, o.jefeA.token, 'POST', `/tareas/${t}/reasignar`, {
-          cuaderno_id: otroCuaderno,
-        })
-      ).statusCode,
-    ).toBe(200);
-  });
-
-  it('SEG-01 el jefe no reasigna a un cuaderno de otra brigada', async () => {
-    const t = await nuevaTarea(e, o.esc, o.cuadernoA);
-    const r = await pedir(e, o.jefeA.token, 'POST', `/tareas/${t}/reasignar`, {
-      cuaderno_id: o.cuadernoB,
-    });
-    expect([403, 404]).toContain(r.statusCode);
-  });
-});
-
-describe('validación (RN-06)', () => {
-  it('CP-035 sin validación activa la tarea completada no se valida', async () => {
-    const t = await nuevaTarea(e, o.esc, o.cuadernoA);
-    await completada(e, t, o.especialista.id);
-    const r = await pedir(e, o.jefeA.token, 'POST', `/tareas/${t}/validar`, {});
-    expect(r.json()).toMatchObject({ codigo: 'VALIDACION_INACTIVA' });
-  });
-
-  it('CP-036 CP-037 con validación en el cuaderno se valida y la segunda validación queda ya aplicada', async () => {
-    const cuaderno = (
-      await pedir(e, o.supervisor.token, 'POST', '/cuadernos', {
-        brigada_id: o.esc.brigadaId,
-        responsable_id: o.especialista.id,
-        titulo: 'Con validación',
-        validacion_activa: true,
-      })
-    ).json<{ id: string }>().id;
-    const t = await nuevaTarea(e, o.esc, cuaderno);
-    await completada(e, t, o.especialista.id);
-    expect((await pedir(e, o.supervisor.token, 'POST', `/tareas/${t}/validar`, {})).json()).toEqual(
-      { estado: 'validada', resultado: 'aplicado' },
+    expect(miembros).toContainEqual(
+      expect.objectContaining({ usuario_id: o.jefeA.id, rol: 'jefe_brigada' }),
     );
-    expect((await pedir(e, o.jefeA.token, 'POST', `/tareas/${t}/validar`, {})).json()).toEqual({
-      estado: 'validada',
-      resultado: 'ya_aplicado',
-    });
-    const eventos = await e.admin
-      .selectFrom('evento')
-      .select('estado')
-      .where('entidad_id', '=', t)
-      .where('tipo', '=', 'validacion_registrada')
-      .orderBy('hora_servidor')
-      .execute();
-    expect(eventos.map((x) => x.estado)).toEqual(['aplicado', 'ya_aplicado']);
   });
 
-  it('observar devuelve la tarea al mismo celular con una asignación nueva y un comentario', async () => {
-    const cuaderno = (
-      await pedir(e, o.supervisor.token, 'POST', '/cuadernos', {
-        brigada_id: o.esc.brigadaId,
-        responsable_id: o.especialista.id,
-        titulo: 'Obs',
-        validacion_activa: true,
-      })
-    ).json<{ id: string }>().id;
-    const t = await nuevaTarea(e, o.esc, cuaderno);
-    const { dispositivoId } = await completada(e, t, o.especialista.id);
-    const r = await pedir(e, o.jefeA.token, 'POST', `/tareas/${t}/observar`, {
-      comentario: 'Falta la foto de la trampa 3',
-    });
-    expect(r.json()).toMatchObject({ estado: 'observada' });
-    const vigente = await e.admin
-      .selectFrom('asignacion')
-      .select('dispositivo_id')
-      .where('tarea_id', '=', t)
-      .where('estado', '=', 'vigente')
-      .executeTakeFirstOrThrow();
-    expect(vigente.dispositivo_id).toBe(dispositivoId);
-    const det = (await pedir(e, o.especialista.token, 'GET', `/tareas/${t}`)).json<{
-      comentarios: { texto: string }[];
+  it('RN-29 las estaciones llegan con sus atributos de A01', async () => {
+    const r = (
+      await pedir(e, o.especialista.token, 'GET', `/proyectos/${o.esc.proyectoId}/estaciones`)
+    ).json<{
+      estaciones: { id: string; codigo: string; lat: number; lon: number; za_ef: string | null }[];
     }>();
-    expect(det.comentarios.map((c) => c.texto)).toContain('Falta la foto de la trampa 3');
+    expect(r.estaciones).toContainEqual(
+      expect.objectContaining({ id: o.esc.estacionId, lat: -12.04, lon: -77.03, za_ef: null }),
+    );
   });
 
-  it('la tarea observada llega al celular con su nueva asignación y vuelve a descargada', async () => {
-    const yo = await especialistaEnCampo(e, o.esc);
-    const cuaderno = (
-      await pedir(e, o.supervisor.token, 'POST', '/cuadernos', {
-        brigada_id: o.esc.brigadaId,
-        responsable_id: yo.usuario.id,
-        titulo: 'Obs celular',
-        validacion_activa: true,
-      })
-    ).json<{ id: string }>().id;
-    const t = await nuevaTarea(e, o.esc, cuaderno);
-    await e.admin
-      .insertInto('asignacion')
-      .values({
-        id: generarId(),
-        tarea_id: t,
-        usuario_id: yo.usuario.id,
-        dispositivo_id: yo.dispositivoId,
-        descargada_en: new Date(),
-        estado: 'finalizada',
-        finalizada_en: new Date(),
-      })
-      .execute();
-    await forzarEstado(e, t, 'completada');
-    await pedir(e, o.supervisor.token, 'POST', `/tareas/${t}/observar`, {
-      comentario: 'Repita la foto',
-    });
-    const cambios = (await pedir(e, yo.token, 'GET', '/sync/cambios')).json<{
-      cambios: {
-        id: string;
-        operacion: string;
-        datos: { asignacion_id?: string; estado?: string };
-      }[];
-    }>().cambios;
-    const obs = cambios.find((c) => c.id === t && c.operacion === 'observada');
-    const vigente = await e.admin
-      .selectFrom('asignacion')
-      .select('id')
-      .where('tarea_id', '=', t)
-      .where('estado', '=', 'vigente')
-      .executeTakeFirstOrThrow();
-    expect(obs?.datos).toEqual({ asignacion_id: vigente.id, estado: 'descargada' });
-    expect(await estadoDe(t)).toBe('descargada');
-  });
-
-  it('RN-13 reabrir exige motivo y deja la tarea asignada', async () => {
-    const t = await nuevaTarea(e, o.esc, o.cuadernoA);
-    await completada(e, t, o.especialista.id);
-    expect(
-      (await pedir(e, o.jefeA.token, 'POST', `/tareas/${t}/reabrir`, { motivo: '' })).json(),
-    ).toMatchObject({ codigo: 'MOTIVO_OBLIGATORIO' });
-    expect(
-      (
-        await pedir(e, o.jefeA.token, 'POST', `/tareas/${t}/reabrir`, { motivo: 'Repetir conteo' })
-      ).json(),
-    ).toEqual({ estado: 'asignada' });
+  it('/yo devuelve el rol global y las membresías con su rol', async () => {
+    const yo = (await pedir(e, o.jefeA.token, 'GET', '/yo')).json<{
+      rol_global: string;
+      membresias: { brigada_id: string; rol: string }[];
+    }>();
+    expect(yo.rol_global).toBe('ninguno');
+    expect(yo.membresias).toEqual([{ brigada_id: o.esc.brigadaId, rol: 'jefe_brigada' }]);
   });
 });
 
-describe('cierre de tareas por regla (RN-04)', () => {
-  const tareaPorRegla = async () => {
-    const regla = generarId();
-    await e.admin
-      .insertInto('regla_alerta')
-      .values({
-        id: regla,
-        proyecto_id: o.esc.proyectoId,
-        tipo: 'evidencia_faltante',
-        condicion: '{}',
-        severidad: 'media',
-        ambito: 'servidor',
-        responsable_rol: 'jefe',
-      })
-      .execute();
-    const t = generarId();
-    await e.admin
-      .insertInto('tarea')
-      .values({
-        id: t,
-        proyecto_id: o.esc.proyectoId,
-        cuaderno_id: o.cuadernoA,
-        origen: 'regla',
-        regla_id: regla,
-        clave_dedup: `r:${t}`,
-        tipo: 'tecnica',
-        titulo: 'Alerta',
-        estado: 'asignada',
-      })
-      .execute();
-    return t;
-  };
-
-  it('CP-056 se cierra con comentario y rol de supervisor o jefe, sin foto', async () => {
-    const t = await tareaPorRegla();
-    expect(
-      (await pedir(e, o.jefeA.token, 'POST', `/tareas/${t}/cerrar`, { comentario: '' })).json(),
-    ).toMatchObject({ codigo: 'COMENTARIO_OBLIGATORIO' });
-    expect(
-      (await pedir(e, o.especialista.token, 'POST', `/tareas/${t}/cerrar`, { comentario: 'Listo' }))
-        .statusCode,
-    ).toBe(403);
-    expect(
-      (
-        await pedir(e, o.jefeA.token, 'POST', `/tareas/${t}/cerrar`, {
-          comentario: 'Verificado por radio',
-        })
-      ).json(),
-    ).toEqual({ estado: 'cerrada' });
-  });
-
-  it('CP-056 una tarea manual no se cierra sin foto', async () => {
-    const t = await nuevaTarea(e, o.esc, o.cuadernoA);
-    expect(
-      (await pedir(e, o.jefeA.token, 'POST', `/tareas/${t}/cerrar`, { comentario: 'x' })).json(),
-    ).toMatchObject({ codigo: 'SOLO_TAREA_POR_REGLA' });
-  });
-});
-
-describe('archivos, avance y mapa', () => {
-  const archivoVerificado = async (
-    cuaderno: string,
-    usuarioId: string,
-    brigadaId = o.esc.brigadaId,
-  ) => {
-    const t = await nuevaTarea(e, { ...o.esc, brigadaId }, cuaderno);
-    const id = generarId();
+describe('archivos (SEG-03)', () => {
+  /** Foto verificada de un especialista nuevo de la brigada A. */
+  const archivoVerificado = async () => {
+    const autor = await enCampo(e, o.esc.brigadaId);
+    const ejecucionId = generarId();
+    const archivoId = generarId();
+    await lote(e, autor.token, [abrir(ejecucionId, o.esc)]);
     await e.admin
       .insertInto('archivo')
       .values({
-        id,
+        id: archivoId,
         proyecto_id: o.esc.proyectoId,
-        usuario_id: usuarioId,
-        tarea_id: t,
+        usuario_id: autor.usuario.id,
+        ejecucion_id: ejecucionId,
         tipo: 'foto',
         hash_preview: 'a'.repeat(64),
         tamano_preview: '1000',
-        ruta_preview: `proyectos/${o.esc.proyectoId}/archivos/${id}/preview/x.jpg`,
-        ruta_miniatura: `proyectos/${o.esc.proyectoId}/archivos/${id}/miniatura.jpg`,
+        ruta_preview: `proyectos/${o.esc.proyectoId}/archivos/${archivoId}/preview/x.jpg`,
+        ruta_miniatura: `proyectos/${o.esc.proyectoId}/archivos/${archivoId}/miniatura.jpg`,
         estado: 'preview_verificada',
         capturado_en: new Date(),
       })
       .execute();
-    return id;
+    return { archivoId, autor };
   };
 
   it('SEG-03 la URL firmada se emite tras verificar el alcance y dura 15 minutos', async () => {
-    const id = await archivoVerificado(o.cuadernoA, o.especialista.id);
-    const r = await pedir(e, o.jefeA.token, 'GET', `/archivos/${id}/url?variante=miniatura`);
+    const { archivoId } = await archivoVerificado();
+    const r = await pedir(e, o.jefeA.token, 'GET', `/archivos/${archivoId}/url?variante=miniatura`);
     const url = new URL(r.json<{ url: string }>().url);
     expect(url.host).toBe('almacen.prueba');
     expect(url.pathname).toContain(
-      `/archivos/proyectos/${o.esc.proyectoId}/archivos/${id}/miniatura.jpg`,
+      `/archivos/proyectos/${o.esc.proyectoId}/archivos/${archivoId}/miniatura.jpg`,
     );
     expect(url.searchParams.get('X-Amz-Expires')).toBe('900');
   });
 
-  it('SEG-03 RN-21 el jefe de otra brigada y otro especialista no obtienen la URL', async () => {
-    const id = await archivoVerificado(o.cuadernoA, o.especialista.id);
-    expect((await pedir(e, o.jefeB.token, 'GET', `/archivos/${id}/url`)).statusCode).toBe(404);
-    expect((await pedir(e, o.especialistaB.token, 'GET', `/archivos/${id}/url`)).statusCode).toBe(
+  it('SEG-03 el Jefe de Brigada de otra brigada y otro especialista no obtienen la URL', async () => {
+    const { archivoId } = await archivoVerificado();
+    expect((await pedir(e, o.jefeB.token, 'GET', `/archivos/${archivoId}/url`)).statusCode).toBe(
       404,
     );
-  });
-
-  it('una variante aún no verificada no tiene URL', async () => {
-    const id = await archivoVerificado(o.cuadernoA, o.especialista.id);
     expect(
-      (await pedir(e, o.supervisor.token, 'GET', `/archivos/${id}/url?variante=original`))
-        .statusCode,
+      (await pedir(e, o.especialistaB.token, 'GET', `/archivos/${archivoId}/url`)).statusCode,
+    ).toBe(404);
+    expect(
+      (await pedir(e, o.especialista.token, 'GET', `/archivos/${archivoId}/url`)).statusCode,
     ).toBe(404);
   });
 
-  it('RN-19 el avance suma el esfuerzo de todos y cuenta tareas por estado', async () => {
-    const r = await pedir(e, o.supervisor.token, 'GET', `/proyectos/${o.esc.proyectoId}/avance`);
-    const cuerpo = r.json<{
-      brigadas: { id: string }[];
-      esfuerzo: { id: string; meta: number | null }[];
-    }>();
-    expect(cuerpo.brigadas.map((c) => c.id)).toContain(o.esc.brigadaId);
-    expect(cuerpo.esfuerzo).toContainEqual(
-      expect.objectContaining({ id: o.esc.estacionMetodologiaId, meta: 40 }),
-    );
-  });
-
-  it('el mapa devuelve tareas y estaciones en GeoJSON', async () => {
-    const r = await pedir(e, o.jefeA.token, 'GET', `/proyectos/${o.esc.proyectoId}/mapa`);
-    const fc = r.json<{ type: string; features: { properties: { capa: string } }[] }>();
-    expect(fc.type).toBe('FeatureCollection');
-    expect(fc.features.some((f) => f.properties.capa === 'estacion')).toBe(true);
-    expect(fc.features.some((f) => f.properties.capa === 'tarea')).toBe(true);
+  it('una variante aún no verificada no tiene URL', async () => {
+    const { archivoId } = await archivoVerificado();
+    expect(
+      (await pedir(e, o.coordinacion.token, 'GET', `/archivos/${archivoId}/url?variante=original`))
+        .statusCode,
+    ).toBe(404);
   });
 });
 
-describe('revisiones (RN-08)', () => {
-  it('el jefe ve y resuelve un evento en revisión de su brigada', async () => {
-    const t = await nuevaTarea(e, o.esc, o.cuadernoA);
+describe('revisiones (RN-13)', () => {
+  /** Evento en revisión ligado a una ejecución de la brigada A. */
+  const enRevision = async (tipo: 'ejecucion' | 'archivo') => {
+    const autor = await enCampo(e, o.esc.brigadaId);
+    const ejecucionId = generarId();
+    await lote(e, autor.token, [abrir(ejecucionId, o.esc)]);
     const ev = generarId();
     await e.admin
       .insertInto('evento')
       .values({
         id: ev,
-        tipo: 'comentario_creado',
+        tipo: tipo === 'ejecucion' ? 'ejecucion_cerrada' : 'archivo_capturado',
         version_esquema: 1,
-        usuario_id: o.especialista.id,
-        entidad_tipo: 'tarea',
-        entidad_id: t,
-        payload: '{}',
-        estado: 'en_revision',
-        motivo: 'ASIGNACION_REVOCADA',
+        usuario_id: autor.usuario.id,
+        entidad_tipo: tipo,
+        entidad_id: tipo === 'ejecucion' ? ejecucionId : generarId(),
+        payload: JSON.stringify({ ejecucion_id: ejecucionId }),
+        estado: tipo === 'ejecucion' ? 'en_revision' : 'duplicado',
+        motivo: tipo === 'ejecucion' ? 'EJECUCION_CERRADA' : 'ENTIDAD_DUPLICADA',
       })
       .execute();
+    return ev;
+  };
+
+  it('Coordinación ve y resuelve un evento en revisión; el Jefe de Brigada no lo resuelve', async () => {
+    const ev = await enRevision('ejecucion');
     const lista = (
-      await pedir(e, o.jefeA.token, 'GET', `/proyectos/${o.esc.proyectoId}/revisiones`)
-    ).json<{ revisiones: { id: string }[] }>();
+      await pedir(e, o.coordinacion.token, 'GET', `/proyectos/${o.esc.proyectoId}/revisiones`)
+    ).json<{ revisiones: { id: string; estacion_codigo: string }[] }>();
     expect(lista.revisiones.map((r) => r.id)).toContain(ev);
     expect(
-      (await pedir(e, o.jefeB.token, 'POST', `/revisiones/${ev}/resolver`, { decision: 'elegido' }))
+      (await pedir(e, o.jefeA.token, 'POST', `/revisiones/${ev}/resolver`, { decision: 'elegido' }))
         .statusCode,
     ).toBe(403);
     expect(
       (
-        await pedir(e, o.jefeA.token, 'POST', `/revisiones/${ev}/resolver`, {
+        await pedir(e, o.coordinacion.token, 'POST', `/revisiones/${ev}/resolver`, {
           decision: 'descartado',
         })
       ).statusCode,
@@ -483,30 +236,26 @@ describe('revisiones (RN-08)', () => {
       .select(['estado', 'resuelto_por'])
       .where('id', '=', ev)
       .executeTakeFirstOrThrow();
-    expect(fila).toEqual({ estado: 'resuelto_descartado', resuelto_por: o.jefeA.id });
+    expect(fila).toEqual({ estado: 'resuelto_descartado', resuelto_por: o.coordinacion.id });
+    expect(
+      (
+        await pedir(e, o.coordinacion.token, 'POST', `/revisiones/${ev}/resolver`, {
+          decision: 'elegido',
+        })
+      ).statusCode,
+    ).toBe(409);
   });
 
-  it('un evento de archivo en revisión aparece por la tarea de su payload', async () => {
-    const t = await nuevaTarea(e, o.esc, o.cuadernoA);
-    const ev = generarId();
-    await e.admin
-      .insertInto('evento')
-      .values({
-        id: ev,
-        tipo: 'archivo_capturado',
-        version_esquema: 1,
-        usuario_id: o.especialista.id,
-        entidad_tipo: 'archivo',
-        entidad_id: generarId(),
-        payload: JSON.stringify({ tarea_id: t }),
-        estado: 'duplicado',
-        motivo: 'TAREA_COMPLETADA_POR_OTRO',
-      })
-      .execute();
+  it('un evento de foto en revisión aparece por la ejecución de su payload', async () => {
+    const ev = await enRevision('archivo');
     const lista = (
-      await pedir(e, o.supervisor.token, 'GET', `/proyectos/${o.esc.proyectoId}/revisiones`)
+      await pedir(e, o.jefeProyecto.token, 'GET', `/proyectos/${o.esc.proyectoId}/revisiones`)
     ).json<{ revisiones: { id: string }[] }>();
     expect(lista.revisiones.map((r) => r.id)).toContain(ev);
+    const delJefe = (
+      await pedir(e, o.jefeA.token, 'GET', `/proyectos/${o.esc.proyectoId}/revisiones`)
+    ).json<{ revisiones: unknown[] }>();
+    expect(delJefe.revisiones).toEqual([]);
   });
 });
 
@@ -521,6 +270,23 @@ describe('administración de usuarios', () => {
     expect(r.headers['cache-control']).toBe('no-store');
     const { contrasena_temporal: clave } = r.json<{ contrasena_temporal: string }>();
     expect((await entrar(e, 'dni.61234567', clave)).statusCode).toBe(200);
+  });
+
+  it('los roles globales son los de TOCE', async () => {
+    const ok = await pedir(e, o.coordinacion.token, 'POST', '/admin/usuarios', {
+      tipo_documento: 'DNI',
+      num_documento: '61234570',
+      nombre: 'Jefa de Proyecto',
+      rol_global: 'jefe_proyecto',
+    });
+    expect(ok.statusCode).toBe(201);
+    const viejo = await pedir(e, o.coordinacion.token, 'POST', '/admin/usuarios', {
+      tipo_documento: 'DNI',
+      num_documento: '61234571',
+      nombre: 'Supervisor',
+      rol_global: 'supervisor',
+    });
+    expect(viejo.statusCode).toBe(400);
   });
 
   it('un documento repetido da conflicto', async () => {
@@ -556,17 +322,23 @@ describe('administración de usuarios', () => {
   });
 
   it('RF-M17 la baja remota deja el dispositivo con baja pendiente', async () => {
-    const t = await nuevaTarea(e, o.esc, o.cuadernoA);
-    const { dispositivoId } = await retener(e, t, o.especialista.id);
+    const d = await enCampo(e, o.esc.brigadaId);
     expect(
-      (await pedir(e, o.admin.token, 'POST', `/admin/dispositivos/${dispositivoId}/baja`))
+      (await pedir(e, o.admin.token, 'POST', `/admin/dispositivos/${d.dispositivoId}/baja`))
         .statusCode,
     ).toBe(204);
-    const d = await e.admin
+    const fila = await e.admin
       .selectFrom('dispositivo')
       .select('estado')
-      .where('id', '=', dispositivoId)
+      .where('id', '=', d.dispositivoId)
       .executeTakeFirstOrThrow();
-    expect(d.estado).toBe('baja_pendiente');
+    expect(fila.estado).toBe('baja_pendiente');
+  });
+
+  it('un usuario sin rol de brigada todavía puede agregarse a una brigada', async () => {
+    const u = await enCampo(e, o.esc.brigadaB, 'jefe_brigada');
+    await agregarMiembro(e, o.esc.brigadaId, u.usuario.id);
+    const yo = (await pedir(e, u.token, 'GET', '/yo')).json<{ membresias: unknown[] }>();
+    expect(yo.membresias).toHaveLength(2);
   });
 });

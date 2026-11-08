@@ -13,9 +13,8 @@ import { api, ErrorApi } from './api.ts';
 import { Cargando } from './componentes/Ui.tsx';
 import { Dispositivos, Usuarios } from './paginas/Administracion.tsx';
 import { Entrar } from './paginas/Entrar.tsx';
-import { Avance, MapaProyecto, Revisiones } from './paginas/Panel.tsx';
 import { Equipo, Estaciones, MarcoProyecto, Proyectos } from './paginas/Proyectos.tsx';
-import { DetalleTarea, Tareas } from './paginas/Tareas.tsx';
+import { Revisiones } from './paginas/Revisiones.tsx';
 import { puede, useYo } from './sesion.ts';
 
 const enlaceMenu =
@@ -129,24 +128,12 @@ const proyecto = createRoute({
   path: '/p/$proyectoId',
   component: MarcoProyecto,
 });
-const tareas = createRoute({ getParentRoute: () => proyecto, path: '/', component: Tareas });
-const tarea = createRoute({
-  getParentRoute: () => proyecto,
-  path: '/tareas/$tareaId',
-  component: DetalleTarea,
-});
-const mapa = createRoute({
-  getParentRoute: () => proyecto,
-  path: '/mapa',
-  component: MapaProyecto,
-});
-const avance = createRoute({ getParentRoute: () => proyecto, path: '/avance', component: Avance });
-const equipo = createRoute({ getParentRoute: () => proyecto, path: '/equipo', component: Equipo });
 const estaciones = createRoute({
   getParentRoute: () => proyecto,
-  path: '/estaciones',
+  path: '/',
   component: Estaciones,
 });
+const equipo = createRoute({ getParentRoute: () => proyecto, path: '/equipo', component: Equipo });
 const revisiones = createRoute({
   getParentRoute: () => proyecto,
   path: '/revisiones',
@@ -167,7 +154,7 @@ export const router = createRouter({
   routeTree: raiz.addChildren([
     entrar,
     inicio,
-    proyecto.addChildren([tareas, tarea, mapa, avance, equipo, estaciones, revisiones]),
+    proyecto.addChildren([estaciones, equipo, revisiones]),
     usuarios,
     dispositivos,
   ]),
