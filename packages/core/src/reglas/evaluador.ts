@@ -21,7 +21,7 @@ import {
   horaLocal,
   minutosLocales,
 } from './horario.ts';
-import { calcularAvance, esZaEf, resolverObjetivo } from './objetivo.ts';
+import { calcularAvance, esfuerzoEjecutado, esZaEf, resolverObjetivo } from './objetivo.ts';
 import type {
   ContextoEvaluacion,
   EstadoRegla,
@@ -737,11 +737,10 @@ export const evaluarEjecucion = (ctx: ContextoEvaluacion): EvaluacionEjecucion =
     ...evaluarDesviacion(ejecucion),
   ];
 
-  const tiempo = metodo.validaciones.find((v) => v.tipo === 'tiempo_efectivo');
-  const ejecutado =
-    objetivo.medida === 'minutos' && tiempo !== undefined
-      ? (numero(ejecucion.datos[tiempo.campo_minutos]) ?? 0)
-      : cerradas.length;
+  const ejecutado = esfuerzoEjecutado(metodo, objetivo, {
+    datos: ejecucion.datos,
+    unidades_cerradas: cerradas.length,
+  });
 
   return {
     resultados,

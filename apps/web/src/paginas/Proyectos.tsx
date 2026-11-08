@@ -185,6 +185,9 @@ const PESTANAS = [
   { a: '/p/$proyectoId', texto: 'Estaciones', exacto: true },
   { a: '/p/$proyectoId/equipo', texto: 'Brigadas' },
   { a: '/p/$proyectoId/revisiones', texto: 'Revisiones' },
+  { a: '/p/$proyectoId/seguimiento', texto: 'Seguimiento' },
+  { a: '/p/$proyectoId/cronograma', texto: 'Cronograma' },
+  { a: '/p/$proyectoId/galeria', texto: 'Galería' },
 ] as const;
 
 export const MarcoProyecto = () => {
@@ -421,7 +424,13 @@ interface ResumenCarga {
 }
 
 /** Carga D01 + A01 en el proyecto (Coordinación y JdP). Repetirla no duplica nada. */
-const CargarConfiguracion = ({ proyectoId, hayDatos }: { proyectoId: string; hayDatos: boolean }) => {
+const CargarConfiguracion = ({
+  proyectoId,
+  hayDatos,
+}: {
+  proyectoId: string;
+  hayDatos: boolean;
+}) => {
   const qc = useQueryClient();
   const cargar = useMutation({
     mutationFn: () =>

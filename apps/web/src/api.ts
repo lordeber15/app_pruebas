@@ -145,3 +145,149 @@ export interface Revision {
   metodo_nombre: string;
   usuario_nombre: string;
 }
+
+// ── Cronograma (RF-W12, RN-35, RN-36) ──
+
+export type EstadoFilaCronograma =
+  'ok' | 'pendiente_validacion' | 'reprogramada' | 'sujeta_a_decision';
+export type EstadoSolicitudCronograma =
+  'pendiente' | 'aprobada' | 'rechazada' | 'ajuste_solicitado';
+
+export interface VersionCronograma {
+  id: string;
+  numero: number;
+  estado: 'vigente' | 'historica';
+  es_base: boolean;
+  solicitud_id: string | null;
+  aprobado_en: string | null;
+  aprobado_por_nombre: string | null;
+}
+
+export interface ItemCronograma {
+  id: string;
+  linaje_id: string;
+  brigada_id: string;
+  brigada_codigo: string | null;
+  brigada_nombre: string;
+  fecha: string;
+  tipo_actividad: string;
+  estacion_id: string | null;
+  estacion_codigo: string | null;
+  detalle: string | null;
+  estado_fila: EstadoFilaCronograma;
+  actividad_especial: string | null;
+  base_fecha: string | null;
+  base_brigada_id: string | null;
+  agregada: boolean;
+}
+
+export interface Cronograma {
+  campania: { id: string; nombre: string; estado: string } | null;
+  versiones: VersionCronograma[];
+  version: VersionCronograma | null;
+  items: ItemCronograma[];
+}
+
+export type CambioCronograma =
+  | { tipo: 'reprogramar'; item_id: string; fecha: string; brigada_id: string | null }
+  | { tipo: 'marcar'; item_id: string; estado_fila: EstadoFilaCronograma };
+
+export interface SolicitudCronograma {
+  id: string;
+  estado: EstadoSolicitudCronograma;
+  motivo: string;
+  version_base_numero: number;
+  version_resultante_numero: number | null;
+  comentario_decision: string | null;
+  creado_en: string;
+  decidido_en: string | null;
+  propuesto_por_nombre: string;
+  decidido_por_nombre: string | null;
+  cambios: {
+    tipo: 'reprogramar' | 'marcar' | 'agregar';
+    estacion_codigo: string | null;
+    brigada_antes: string | null;
+    brigada_despues: string | null;
+    fecha_antes: string | null;
+    fecha_despues: string | null;
+    estado_fila: EstadoFilaCronograma;
+    detalle: string | null;
+  }[];
+  impacto: {
+    estaciones_afectadas_codigos: string[];
+    fechas_afectadas: string[];
+    items_desaparecidos: string[];
+  } | null;
+}
+
+// ── Seguimiento (RF-W01, RN-37, RN-38) ──
+
+export interface ObjetivoMetodo {
+  cantidad: number | null;
+  medida: 'unidades' | 'minutos';
+  unidad_texto: string;
+  origen: string;
+  texto: string;
+}
+
+export interface FilaSeguimiento {
+  estacion_id: string;
+  estacion_codigo: string;
+  za_ef: string | null;
+  especialidad_codigo: string;
+  especialidad_nombre: string;
+  metodo_id: string;
+  metodo_codigo: string;
+  metodo_nombre: string;
+  clase: string;
+  fecha_programada: string | null;
+  objetivo: ObjetivoMetodo;
+  /** Nulo sin datos sincronizados: nunca 0 % (RN-37). */
+  avance: { ejecutado: number; objetivo: number | null; porcentaje: number | null } | null;
+  sin_datos: boolean;
+  ejecuciones: number;
+  por_estado: Record<string, number>;
+  ultima_actividad: string | null;
+}
+
+export interface BrigadaSeguimiento {
+  id: string;
+  codigo: string | null;
+  nombre: string;
+  region: string | null;
+  tipo: string;
+  solo_propias: boolean;
+  ultima_sincronizacion: string | null;
+  dispositivos: { dispositivo_id: string; ultima_sincronizacion: string }[];
+  filas: FilaSeguimiento[];
+}
+
+// ── Galería (E-10) ──
+
+export interface FotoGaleria {
+  id: string;
+  capturado_en: string;
+  tipo_foto: string | null;
+  orientacion: string | null;
+  candidata_reporte: boolean;
+  seleccionada_reporte: boolean;
+  seleccion_fecha: string | null;
+  usuario_nombre: string;
+  ejecucion_id: string;
+  brigada_id: string | null;
+  brigada_codigo: string | null;
+  brigada_nombre: string | null;
+  estacion_id: string;
+  estacion_codigo: string;
+  metodo_id: string;
+  metodo_nombre: string;
+  especialidad_nombre: string;
+  unidad_codigo: string | null;
+  puede_marcar: boolean;
+}
+
+export interface Galeria {
+  fotos: FotoGaleria[];
+  truncado: boolean;
+  puede_seleccionar: boolean;
+}

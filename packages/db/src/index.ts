@@ -12,3 +12,9 @@ export const crearPool = (url: string, maxConexiones = 10): pg.Pool =>
 /** Cliente Kysely sobre un pool existente (la API lo comparte con Better Auth). */
 export const crearDb = (pool: pg.Pool): Db =>
   new Kysely<DB>({ dialect: new PostgresDialect({ pool }) });
+export {
+  elegirItemParaMetodo,
+  METODOS_POR_ACTIVIDAD_ESPECIAL,
+  reubicarReservas,
+  type ItemParaReserva,
+} from './cronograma.ts';

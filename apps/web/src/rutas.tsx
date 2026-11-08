@@ -15,7 +15,10 @@ import { Dispositivos, Usuarios } from './paginas/Administracion.tsx';
 import { CambiarContrasena } from './paginas/Contrasena.tsx';
 import { Entrar } from './paginas/Entrar.tsx';
 import { Equipo, Estaciones, MarcoProyecto, Proyectos } from './paginas/Proyectos.tsx';
+import { Cronograma } from './paginas/Cronograma.tsx';
+import { Galeria } from './paginas/Galeria.tsx';
 import { Revisiones } from './paginas/Revisiones.tsx';
+import { Seguimiento } from './paginas/Seguimiento.tsx';
 import { puede, useYo } from './sesion.ts';
 
 const enlaceMenu =
@@ -147,6 +150,21 @@ const revisiones = createRoute({
   path: '/revisiones',
   component: Revisiones,
 });
+const seguimiento = createRoute({
+  getParentRoute: () => proyecto,
+  path: '/seguimiento',
+  component: Seguimiento,
+});
+const cronograma = createRoute({
+  getParentRoute: () => proyecto,
+  path: '/cronograma',
+  component: Cronograma,
+});
+const galeria = createRoute({
+  getParentRoute: () => proyecto,
+  path: '/galeria',
+  component: Galeria,
+});
 const cuenta = createRoute({
   getParentRoute: () => raiz,
   path: '/cuenta',
@@ -167,7 +185,7 @@ export const router = createRouter({
   routeTree: raiz.addChildren([
     entrar,
     inicio,
-    proyecto.addChildren([estaciones, equipo, revisiones]),
+    proyecto.addChildren([estaciones, equipo, revisiones, seguimiento, cronograma, galeria]),
     cuenta,
     usuarios,
     dispositivos,
