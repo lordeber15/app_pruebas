@@ -124,12 +124,21 @@ services:
     environment:
       <<: *entorno
       DATABASE_URL_WORKER: postgres://worker_rw:${WORKER_RW_PASSWORD:?}@${DB_HOST:-postgres}:${DB_PORT:-5432}/${DB_NAME:-campo}
+      # Paquetes de mapa sin conexión (vea README, «Mapas sin conexión»).
+      MAPA_FUENTE: ${MAPA_FUENTE:-/srv/mapa/base.pmtiles}
+      MAPA_DIR_TEMPORAL: /var/tmp/mapas
+    volumes:
+      # El mapa base que se recorta (el mismo que usa la web).
+      - ./mapa:/srv/mapa:ro
+      # Espacio de trabajo de los recortes (hasta 150 MB cada uno); el resto es read_only.
+      - mapas-tmp:/var/tmp/mapas
     depends_on:
       migraciones:
         condition: service_completed_successfully
       crear-bucket:
         condition: service_completed_successfully
-    networks: [datos]
+    # `borde` da salida a Internet: solo la usa pmtiles si MAPA_FUENTE es una URL https.
+    networks: [datos, borde]
 
   tusd:
     image: tusproject/tusd@sha256:7b1c552a8b42f4b36cb01f2a3bd49f82ab078b2eefd191459e716141dd50376c
@@ -183,3 +192,4 @@ networks:
 volumes:
   postgres:
   minio:
+  mapas-tmp:

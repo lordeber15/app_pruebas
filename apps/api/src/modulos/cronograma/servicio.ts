@@ -25,6 +25,7 @@ import {
   noEncontrado,
   veTodosLosProyectos,
 } from '../alcance/autorizacion.ts';
+import type { AlCambiarCronograma } from '../mapas/servicio.ts';
 
 /**
  * Cronograma base y vigente (D02 §10, RF-W12, RN-35, RN-36, E-08).
@@ -498,12 +499,20 @@ const bloquearYTransicionar = async (
  * Aprobación (solo JdP): versión vigente nueva = vigente actual + cambios. Si entre la propuesta
  * y la aprobación se aprobó otra versión, los cambios se trasladan por linaje a la vigente.
  */
-export const aprobarSolicitud = async (db: Db, actor: Actor, solicitudId: string) => {
+export const aprobarSolicitud = async (
+  db: Db,
+  actor: Actor,
+  solicitudId: string,
+  alCambiar?: AlCambiarCronograma,
+) => {
   const sol = await cargarSolicitud(db, solicitudId);
   exigirGlobal(actor, 'aprobar_cronograma');
-  return db
+  const r = await db
     .transaction()
     .execute(async (tx) => aprobarEnTransaccion(tx, actor, solicitudId, sol.proyecto_id));
+  // Después del commit: las áreas de mapa de las brigadas (un fallo solo queda en el log).
+  await alCambiar?.(sol.proyecto_id, actor.usuarioId);
+  return r;
 };
 
 /** Aprobación dentro de una transacción abierta (la usan aprobar y «Aplicar ahora»). */
@@ -676,10 +685,16 @@ export const ajustarSolicitud = async (
  * «Aplicar ahora» del Jefe de Proyecto: crea la solicitud y la aprueba en una sola transacción.
  * Queda registrada como solicitud + aprobación (RN-36: la aprueba el JdP, el único que puede).
  */
-export const aplicarAhora = async (db: Db, actor: Actor, proyectoId: string, p: Propuesta) => {
+export const aplicarAhora = async (
+  db: Db,
+  actor: Actor,
+  proyectoId: string,
+  p: Propuesta,
+  alCambiar?: AlCambiarCronograma,
+) => {
   exigirGlobal(actor, 'aprobar_cronograma');
   if (!(await existeProyecto(db, proyectoId))) throw noEncontrado('El proyecto');
-  return db.transaction().execute(async (tx) => {
+  const r = await db.transaction().execute(async (tx) => {
     const campania = await campaniaDe(tx, proyectoId);
     const vigente = campania === undefined ? undefined : await vigenteDe(tx, campania.id);
     if (campania === undefined || vigente === undefined) throw sinCronograma();
@@ -691,4 +706,6 @@ export const aplicarAhora = async (db: Db, actor: Actor, proyectoId: string, p: 
       ...(await aprobarEnTransaccion(tx, actor, solicitudId, proyectoId)),
     };
   });
+  await alCambiar?.(proyectoId, actor.usuarioId);
+  return r;
 };

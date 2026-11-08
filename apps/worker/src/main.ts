@@ -10,7 +10,13 @@ const pool = crearPool(config.DATABASE_URL_WORKER, 5);
 const db = crearDb(pool);
 const almacen = crearAlmacenamiento(crearCliente(config), config.S3_BUCKET_ARCHIVOS);
 
-const worker = await iniciarTrabajos(config.DATABASE_URL_WORKER, db, almacen, log);
+const worker = await iniciarTrabajos(config.DATABASE_URL_WORKER, db, almacen, log, {
+  bin: config.MAPA_PMTILES_BIN,
+  fuente: config.MAPA_FUENTE,
+  tamanoMaximo: config.MAPA_TAMANO_MAXIMO,
+  dirTemporal: config.MAPA_DIR_TEMPORAL,
+  timeoutMs: config.MAPA_TIEMPO_MAXIMO_S * 1000,
+});
 log.info('worker iniciado');
 
 const detener = async (): Promise<void> => {

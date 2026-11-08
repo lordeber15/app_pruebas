@@ -490,6 +490,41 @@ export interface MiembroBrigada {
   usuario_id: string;
 }
 
+export interface PaqueteMapa {
+  actualizado_en: Generated<Timestamp>;
+  actualizado_por: string | null;
+  brigada_id: string | null;
+  creado_en: Generated<Timestamp>;
+  creado_por: string | null;
+  error: string | null;
+  estado: Generated<string>;
+  este: number;
+  generado_en: Timestamp | null;
+  generando_desde: Timestamp | null;
+  id: string;
+  nombre: string;
+  norte: number;
+  oeste: number;
+  origen: string;
+  proyecto_id: string;
+  ruta_objeto: string | null;
+  sha256: string | null;
+  solicitado_por: string | null;
+  sur: number;
+  tamano: Int8 | null;
+  version: Generated<number>;
+  zoom_max: number;
+}
+
+export interface PaqueteMapaDescarga {
+  descargado_en: Generated<Timestamp>;
+  dispositivo_id: string;
+  id: string;
+  paquete_id: string;
+  usuario_id: string;
+  version: number;
+}
+
 export interface Proyecto {
   actualizado_en: Generated<Timestamp>;
   actualizado_por: string | null;
@@ -663,6 +698,8 @@ export interface DB {
   jornada: Jornada;
   metodo: Metodo;
   miembro_brigada: MiembroBrigada;
+  paquete_mapa: PaqueteMapa;
+  paquete_mapa_descarga: PaqueteMapaDescarga;
   proyecto: Proyecto;
   registro_esfuerzo: RegistroEsfuerzo;
   regla_alerta: ReglaAlerta;

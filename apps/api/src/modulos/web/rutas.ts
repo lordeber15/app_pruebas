@@ -13,11 +13,13 @@ import { cargarConfiguracionToce } from '../configuracion/servicio.ts';
 import { cambiarContrasena } from '../cuenta/servicio.ts';
 import * as revisiones from '../ejecuciones/revisiones.ts';
 import * as org from '../organizacion/servicio.ts';
+import type { AlCambiarCronograma } from '../mapas/servicio.ts';
 
 interface Opciones {
   readonly auth: Auth;
   readonly db: Db;
   readonly firmador: Firmador;
+  readonly alCambiarCronograma?: AlCambiarCronograma;
 }
 
 const id = z.uuid();
@@ -43,7 +45,10 @@ const actor = (request: FastifyRequest): Actor => {
 };
 
 /** API de la web (doc. 03 §8). Todas las rutas exigen sesión y autorizan por rol + alcance. */
-export const rutasWeb: FastifyPluginAsyncZod<Opciones> = (app, { auth, db, firmador }) => {
+export const rutasWeb: FastifyPluginAsyncZod<Opciones> = (
+  app,
+  { auth, db, firmador, alCambiarCronograma },
+) => {
   // Con una contraseña temporal solo se puede ver el perfil y cambiarla (primer ingreso).
   app.addHook(
     'preHandler',
@@ -239,12 +244,16 @@ export const rutasWeb: FastifyPluginAsyncZod<Opciones> = (app, { auth, db, firma
           .nullish(),
       },
     },
-    async (request) => ({
-      resumen: await cargarConfiguracionToce(db, actor(request), request.params.id, {
+    async (request) => {
+      const a = actor(request);
+      const resumen = await cargarConfiguracionToce(db, a, request.params.id, {
         fechaInicio: request.body?.fecha_inicio ?? null,
         incluirA01: request.body?.incluir_a01 ?? true,
-      }),
-    }),
+      });
+      // La carga de A01 puede crear el cronograma base: áreas de mapa de las brigadas.
+      await alCambiarCronograma?.(request.params.id, a.usuarioId);
+      return { resumen };
+    },
   );
   // ── Archivos ──
   app.get(

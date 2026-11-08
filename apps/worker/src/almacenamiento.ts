@@ -1,5 +1,6 @@
 import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { createHash } from 'node:crypto';
+import { createReadStream } from 'node:fs';
 import type { Readable } from 'node:stream';
 import type { ConfigWorker } from './config.ts';
 
@@ -20,6 +21,8 @@ export interface Almacenamiento {
     contenido: Buffer | null;
   } | null>;
   guardar: (clave: string, contenido: Buffer, tipo: string) => Promise<void>;
+  /** Sube un archivo local en streaming (sin cargarlo en memoria). */
+  subirArchivo: (clave: string, ruta: string, tamano: number, tipo: string) => Promise<void>;
 }
 
 export const crearCliente = (c: ConfigWorker): S3Client =>
@@ -70,6 +73,18 @@ export const crearAlmacenamiento = (s3: S3Client, bucket: string): Almacenamient
   guardar: async (clave, contenido, tipo) => {
     await s3.send(
       new PutObjectCommand({ Bucket: bucket, Key: clave, Body: contenido, ContentType: tipo }),
+    );
+  },
+  subirArchivo: async (clave, ruta, tamano, tipo) => {
+    await s3.send(
+      new PutObjectCommand({
+        Bucket: bucket,
+        Key: clave,
+        // eslint-disable-next-line security/detect-non-literal-fs-filename -- ruta generada por el worker (carpeta de trabajo + UUID v7); no viene del usuario.
+        Body: createReadStream(ruta),
+        ContentLength: tamano,
+        ContentType: tipo,
+      }),
     );
   },
 });

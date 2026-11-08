@@ -25,6 +25,7 @@ const TITULOS: Readonly<Record<number, string>> = {
   409: 'Conflicto',
   413: 'Contenido demasiado grande',
   415: 'Tipo de contenido no admitido',
+  422: 'Contenido no procesable',
   429: 'Demasiadas solicitudes',
   500: 'Error interno',
 };
