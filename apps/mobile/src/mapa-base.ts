@@ -1,30 +1,30 @@
 import type { StyleSpecification } from '@maplibre/maplibre-react-native';
-import { Directory, File, Paths } from 'expo-file-system';
 import capasBase from './capas-base.json';
+import { carpetaGlifos, glifosCompletos, mapasDescargados } from './mapas.ts';
+import { combinarEstilo } from './mapas-logica.ts';
 
 /**
- * Mapa base sin conexión (ADR-005: MapLibre + PMTiles; PoC-01). Se usa un recorte local
- * `mapa/brigada.pmtiles` en la carpeta privada de la app; si no existe, las estaciones se dibujan
- * sobre un fondo neutro. Nunca se piden teselas a un servicio externo.
- *
- * TODO(bloque 8, paquete cartográfico): el servidor solo publica `/mapa/base.pmtiles` (todo el
- * Perú, ~210 MB), demasiado grande para un celular, y la PoC-01 no probó ninguna forma de
- * descargar un recorte por encuadre. Cuando el servidor genere el recorte por brigada, la descarga
- * (solo con WiFi) debe dejar aquí `brigada.pmtiles` y los glifos en `glifos/NotoSansRegular/`.
- * Cada paquete nuevo debe reemplazar el anterior por completo (hallazgo de PoC-01).
+ * Mapa base (ADR-005: MapLibre + PMTiles; PoC-01; RF-M05, CA-08).
+ * 1. Con áreas descargadas (src/mapas.ts): todas a la vez, desde la carpeta privada de la app,
+ *    sin pedir nada a la red. Es lo que se ve en modo avión.
+ * 2. Sin áreas y con señal: el mapa del propio servidor (`/mapa/base.pmtiles`), leído por rangos.
+ * 3. Sin áreas ni señal: fondo neutro; las estaciones se dibujan igual.
+ * Nunca se piden teselas a un servicio externo.
  */
 
-const FUENTE = 'NotoSansRegular';
-/** Rangos de glifos que necesitan las etiquetas en español (PoC-01). */
-const RANGOS_GLIFOS = ['0-255', '256-511', '8192-8447'] as const;
-
 const FONDO_NEUTRO = '#E7ECE9';
+const capas = capasBase as StyleSpecification['layers'];
+
+export type OrigenMapaBase = 'local' | 'servidor' | 'ninguno';
 
 export interface MapaBase {
   /** Estilo para el componente `Map`. */
   readonly estilo: StyleSpecification;
-  /** Hay recorte local con teselas. */
+  /** Hay teselas (locales o del servidor). */
   readonly conTeselas: boolean;
+  readonly origen: OrigenMapaBase;
+  /** Áreas descargadas que forman el mapa. */
+  readonly areas: number;
 }
 
 export const estiloNeutro = (): StyleSpecification => ({
@@ -33,11 +33,7 @@ export const estiloNeutro = (): StyleSpecification => ({
   layers: [{ id: 'fondo', type: 'background', paint: { 'background-color': FONDO_NEUTRO } }],
 });
 
-/**
- * Mapa base del propio servidor (`/mapa/base.pmtiles`, el mismo de la web), leído por rangos solo
- * con señal: es un respaldo mientras no exista el recorte por brigada (bloque 8). MapLibre guarda
- * en su caché lo ya visto, pero eso no reemplaza el paquete sin conexión.
- */
+/** Mapa base del propio servidor (el mismo de la web), solo con señal. */
 const estiloServidor = (servidor: string): StyleSpecification => {
   const base = servidor.replace(/\/$/, '');
   return {
@@ -50,41 +46,31 @@ const estiloServidor = (servidor: string): StyleSpecification => {
         attribution: '© OpenStreetMap',
       },
     },
-    layers: capasBase as StyleSpecification['layers'],
+    layers: capas,
   };
 };
 
 /**
- * Elige el mapa base: el recorte local si existe; si no, con señal, el del servidor; sin ninguno,
- * el fondo neutro (las estaciones se dibujan igual).
+ * Elige el mapa base. `servidor` es la dirección del servidor solo si hay señal (null sin ella).
+ * El recorte único `mapa/brigada.pmtiles` de antes ya no se usa: ningún flujo lo generaba.
  */
-export const prepararMapaBase = (servidor: string | null = null): MapaBase => {
-  const carpeta = new Directory(Paths.document, 'mapa');
-  const pmtiles = new File(carpeta, 'brigada.pmtiles');
-  if (!pmtiles.exists)
-    return servidor === null
-      ? { estilo: estiloNeutro(), conTeselas: false }
-      : { estilo: estiloServidor(servidor), conTeselas: true };
-
-  const glifos = new Directory(carpeta, 'glifos');
-  const conGlifos = RANGOS_GLIFOS.every(
-    (r) => new File(new Directory(glifos, FUENTE), `${r}.pbf`).exists,
-  );
-  const capas = capasBase as StyleSpecification['layers'];
-  return {
-    conTeselas: true,
-    estilo: {
-      version: 8,
-      // Sin glifos locales no se dibujan los textos del mapa base: pedirlos fallaría sin señal.
-      ...(conGlifos ? { glyphs: `${glifos.uri.replace(/\/$/, '')}/{fontstack}/{range}.pbf` } : {}),
-      sources: {
-        protomaps: {
-          type: 'vector',
-          url: `pmtiles://${pmtiles.uri}`,
-          attribution: '© OpenStreetMap',
-        },
-      },
-      layers: conGlifos ? capas : capas.filter((c) => c.type !== 'symbol'),
-    },
-  };
+export const prepararMapaBase = async (servidor: string | null = null): Promise<MapaBase> => {
+  const paquetes = await mapasDescargados();
+  if (paquetes.length > 0)
+    return {
+      origen: 'local',
+      conTeselas: true,
+      areas: paquetes.length,
+      estilo: combinarEstilo({
+        paquetes,
+        capas,
+        fondo: FONDO_NEUTRO,
+        glifos: glifosCompletos()
+          ? `${carpetaGlifos.uri.replace(/\/$/, '')}/{fontstack}/{range}.pbf`
+          : null,
+      }),
+    };
+  return servidor === null
+    ? { estilo: estiloNeutro(), conTeselas: false, origen: 'ninguno', areas: 0 }
+    : { estilo: estiloServidor(servidor), conTeselas: true, origen: 'servidor', areas: 0 };
 };

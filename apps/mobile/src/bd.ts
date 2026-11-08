@@ -1,4 +1,5 @@
 import { open, type DB, type Scalar } from '@op-engineering/op-sqlite';
+import { Directory, Paths } from 'expo-file-system';
 
 /**
  * Base local (doc. 02 §8.4). Sin cifrado propio (ADR-010, ⚑ C5).
@@ -7,6 +8,8 @@ import { open, type DB, type Scalar } from '@op-engineering/op-sqlite';
  * - outbox: eventos pendientes; se envían en orden y se conservan 7 días tras su resultado.
  * - archivo_local: fotos con su estado de subida; se borran solo al confirmar su hash (RN-17).
  * - alerta_local: alertas registradas en campo y la respuesta del servidor a su evento.
+ * - mapa_local: catálogo de mapas sin conexión (RF-M05): lo último que dijo el servidor y la copia
+ *   descargada, para usarlos sin señal. Los archivos viven en `mapa/` (src/mapas.ts).
  */
 let bd: DB | null = null;
 
@@ -43,6 +46,10 @@ const ESQUEMA = [
      categoria TEXT, titulo TEXT NOT NULL, descripcion TEXT, estacion_id TEXT, ejecucion_id TEXT,
      reserva_id TEXT, afecta_cronograma INTEGER NOT NULL DEFAULT 0, creado_en TEXT NOT NULL,
      resultado TEXT, motivo TEXT)`,
+  // servidor, copia y parcial son JSON (src/mapas-logica.ts, FilaMapaLocal).
+  `CREATE TABLE IF NOT EXISTS mapa_local (
+     id TEXT PRIMARY KEY, proyecto_id TEXT NOT NULL, servidor TEXT, copia TEXT, parcial TEXT,
+     confirmado INTEGER NOT NULL DEFAULT 0, error TEXT, actualizado_en TEXT NOT NULL)`,
 ];
 
 /** Tablas locales del modelo anterior: se quitan al actualizar la app (no guardan fotos). */
@@ -141,7 +148,15 @@ export const borrarTodo = async (): Promise<void> => {
     'unidad_local',
     'track_local',
     'alerta_local',
+    'mapa_local',
   ]) {
     await b.execute(`DELETE FROM ${t}`);
+  }
+  // Los mapas descargados se borran con su catálogo para no dejar archivos huérfanos.
+  try {
+    const mapas = new Directory(Paths.document, 'mapa');
+    if (mapas.exists) mapas.delete();
+  } catch {
+    // Un archivo que no se pudo borrar no impide la baja; el catálogo ya no lo usa.
   }
 };
