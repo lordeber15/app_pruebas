@@ -1,6 +1,7 @@
 import {
   avanceEstacion,
   calcularAvance,
+  metodoCompleto,
   esfuerzoEjecutado,
   resolverObjetivo,
   type AvanceEstacion,
@@ -19,6 +20,7 @@ import { estacionParaReglas, fechaLocal, type Paquete } from './campo.ts';
  */
 
 interface FilaEjecucion {
+  id: string;
   estacion_id: string;
   metodo_id: string;
   estado_local: 'en_curso' | 'cerrada';
@@ -26,7 +28,13 @@ interface FilaEjecucion {
   datos: string;
   objetivo_campo: number | null;
   incumplimientos: number | null;
-  unidades_cerradas: number;
+}
+
+/** Avance elemental de un método aplicable en la estación (para la barra por método). */
+export interface AvanceMetodoLocal extends MetodoEnEstacion {
+  readonly metodoId: string;
+  readonly completo: boolean;
+  readonly unidadTexto: string;
 }
 
 export interface AvanceEstacionLocal extends AvanceEstacion {
@@ -34,6 +42,8 @@ export interface AvanceEstacionLocal extends AvanceEstacion {
   readonly fechaProgramada: string | null;
   /** Todas las fechas del cronograma vigente para la estación, ordenadas. */
   readonly fechas: readonly string[];
+  /** Un elemento por método aplicable, en el orden del paquete. */
+  readonly metodos: readonly AvanceMetodoLocal[];
 }
 
 /**
@@ -59,19 +69,34 @@ const leerDatos = (s: string): Record<string, unknown> => {
 
 const ejecucionesLocales = (estacionId?: string) =>
   consultar<FilaEjecucion>(
-    `SELECT e.estacion_id, e.metodo_id, e.estado_local, e.abierta_en, e.datos, e.objetivo_campo,
-            e.incumplimientos,
-            (SELECT count(*) FROM unidad_local u WHERE u.ejecucion_id = e.id AND u.estado = 'cerrada')
-              AS unidades_cerradas
+    `SELECT e.id, e.estacion_id, e.metodo_id, e.estado_local, e.abierta_en, e.datos,
+            e.objetivo_campo, e.incumplimientos
        FROM ejecucion_local e ${estacionId === undefined ? '' : 'WHERE e.estacion_id = ?'}
       ORDER BY e.abierta_en`,
     estacionId === undefined ? [] : [estacionId],
   );
 
+/**
+ * Unidades cerradas por ejecución y tipo: el esfuerzo cuenta solo las del tipo principal del
+ * método, igual que el motor de core (`evaluarEjecucion`).
+ */
+type Cerradas = ReadonlyMap<string, number>;
+const unidadesCerradas = async (estacionId?: string): Promise<Cerradas> => {
+  const filas = await consultar<{ ejecucion_id: string; tipo_unidad: string; n: number }>(
+    `SELECT u.ejecucion_id, u.tipo_unidad, count(*) AS n
+       FROM unidad_local u JOIN ejecucion_local e ON e.id = u.ejecucion_id
+      WHERE u.estado = 'cerrada' ${estacionId === undefined ? '' : 'AND e.estacion_id = ?'}
+      GROUP BY u.ejecucion_id, u.tipo_unidad`,
+    estacionId === undefined ? [] : [estacionId],
+  );
+  return new Map(filas.map((f) => [`${f.ejecucion_id}:${f.tipo_unidad}`, f.n]));
+};
+
 const calcular = (
   p: Paquete,
   estacionId: string,
   ejecuciones: readonly FilaEjecucion[],
+  cerradas: Cerradas,
   hoy: string,
 ): AvanceEstacionLocal | null => {
   const estacion = p.estaciones.find((e) => e.id === estacionId);
@@ -82,7 +107,7 @@ const calcular = (
       .filter((a) => a.estacion_id === estacionId && a.habilitado)
       .map((a) => a.metodo_id),
   );
-  const metodos: MetodoEnEstacion[] = p.metodos
+  const metodos: AvanceMetodoLocal[] = p.metodos
     .filter((m) => habilitados.has(m.id) && m.clase !== 'evento' && m.clase !== 'atributo')
     .map((m) => {
       const propias = ejecuciones.filter((x) => x.metodo_id === m.id);
@@ -96,14 +121,20 @@ const calcular = (
           s +
           esfuerzoEjecutado(m.config, objetivo, {
             datos: leerDatos(x.datos),
-            unidades_cerradas: x.unidades_cerradas,
+            unidades_cerradas: cerradas.get(`${x.id}:${m.config.unidad.tipo}`) ?? 0,
           }),
         0,
       );
-      return {
+      const base: MetodoEnEstacion = {
         metodo: m.config.codigo,
         avance: calcularAvance(ejecutado, objetivo),
         ejecuciones: propias.map(estadoParaAvance),
+      };
+      return {
+        ...base,
+        metodoId: m.id,
+        completo: metodoCompleto(base),
+        unidadTexto: objetivo.unidad_texto,
       };
     });
 
@@ -115,7 +146,7 @@ const calcular = (
     hoy,
     reprogramada: filas.some((i) => i.estado_fila === 'reprogramada'),
   });
-  return { ...avance, fechaProgramada, fechas };
+  return { ...avance, fechaProgramada, fechas, metodos };
 };
 
 /** Avance local de una estación; `null` si la estación no está en el paquete. */
@@ -123,13 +154,20 @@ export const avanceDeEstacionLocal = async (
   paquete: Paquete,
   estacionId: string,
 ): Promise<AvanceEstacionLocal | null> =>
-  calcular(paquete, estacionId, await ejecucionesLocales(estacionId), fechaLocal());
+  calcular(
+    paquete,
+    estacionId,
+    await ejecucionesLocales(estacionId),
+    await unidadesCerradas(estacionId),
+    fechaLocal(),
+  );
 
 /** Avance local de todas las estaciones del paquete con una sola consulta (para el mapa). */
 export const avancesDeEstacionesLocales = async (
   paquete: Paquete,
 ): Promise<Map<string, AvanceEstacionLocal>> => {
   const todas = await ejecucionesLocales();
+  const cerradas = await unidadesCerradas();
   const hoy = fechaLocal();
   const r = new Map<string, AvanceEstacionLocal>();
   for (const est of paquete.estaciones) {
@@ -137,6 +175,7 @@ export const avancesDeEstacionesLocales = async (
       paquete,
       est.id,
       todas.filter((x) => x.estacion_id === est.id),
+      cerradas,
       hoy,
     );
     if (a !== null) r.set(est.id, a);

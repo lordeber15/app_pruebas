@@ -4,7 +4,12 @@
     "lib": ["ES2023"],
     "jsx": "react-jsx",
     "types": [],
-    "customConditions": ["react-native"]
+    "customConditions": ["react-native"],
+    // react-native-view-shot publica su código fuente en la condición `react-native`, que no
+    // compila con `verbatimModuleSyntax`; para los tipos se usan sus declaraciones publicadas.
+    "paths": {
+      "react-native-view-shot": ["./node_modules/react-native-view-shot/lib/index.d.ts"]
+    }
   },
   "include": ["app", "src"]
 }

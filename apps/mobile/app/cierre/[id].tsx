@@ -1,6 +1,6 @@
 import type { EvaluacionEjecucion, ResultadoRegla, TipoDesviacion } from '@campo/core';
 import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -13,7 +13,7 @@ import {
   type MetodoPaquete,
   type Paquete,
 } from '../../src/campo.ts';
-import { Formulario } from '../../src/formulario.tsx';
+import { Formulario, guardarPendientes, type Valor } from '../../src/formulario.tsx';
 import { mayuscula } from '../../src/textos.ts';
 import {
   AccionInferior,
@@ -88,6 +88,10 @@ export default function Cierre() {
   const [cerrando, setCerrando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [listo, setListo] = useState(false);
+  // Lo más reciente del cierre, para guardarlo aunque la pantalla ya no vuelva a dibujarse
+  // (salir con el teclado abierto) y para cerrar con lo último escrito.
+  const datosRef = useRef<Record<string, unknown>>({});
+  const cierreRef = useRef<Parameters<typeof guardarBorradorCierre>[1] | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -96,7 +100,8 @@ export default function Cierre() {
         const ej = await leerEjecucion(id);
         if (d === null || ej === null) return;
         setP(d.paquete);
-        setDatos(JSON.parse(ej.datos) as Record<string, unknown>);
+        datosRef.current = JSON.parse(ej.datos) as Record<string, unknown>;
+        setDatos(datosRef.current);
         setDesviacion(ej.desviacion_tipo);
         setExplicacion(ej.desviacion_explicacion ?? '');
         setConfirmaciones(JSON.parse(ej.confirmaciones) as string[]);
@@ -118,6 +123,7 @@ export default function Cierre() {
 
   // Reevalúa con lo que se está editando: la misma regla que se aplicará en el servidor (RF-T04).
   const clave = JSON.stringify(cierre);
+  cierreRef.current = cierre;
   useEffect(() => {
     if (p === null || !listo) return;
     void evaluarLocal(p, id, cierre).then((r) => {
@@ -147,11 +153,20 @@ export default function Cierre() {
   const faltaExplicar = desviacion !== 'ninguna' && explicacion.trim() === '';
   const bloqueado = (obligatorios.length > 0 && desviacion === 'ninguna') || faltaExplicar;
 
+  const cambiarDato = (k: string, v: Valor) => {
+    datosRef.current = { ...datosRef.current, [k]: v };
+    setDatos(datosRef.current);
+    if (cierreRef.current !== null && listo)
+      void guardarBorradorCierre(id, { ...cierreRef.current, datos: datosRef.current });
+  };
+
   const cerrar = async () => {
+    // Lo escrito con el teclado abierto se entrega antes de evaluar y cerrar.
+    guardarPendientes();
     setCerrando(true);
     setError(null);
     try {
-      await cerrarEjecucion(p, id, cierre);
+      await cerrarEjecucion(p, id, { ...cierre, datos: datosRef.current });
       router.dismissTo({ pathname: '/ejecucion/[id]', params: { id } });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo cerrar.');
@@ -239,7 +254,7 @@ export default function Cierre() {
         {cfg.campos_ejecucion.length > 0 ? (
           <View style={[e.tarjeta, { gap: 12, padding: 16 }]}>
             <Text style={T.subtitulo}>Datos de la ejecución</Text>
-            <Formulario campos={cfg.campos_ejecucion} datos={datos} alCambiar={setDatos} />
+            <Formulario campos={cfg.campos_ejecucion} datos={datos} alCambiar={cambiarDato} />
           </View>
         ) : null}
 

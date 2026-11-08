@@ -7,6 +7,7 @@ import {
   ejecucion as leerEjecucion,
   evaluarLocal,
   fotosDeEjecucion,
+  fotosMinimasEjecucion,
   leerPaquete,
   nuevaUnidad,
   unidadesDe,
@@ -40,6 +41,10 @@ interface Datos {
   unidades: UnidadLocal[];
   evaluacion: EvaluacionEjecucion;
   metodologicas: number;
+  /** Fotos propias de la ejecución y de sus unidades, de cualquier tipo. */
+  fotosTotales: number;
+  /** Foto mínima por ejecución del proyecto (RN-04 ampliada, 2026-11-08). */
+  fotosMinimas: number;
 }
 
 /** Estado de una unidad en una línea: lo primero que falta, o que está completa. */
@@ -105,6 +110,8 @@ export default function Ejecucion() {
           unidades: await unidadesDe(id),
           evaluacion: ev.evaluacion,
           metodologicas: fotos.filter((f) => f.tipo_foto === 'metodologica').length,
+          fotosTotales: fotos.length,
+          fotosMinimas: fotosMinimasEjecucion(p.paquete, ev.estacion.proyecto_id),
         });
       })();
     }, [id, version]),
@@ -215,6 +222,40 @@ export default function Ejecucion() {
                   router.push({
                     pathname: '/camara',
                     params: { ejecucionId: id, tipoFoto: 'metodologica' },
+                  })
+                }
+              />
+            )}
+          </View>
+        ) : null}
+        {/* RN-04 ampliada (2026-11-08): toda ejecución, también un EVENTO, lleva al menos N
+            fotos. Si D01 ya pide esas fotos metodológicas, basta la tarjeta de arriba. */}
+        {d.fotosMinimas > 0 && minimoMet < d.fotosMinimas ? (
+          <View style={[e.tarjeta, { gap: 8 }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <MarcaControl control="obligatorio" />
+              <Text style={[T.subtitulo, { flex: 1 }]}>Fotos de la ejecución</Text>
+              <Text style={T.dato}>
+                {d.fotosTotales} de {d.fotosMinimas}
+              </Text>
+            </View>
+            <Text style={T.suave}>
+              Toda ejecución requiere al menos {d.fotosMinimas}{' '}
+              {d.fotosMinimas === 1 ? 'foto georreferenciada' : 'fotos georreferenciadas'} (decisión
+              del proyecto). Cuentan todas las fotos de la ejecución y de sus unidades.
+            </Text>
+            {cerrada ? null : (
+              <Boton
+                variante={d.fotosTotales < d.fotosMinimas ? 'principal' : 'secundario'}
+                texto="Tomar foto"
+                alPresionar={() =>
+                  router.push({
+                    pathname: '/camara',
+                    params: {
+                      ejecucionId: id,
+                      // Un registro oportuno documenta al individuo; otro método, su entorno.
+                      tipoFoto: cfg.clase === 'evento' ? 'primer_plano' : 'contexto',
+                    },
                   })
                 }
               />

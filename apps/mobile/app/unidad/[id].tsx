@@ -13,21 +13,25 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   actualizarUnidad,
   agregarPuntoTrack,
+  aplicarCambioUnidad,
   cerrarTrack,
   ejecucion as leerEjecucion,
+  esperarUnidad,
   evaluarLocal,
   fotosDeEjecucion,
   leerPaquete,
   puntosDeTrack,
   unidad as leerUnidad,
   unidadesVinculables,
+  type CambioUnidadEntrada,
   type EjecucionLocal,
+  type EstadoUnidadEditable,
   type FotoLocal,
   type MetodoPaquete,
   type UnidadLocal,
 } from '../../src/campo.ts';
 import { useApp } from '../../src/estado.ts';
-import { Formulario } from '../../src/formulario.tsx';
+import { Formulario, guardarPendientes, type Valor } from '../../src/formulario.tsx';
 import { mayuscula, NOMBRE_UNIDAD, sinCodigo } from '../../src/textos.ts';
 import {
   formatoCoordenada,
@@ -108,12 +112,19 @@ export default function Unidad() {
   const [aviso, setAviso] = useState<string | null>(null);
   const [parte, setParte] = useState('principal');
   const [fila, setFila] = useState<Record<string, unknown>>({});
+  const filaRef = useRef<Record<string, unknown>>({});
   const vigilante = useRef<{ remove: () => void } | null>(null);
+  // Estado local más reciente de la unidad (incluye lo aún no escrito en SQLite) y cuántos
+  // guardados siguen en la cola: mientras haya alguno, una relectura no pisa lo local.
+  const uRef = useRef<UnidadLocal | null>(null);
+  const enVuelo = useRef(0);
 
   const cargar = useCallback(async () => {
     const p = await leerPaquete();
-    const u = await leerUnidad(id);
-    if (p === null || u === null) return;
+    const leida = await leerUnidad(id);
+    if (p === null || leida === null) return;
+    const u = enVuelo.current > 0 && uRef.current !== null ? uRef.current : leida;
+    uRef.current = u;
     const ej = await leerEjecucion(u.ejecucion_id);
     const ev = await evaluarLocal(p.paquete, u.ejecucion_id);
     if (ej === null || ev === null) return;
@@ -173,6 +184,9 @@ export default function Unidad() {
   const datos = json<Record<string, unknown>>(u.datos, {});
   const registros = json<Record<string, unknown>[]>(u.registros, []);
   const parametros = json<string[]>(u.parametros, []);
+  /** Vértices vigentes al aplicar el cambio (no los del último render). */
+  const vertices = (a: EstadoUnidadEditable) =>
+    a.geometria?.tipo === 'vertices' ? a.geometria.vertices : [];
   const esPrincipal = u.tipo_unidad === cfg.unidad.tipo;
   const fotosReq = fotosContextoRequeridas(
     cfg,
@@ -185,9 +199,31 @@ export default function Unidad() {
   const parametrosReq = cfg.validaciones.find((v) => v.tipo === 'parametros_tecnicos');
   const vinculo = cfg.validaciones.find((v) => v.tipo === 'vinculo_unidad');
 
-  const guardar = (c: Parameters<typeof actualizarUnidad>[1]) => {
+  /**
+   * Guarda primero en la pantalla (optimista) y encola la escritura en SQLite, que vuelve a
+   * aplicar el mismo cambio sobre lo guardado: dos ediciones seguidas nunca se pisan.
+   */
+  const guardar = (c: CambioUnidadEntrada) => {
+    const actual = uRef.current;
+    if (actual === null) return;
     setAviso(null);
-    void actualizarUnidad(u.id, c).catch(() => setAviso('No se pudo guardar. Intente de nuevo.'));
+    const nueva = aplicarCambioUnidad(actual, c);
+    uRef.current = nueva;
+    setD((x) => (x === null ? x : { ...x, u: nueva }));
+    enVuelo.current += 1;
+    void actualizarUnidad(actual.id, c)
+      .catch(() => setAviso('No se pudo guardar. Intente de nuevo.'))
+      .finally(() => {
+        enVuelo.current -= 1;
+        if (enVuelo.current === 0) void cargar();
+      });
+  };
+  const cambiarDato = (clave: string, v: Valor) => {
+    if (editable) guardar({ datos: { [clave]: v } });
+  };
+  const cambiarFila = (clave: string, v: Valor) => {
+    filaRef.current = { ...filaRef.current, [clave]: v };
+    setFila(filaRef.current);
   };
 
   const tomarPunto = async (clave: string, alLeer: (p: { lat: number; lon: number }) => void) => {
@@ -248,11 +284,14 @@ export default function Unidad() {
                   texto={ini === null ? 'Marcar inicio' : 'Inicio de nuevo'}
                   alPresionar={() =>
                     void tomarPunto('inicio', (x) =>
-                      guardar({
-                        geometria:
-                          fin === null
-                            ? { tipo: 'punto', punto: x }
-                            : { tipo: 'inicio_fin', inicio: x, fin },
+                      guardar((a) => {
+                        const f = a.geometria?.tipo === 'inicio_fin' ? a.geometria.fin : null;
+                        return {
+                          geometria:
+                            f === null
+                              ? { tipo: 'punto', punto: x }
+                              : { tipo: 'inicio_fin', inicio: x, fin: f },
+                        };
                       }),
                     )
                   }
@@ -265,11 +304,18 @@ export default function Unidad() {
                   ocupado={leyendo === 'fin'}
                   texto="Marcar fin"
                   alPresionar={() =>
-                    void tomarPunto(
-                      'fin',
-                      (x) =>
-                        ini !== null &&
-                        guardar({ geometria: { tipo: 'inicio_fin', inicio: ini, fin: x } }),
+                    void tomarPunto('fin', (x) =>
+                      guardar((a) => {
+                        const i =
+                          a.geometria?.tipo === 'inicio_fin'
+                            ? a.geometria.inicio
+                            : a.geometria?.tipo === 'punto'
+                              ? a.geometria.punto
+                              : null;
+                        return i === null
+                          ? {}
+                          : { geometria: { tipo: 'inicio_fin', inicio: i, fin: x } };
+                      }),
                     )
                   }
                 />
@@ -298,7 +344,9 @@ export default function Unidad() {
                   texto={`Marcar vértice ${String(v.length + 1)}`}
                   alPresionar={() =>
                     void tomarPunto('vertice', (x) =>
-                      guardar({ geometria: { tipo: 'vertices', vertices: [...v, x] } }),
+                      guardar((a) => ({
+                        geometria: { tipo: 'vertices', vertices: [...vertices(a), x] },
+                      })),
                     )
                   }
                 />
@@ -309,9 +357,12 @@ export default function Unidad() {
                   deshabilitado={v.length === 0}
                   texto="Quitar último"
                   alPresionar={() =>
-                    guardar({
-                      geometria:
-                        v.length <= 1 ? null : { tipo: 'vertices', vertices: v.slice(0, -1) },
+                    guardar((a) => {
+                      const w = vertices(a);
+                      return {
+                        geometria:
+                          w.length <= 1 ? null : { tipo: 'vertices', vertices: w.slice(0, -1) },
+                      };
                     })
                   }
                 />
@@ -338,17 +389,23 @@ export default function Unidad() {
     ];
     const completas = partes.filter((x) => x.n >= minimo).length;
     const agregarVertice = (x: { lat: number; lon: number }) => {
-      if (parte === 'principal') {
-        guardar({ geometria: { ...pf, principal: [...pf.principal, x] } });
-        return;
-      }
-      const [tipo, idx] = parte.split(':');
-      const i = Number(idx);
-      const delTipo = pf.subparcelas.filter((s) => s.tipo === tipo);
-      const otras = pf.subparcelas.filter((s) => s.tipo !== tipo);
-      while (delTipo.length <= i) delTipo.push({ tipo: tipo ?? '', vertices: [] });
-      const nuevas = delTipo.map((s, k) => (k === i ? { ...s, vertices: [...s.vertices, x] } : s));
-      guardar({ geometria: { ...pf, subparcelas: [...otras, ...nuevas] } });
+      const destino = parte;
+      guardar((a) => {
+        const g =
+          a.geometria?.tipo === 'parcela_forestal'
+            ? a.geometria
+            : { tipo: 'parcela_forestal' as const, principal: [], subparcelas: [] };
+        if (destino === 'principal') return { geometria: { ...g, principal: [...g.principal, x] } };
+        const [tipo, idx] = destino.split(':');
+        const i = Number(idx);
+        const delTipo = g.subparcelas.filter((s) => s.tipo === tipo);
+        const otras = g.subparcelas.filter((s) => s.tipo !== tipo);
+        while (delTipo.length <= i) delTipo.push({ tipo: tipo ?? '', vertices: [] });
+        const nuevas = delTipo.map((s, k) =>
+          k === i ? { ...s, vertices: [...s.vertices, x] } : s,
+        );
+        return { geometria: { ...g, subparcelas: [...otras, ...nuevas] } };
+      });
     };
     return (
       <Bloque
@@ -377,7 +434,11 @@ export default function Unidad() {
   };
 
   const terminar = async () => {
-    await actualizarUnidad(u.id, { estado: 'cerrada', fin: u.fin ?? new Date().toISOString() });
+    // Lo último escrito con el teclado abierto entra a la cola antes del cierre de la unidad.
+    guardarPendientes();
+    const ahora = new Date().toISOString();
+    guardar((a) => ({ estado: 'cerrada', fin: a.fin ?? ahora }));
+    await esperarUnidad(u.id);
     await cerrarTrack(u.id);
     router.back();
   };
@@ -543,11 +604,7 @@ export default function Unidad() {
               cfg.validaciones.some((v) => v.tipo === 'campos_obligatorios') ? 'obligatorio' : null
             }
           >
-            <Formulario
-              campos={cfg.campos}
-              datos={datos}
-              alCambiar={(x) => editable && guardar({ datos: x })}
-            />
+            <Formulario campos={cfg.campos} datos={datos} alCambiar={cambiarDato} />
           </Bloque>
         ) : null}
 
@@ -577,14 +634,17 @@ export default function Unidad() {
             ))}
             {editable ? (
               <>
-                <Formulario campos={cfg.registros.campos} datos={fila} alCambiar={setFila} />
+                <Formulario campos={cfg.registros.campos} datos={fila} alCambiar={cambiarFila} />
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   <View style={{ flex: 1 }}>
                     <Boton
                       texto="Agregar fila"
                       deshabilitado={Object.values(fila).every((x) => x === null || x === '')}
                       alPresionar={() => {
-                        guardar({ registros: [...registros, fila] });
+                        guardarPendientes();
+                        const nueva = filaRef.current;
+                        guardar((a) => ({ registros: [...a.registros, nueva] }));
+                        filaRef.current = {};
                         setFila({});
                       }}
                     />
@@ -595,7 +655,9 @@ export default function Unidad() {
                         variante="secundario"
                         texto="Repetir la anterior"
                         alPresionar={() =>
-                          guardar({ registros: [...registros, registros.at(-1) ?? {}] })
+                          guardar((a) => ({
+                            registros: [...a.registros, a.registros.at(-1) ?? {}],
+                          }))
                         }
                       />
                     </View>
@@ -605,7 +667,7 @@ export default function Unidad() {
                   <Boton
                     variante="secundario"
                     texto="Quitar la última fila"
-                    alPresionar={() => guardar({ registros: registros.slice(0, -1) })}
+                    alPresionar={() => guardar((a) => ({ registros: a.registros.slice(0, -1) }))}
                   />
                 ) : null}
               </>
@@ -631,12 +693,12 @@ export default function Unidad() {
                 valor={parametros.includes(p) ? 'si' : null}
                 alCambiar={(v) =>
                   editable &&
-                  guardar({
+                  guardar((a) => ({
                     parametros:
                       v === 'si'
-                        ? [...new Set([...parametros, p])]
-                        : parametros.filter((x) => x !== p),
-                  })
+                        ? [...new Set([...a.parametros, p])]
+                        : a.parametros.filter((x) => x !== p),
+                  }))
                 }
               />
             ))}

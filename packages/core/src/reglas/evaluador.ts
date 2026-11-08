@@ -728,10 +728,17 @@ const evaluarFotoEjecucion = (ctx: ContextoEvaluacion): ResultadoRegla[] => {
   const texto = `Decisión del proyecto (RN-04 ampliada): toda ejecución requiere al menos ${String(minimo)} foto(s) georreferenciada(s)`;
   return [
     n >= minimo
-      ? resultado('foto_ejecucion', 'obligatorio', texto, 'cumple', `${String(n)} foto(s) en la ejecución (mínimo ${String(minimo)})`, {
-          esperado: minimo,
-          obtenido: n,
-        })
+      ? resultado(
+          'foto_ejecucion',
+          'obligatorio',
+          texto,
+          'cumple',
+          `${String(n)} foto(s) en la ejecución (mínimo ${String(minimo)})`,
+          {
+            esperado: minimo,
+            obtenido: n,
+          },
+        )
       : resultado(
           'foto_ejecucion',
           'obligatorio',

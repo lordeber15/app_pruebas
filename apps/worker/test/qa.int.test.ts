@@ -427,7 +427,11 @@ describe('RN-04 ampliada (decisión 2026-11-08): foto mínima por ejecución en 
       const a = (await alertas(id)).find(
         (x) => x.clave_dedup === claveAlertaQa('foto_ejecucion', id, '2026-12-02'),
       );
-      expect(a).toMatchObject({ tipo: 'post_sincronizacion', origen: 'sistema', estado: 'abierta' });
+      expect(a).toMatchObject({
+        tipo: 'post_sincronizacion',
+        origen: 'sistema',
+        estado: 'abierta',
+      });
       expect(a?.titulo).toContain('Foto mínima de la ejecución');
     }));
 

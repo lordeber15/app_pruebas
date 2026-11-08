@@ -419,9 +419,7 @@ export interface EstadoUnidadEditable {
  * estado (agregar un vértice o una fila), se pasa como función del estado vigente.
  */
 export type CambioUnidad = Partial<EstadoUnidadEditable>;
-export type CambioUnidadEntrada =
-  | CambioUnidad
-  | ((actual: EstadoUnidadEditable) => CambioUnidad);
+export type CambioUnidadEntrada = CambioUnidad | ((actual: EstadoUnidadEditable) => CambioUnidad);
 
 export const estadoEditable = (u: UnidadLocal): EstadoUnidadEditable => ({
   geometria: json<GeometriaCapturada | null>(u.geometria, null),
@@ -496,6 +494,10 @@ export const actualizarUnidad = (id: string, c: CambioUnidadEntrada): Promise<vo
     );
     await enviarUnidad(id);
   });
+
+/** Se resuelve cuando terminaron los guardados encolados de la unidad. */
+export const esperarUnidad = (id: string): Promise<void> =>
+  enCola(`unidad:${id}`, () => Promise.resolve());
 
 /** Valores de formulario aceptados por el contrato de eventos. */
 const limpiarDatos = (
@@ -734,15 +736,15 @@ export const guardarBorradorCierre = (
 ) =>
   enCola(`ejecucion:${ejecucionId}`, () =>
     ejecutar(
-    'UPDATE ejecucion_local SET datos = ?, desviacion_tipo = ?, desviacion_explicacion = ?, confirmaciones = ?, objetivo_campo = ? WHERE id = ?',
-    [
-      JSON.stringify(c.datos),
-      c.desviacion.tipo,
-      c.desviacion.explicacion,
-      JSON.stringify(c.confirmaciones),
-      c.objetivo_campo,
-      ejecucionId,
-    ],
+      'UPDATE ejecucion_local SET datos = ?, desviacion_tipo = ?, desviacion_explicacion = ?, confirmaciones = ?, objetivo_campo = ? WHERE id = ?',
+      [
+        JSON.stringify(c.datos),
+        c.desviacion.tipo,
+        c.desviacion.explicacion,
+        JSON.stringify(c.confirmaciones),
+        c.objetivo_campo,
+        ejecucionId,
+      ],
     ),
   );
 
