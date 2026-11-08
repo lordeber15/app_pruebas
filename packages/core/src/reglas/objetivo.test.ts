@@ -7,7 +7,7 @@ import {
   metodoBase,
   val,
 } from './_fixtures.ts';
-import { calcularAvance, esZaEf, resolverObjetivo } from './objetivo.ts';
+import { calcularAvance, esfuerzoEjecutado, esZaEf, resolverObjetivo } from './objetivo.ts';
 
 describe('RN-32 y RN-38: objetivo aplicable y avance', () => {
   it('esZaEf: cualquier valor no nulo del atributo de A01 marca la estación como ZA/EF', () => {
@@ -111,5 +111,20 @@ describe('RN-32 y RN-38: objetivo aplicable y avance', () => {
         resolverObjetivo(metodoBase({ validaciones: [val.referencia()] }), ESTACION_COSTA),
       ),
     ).toEqual({ ejecutado: 2, objetivo: null, porcentaje: null });
+  });
+
+  it('RN-19 y RN-38: esfuerzoEjecutado cuenta unidades cerradas o los minutos de ABS de D01', () => {
+    const cuadrantes = metodoBase({ validaciones: [val.cantidad(3, 6)] });
+    const o = resolverObjetivo(cuadrantes, ESTACION_COSTA);
+    expect(esfuerzoEjecutado(cuadrantes, o, { datos: {}, unidades_cerradas: 2 })).toBe(2);
+
+    const abs = metodoBase({ validaciones: [val.tiempoEfectivo()] });
+    const oAbs = resolverObjetivo(abs, ESTACION_COSTA);
+    expect(oAbs.medida).toBe('minutos');
+    expect(
+      esfuerzoEjecutado(abs, oAbs, { datos: { tiempo_efectivo_min: '75' }, unidades_cerradas: 4 }),
+    ).toBe(75);
+    // Sin el dato no se inventa: 0 minutos de esa ejecución, nunca las unidades.
+    expect(esfuerzoEjecutado(abs, oAbs, { datos: {}, unidades_cerradas: 4 })).toBe(0);
   });
 });

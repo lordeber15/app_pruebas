@@ -13,9 +13,12 @@ import type pg from 'pg';
 import type { Config } from './config.ts';
 import { rutasAlertas } from './modulos/alertas/rutas.ts';
 import { rutasArchivos } from './modulos/archivos/rutas.ts';
+import { rutasCronograma } from './modulos/cronograma/rutas.ts';
 import { rutasDispositivos } from './modulos/dispositivos/rutas.ts';
 import { rutasEjecuciones } from './modulos/ejecuciones/rutas.ts';
+import { rutasGaleria } from './modulos/galeria/rutas.ts';
 import { rutasPaquete } from './modulos/paquete/rutas.ts';
+import { rutasSeguimiento } from './modulos/seguimiento/rutas.ts';
 import { rutasSync } from './modulos/sync/rutas.ts';
 import { rutasWeb } from './modulos/web/rutas.ts';
 import { crearFirmador } from './plataforma/almacenamiento.ts';
@@ -92,6 +95,9 @@ export const crearApp = async (config: Config, pool: pg.Pool): Promise<Aplicacio
   await app.register(rutasWeb, { prefix: '/api/v1', auth, db, firmador: crearFirmador(config) });
   await app.register(rutasEjecuciones, { prefix: '/api/v1', auth, db });
   await app.register(rutasAlertas, { prefix: '/api/v1', auth, db });
+  await app.register(rutasCronograma, { prefix: '/api/v1', auth, db });
+  await app.register(rutasSeguimiento, { prefix: '/api/v1', auth, db });
+  await app.register(rutasGaleria, { prefix: '/api/v1', auth, db });
 
   return { app, db, auth };
 };
