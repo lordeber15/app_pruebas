@@ -271,6 +271,7 @@ const PESTANAS = [
   { a: '/p/$proyectoId/ejecuciones', texto: 'Ejecuciones' },
   { a: '/p/$proyectoId/alertas', texto: 'Alertas' },
   { a: '/p/$proyectoId/cronograma', texto: 'Cronograma' },
+  { a: '/p/$proyectoId/mapas', texto: 'Mapas sin conexión', gestion: true },
   { a: '/p/$proyectoId/galeria', texto: 'Galería' },
   { a: '/p/$proyectoId/equipo', texto: 'Brigadas' },
   { a: '/p/$proyectoId/revisiones', texto: 'Revisiones' },
@@ -301,7 +302,7 @@ export const MarcoProyecto = () => {
         aria-label="Secciones del proyecto"
         className="mb-6 flex gap-1 overflow-x-auto border-b border-linea"
       >
-        {PESTANAS.map((p) => (
+        {PESTANAS.filter((p) => !('gestion' in p) || puede(yo.data).gestionar).map((p) => (
           <Link
             key={p.a}
             to={p.a}
