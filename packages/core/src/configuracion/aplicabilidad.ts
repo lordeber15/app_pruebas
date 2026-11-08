@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import type { ClaseAplicabilidad, CondicionAplicabilidad, Region } from './metodo.ts';
 
 /**
@@ -122,5 +123,75 @@ export const resolverAplicabilidad = (
         presentacion: r === 'cumple' ? 'metodo' : 'oculto',
       };
     }
+  }
+};
+
+// ── Decisión nominal desde la web (P-01, decisión del usuario 2026-11-08) ─────────────────────
+
+/** Lo que Coordinación o el JdP deciden sobre un método en una estación. */
+export const DECISIONES_ESTACION_METODO = ['confirmar', 'descartar'] as const;
+export type DecisionEstacionMetodo = (typeof DECISIONES_ESTACION_METODO)[number];
+
+/** Cuerpo de la decisión (mismo esquema en la web y en la API). El motivo es obligatorio. */
+export const decisionEstacionMetodoSchema = z.object({
+  decision: z.enum(DECISIONES_ESTACION_METODO),
+  motivo: z
+    .string()
+    .trim()
+    .min(3, 'Explique el motivo (al menos 3 caracteres).')
+    .max(500, 'El motivo admite hasta 500 caracteres.'),
+});
+export type DecisionEstacionMetodoDatos = z.infer<typeof decisionEstacionMetodoSchema>;
+
+/**
+ * Estado visible de un método en la matriz estación–método:
+ *
+ * - `aplicable`: se ejecuta en la estación (TODAS, ABS de fauna, condicional que cumple o
+ *   confirmado nominalmente).
+ * - `condicion_pendiente`: CONDICIONAL que D01 no permite derivar con los atributos (P-01).
+ * - `no_aplica`: CONDICIONAL cuya condición de D01 no se cumple (o ABS fuera de fauna).
+ * - `descartado`: CONDICIONAL descartado nominalmente desde la web.
+ * - `evento`: EVENTO, siempre disponible como registro complementario, sin reserva.
+ * - `atributo`: ATRIBUTO, nunca es un método independiente.
+ */
+export const ESTADOS_MATRIZ = [
+  'aplicable',
+  'condicion_pendiente',
+  'no_aplica',
+  'descartado',
+  'evento',
+  'atributo',
+] as const;
+export type EstadoMatriz = (typeof ESTADOS_MATRIZ)[number];
+
+export const estadoEnMatriz = (
+  clase: ClaseAplicabilidad,
+  fila: Pick<Aplicabilidad, 'habilitado' | 'origen' | 'condicion_pendiente'> | null,
+): EstadoMatriz => {
+  if (clase === 'evento') return 'evento';
+  if (clase === 'atributo') return 'atributo';
+  if (fila === null) return clase === 'condicional' ? 'condicion_pendiente' : 'no_aplica';
+  if (fila.habilitado) return 'aplicable';
+  if (fila.condicion_pendiente) return 'condicion_pendiente';
+  return clase === 'condicional' && fila.origen === 'nominal' ? 'descartado' : 'no_aplica';
+};
+
+export type RechazoDecision = 'METODO_OBLIGATORIO' | 'DECISION_NO_APLICA';
+
+/**
+ * ¿Se puede decidir nominalmente sobre este método? Solo los CONDICIONAL (RN-28): un TODAS o un
+ * ABS nunca se ocultan ni requieren confirmación (`METODO_OBLIGATORIO`); un EVENTO siempre está
+ * disponible y un ATRIBUTO no es método (`DECISION_NO_APLICA`).
+ */
+export const rechazoDeDecision = (clase: ClaseAplicabilidad): RechazoDecision | null => {
+  switch (clase) {
+    case 'todas':
+    case 'transversal':
+      return 'METODO_OBLIGATORIO';
+    case 'evento':
+    case 'atributo':
+      return 'DECISION_NO_APLICA';
+    case 'condicional':
+      return null;
   }
 };

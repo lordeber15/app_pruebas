@@ -79,6 +79,8 @@ export const paqueteCampo = async (db: Db, usuarioId: string) => {
     ])
     .where('brigada_id', 'in', brigadaIds)
     .where('metodo_id', 'is not', null)
+    // Un CONDICIONAL descartado en la web conserva su reserva, pero ya no se ejecuta (RN-28).
+    .where('estado', '<>', 'descartada')
     .execute();
 
   const estacionIds = [

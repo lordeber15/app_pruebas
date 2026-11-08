@@ -84,6 +84,13 @@ export const estacionesDeProyecto = (db: Db, proyectoId: string) =>
       'estacion.norte',
       sql<number>`ST_Y(estacion.geom)`.as('lat'),
       sql<number>`ST_X(estacion.geom)`.as('lon'),
+      // CONDICIONAL que esperan confirmación nominal en la web (P-01).
+      sql<number>`(
+        SELECT count(*)::int FROM app.estacion_metodo em
+          JOIN app.metodo m ON m.id = em.metodo_id
+          JOIN app.configuracion_metodologica c ON c.id = m.configuracion_id
+         WHERE em.estacion_id = estacion.id AND em.condicion_pendiente AND c.estado = 'vigente'
+      )`.as('metodos_pendientes'),
     ])
     .where('estacion.proyecto_id', '=', proyectoId)
     .orderBy('estacion.codigo')

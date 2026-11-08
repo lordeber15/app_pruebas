@@ -134,6 +134,46 @@ export interface Estacion {
   norte: string | null;
   lat: number;
   lon: number;
+  /** CONDICIONAL que esperan confirmación nominal (P-01). */
+  metodos_pendientes: number;
+}
+
+// ── Métodos a ejecutar por estación (RN-28, P-01) ──
+
+export type ClaseMetodo = 'todas' | 'condicional' | 'evento' | 'atributo' | 'transversal';
+export type EstadoMatriz =
+  'aplicable' | 'condicion_pendiente' | 'no_aplica' | 'descartado' | 'evento' | 'atributo';
+export type TipoControl =
+  'obligatorio' | 'advertencia' | 'informativo' | 'referencia' | 'criterio_humano';
+
+export interface MetodoDeEstacion {
+  metodo_id: string;
+  codigo: string;
+  nombre: string;
+  clase: ClaseMetodo;
+  estado: EstadoMatriz;
+  origen: 'clase' | 'condicion' | 'nominal' | null;
+  condicion_d01: string;
+  resumen_d01:
+    { clave: string; etiqueta: string; valor: string; tipo_control: TipoControl | null }[] | null;
+  reserva: { id: string; estado: string } | null;
+  ejecuciones: number;
+  admite_decision: boolean;
+  decision: { decision: 'confirmar' | 'descartar'; motivo: string; por: string; en: string } | null;
+  actualizado_en: string | null;
+}
+
+export interface MetodosDeEstacion {
+  estacion: {
+    id: string;
+    codigo: string;
+    region: string | null;
+    uv: string | null;
+    za_ef: string | null;
+  };
+  puede_decidir: boolean;
+  pendientes: number;
+  especialidades: { id: string | null; nombre: string; metodos: MetodoDeEstacion[] }[];
 }
 
 export interface Revision {

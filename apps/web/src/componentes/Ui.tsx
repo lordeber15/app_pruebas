@@ -94,11 +94,14 @@ export const Dialogo = ({
   abierto,
   titulo,
   alCerrar,
+  amplio = false,
   children,
 }: {
   abierto: boolean;
   titulo: string;
   alCerrar: () => void;
+  /** Para contenido de consulta extenso (p. ej. los métodos de una estación). */
+  amplio?: boolean;
   children: ReactNode;
 }) => {
   const ref = useRef<HTMLDialogElement>(null);
@@ -113,7 +116,7 @@ export const Dialogo = ({
       ref={ref}
       onClose={alCerrar}
       aria-labelledby="titulo-dialogo"
-      className="m-auto w-[min(32rem,calc(100vw-2rem))] rounded-lg border border-linea bg-hoja p-0 text-tinta shadow-xl"
+      className={`m-auto ${amplio ? 'w-[min(64rem,calc(100vw-2rem))]' : 'w-[min(32rem,calc(100vw-2rem))]'} rounded-lg border border-linea bg-hoja p-0 text-tinta shadow-xl`}
     >
       <div className="flex items-center justify-between border-b border-linea px-5 py-3">
         <h2 id="titulo-dialogo" className="text-lg font-semibold">

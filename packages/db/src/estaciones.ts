@@ -138,9 +138,9 @@ export const sincronizarReservas = async (
     readonly estacionIds?: readonly string[];
     readonly usuarioId: string | null;
   },
-): Promise<{ creadas: number; ubicadas: number }> => {
+): Promise<{ creadas: number; ubicadas: number; reactivadas: number }> => {
   const { proyectoId, usuarioId } = opciones;
-  if (opciones.estacionIds?.length === 0) return { creadas: 0, ubicadas: 0 };
+  if (opciones.estacionIds?.length === 0) return { creadas: 0, ubicadas: 0, reactivadas: 0 };
   const filtro =
     opciones.estacionIds === undefined
       ? sql``
@@ -157,6 +157,17 @@ export const sincronizarReservas = async (
          AND NOT EXISTS (SELECT 1 FROM app.reserva r WHERE r.estacion_id = e.id AND r.metodo_id = m.id)
        ORDER BY e.codigo, m.orden`.execute(db)
   ).rows;
+  // Un CONDICIONAL descartado que vuelve a aplicar (p. ej. confirmado nominalmente) reactiva su
+  // misma reserva: nunca se crea otra.
+  const reactivadas = await sql`
+    UPDATE app.reserva r
+       SET estado = CASE WHEN r.brigada_id IS NULL THEN 'pendiente' ELSE 'asignada' END,
+           actualizado_por = ${usuarioId}
+      FROM app.estacion_metodo em, app.estacion e
+     WHERE r.estado = 'descartada' AND em.estacion_id = r.estacion_id AND em.metodo_id = r.metodo_id
+       AND em.habilitado AND e.id = r.estacion_id AND e.proyecto_id = ${proyectoId} ${filtro}`.execute(
+    db,
+  );
   let creadas = 0;
   for (const f of faltantes) {
     const r = await sql`
@@ -176,5 +187,5 @@ export const sincronizarReservas = async (
           usuarioId,
           ...(opciones.estacionIds === undefined ? {} : { estacionIds: opciones.estacionIds }),
         });
-  return { creadas, ubicadas };
+  return { creadas, ubicadas, reactivadas: Number(reactivadas.numAffectedRows ?? 0n) };
 };

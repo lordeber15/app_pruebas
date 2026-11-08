@@ -1,9 +1,41 @@
 import { describe, expect, it } from 'vitest';
 import {
+  estadoEnMatriz,
   evaluarCondicion,
+  rechazoDeDecision,
   resolverAplicabilidad,
+  type Aplicabilidad,
   type EstacionAplicabilidad,
 } from './aplicabilidad.ts';
+
+describe('RN-28 decisión nominal desde la web (P-01)', () => {
+  it('RN-28 solo los CONDICIONAL admiten confirmar o descartar; TODAS y ABS son obligatorios', () => {
+    expect(rechazoDeDecision('condicional')).toBeNull();
+    expect(rechazoDeDecision('todas')).toBe('METODO_OBLIGATORIO');
+    expect(rechazoDeDecision('transversal')).toBe('METODO_OBLIGATORIO');
+    expect(rechazoDeDecision('evento')).toBe('DECISION_NO_APLICA');
+    expect(rechazoDeDecision('atributo')).toBe('DECISION_NO_APLICA');
+  });
+
+  it('RN-28 estado en la matriz: descartado solo si es nominal; la condición que no se cumple es «no aplica»', () => {
+    const fila = (habilitado: boolean, origen: Aplicabilidad['origen'], pendiente = false) => ({
+      habilitado,
+      origen,
+      condicion_pendiente: pendiente,
+    });
+    expect(estadoEnMatriz('todas', fila(true, 'clase'))).toBe('aplicable');
+    expect(estadoEnMatriz('condicional', fila(false, 'condicion', true))).toBe(
+      'condicion_pendiente',
+    );
+    expect(estadoEnMatriz('condicional', fila(false, 'condicion'))).toBe('no_aplica');
+    expect(estadoEnMatriz('condicional', fila(false, 'nominal'))).toBe('descartado');
+    expect(estadoEnMatriz('condicional', fila(true, 'nominal'))).toBe('aplicable');
+    expect(estadoEnMatriz('transversal', fila(false, 'clase'))).toBe('no_aplica');
+    expect(estadoEnMatriz('evento', fila(true, 'clase'))).toBe('evento');
+    expect(estadoEnMatriz('atributo', null)).toBe('atributo');
+    expect(estadoEnMatriz('condicional', null)).toBe('condicion_pendiente');
+  });
+});
 
 const costa: EstacionAplicabilidad = { region: 'COSTA', uv: 'Loma efímera', za_ef: null };
 const selva: EstacionAplicabilidad = { region: 'SELVA', uv: 'Bosque de montaña', za_ef: null };
