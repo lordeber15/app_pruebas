@@ -184,6 +184,7 @@ export const Proyectos = () => {
 const PESTANAS = [
   { a: '/p/$proyectoId', texto: 'Estaciones', exacto: true },
   { a: '/p/$proyectoId/equipo', texto: 'Brigadas' },
+  { a: '/p/$proyectoId/ejecuciones', texto: 'Ejecuciones' },
   { a: '/p/$proyectoId/revisiones', texto: 'Revisiones' },
 ] as const;
 

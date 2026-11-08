@@ -13,6 +13,7 @@ import { api, ErrorApi } from './api.ts';
 import { Cargando } from './componentes/Ui.tsx';
 import { Dispositivos, Usuarios } from './paginas/Administracion.tsx';
 import { CambiarContrasena } from './paginas/Contrasena.tsx';
+import { EjecucionDetalle, Ejecuciones } from './paginas/Ejecuciones.tsx';
 import { Entrar } from './paginas/Entrar.tsx';
 import { Equipo, Estaciones, MarcoProyecto, Proyectos } from './paginas/Proyectos.tsx';
 import { Revisiones } from './paginas/Revisiones.tsx';
@@ -147,6 +148,16 @@ const revisiones = createRoute({
   path: '/revisiones',
   component: Revisiones,
 });
+const ejecuciones = createRoute({
+  getParentRoute: () => proyecto,
+  path: '/ejecuciones',
+  component: Ejecuciones,
+});
+const ejecucion = createRoute({
+  getParentRoute: () => proyecto,
+  path: '/ejecuciones/$ejecucionId',
+  component: EjecucionDetalle,
+});
 const cuenta = createRoute({
   getParentRoute: () => raiz,
   path: '/cuenta',
@@ -167,7 +178,7 @@ export const router = createRouter({
   routeTree: raiz.addChildren([
     entrar,
     inicio,
-    proyecto.addChildren([estaciones, equipo, revisiones]),
+    proyecto.addChildren([estaciones, equipo, ejecuciones, ejecucion, revisiones]),
     cuenta,
     usuarios,
     dispositivos,
