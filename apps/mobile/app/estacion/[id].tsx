@@ -155,6 +155,11 @@ export default function Estacion() {
 
         <Boton
           variante="secundario"
+          texto="Ver en el mapa"
+          alPresionar={() => router.push({ pathname: '/mapa', params: { estacionId: id } })}
+        />
+        <Boton
+          variante="secundario"
           texto="Registrar alerta en esta estación"
           alPresionar={() => router.push({ pathname: '/alerta/nueva', params: { estacionId: id } })}
         />
