@@ -20,6 +20,7 @@ import { Estaciones } from './paginas/Estaciones.tsx';
 import { Equipo, MarcoProyecto, Proyectos } from './paginas/Proyectos.tsx';
 import { Cronograma } from './paginas/Cronograma.tsx';
 import { Galeria } from './paginas/Galeria.tsx';
+import { MapasSinConexion } from './paginas/MapasSinConexion.tsx';
 import { Revisiones } from './paginas/Revisiones.tsx';
 import { Seguimiento } from './paginas/Seguimiento.tsx';
 import { puede, useYo } from './sesion.ts';
@@ -183,6 +184,11 @@ const galeria = createRoute({
   path: '/galeria',
   component: Galeria,
 });
+const mapas = createRoute({
+  getParentRoute: () => proyecto,
+  path: '/mapas',
+  component: MapasSinConexion,
+});
 const cuenta = createRoute({
   getParentRoute: () => raiz,
   path: '/cuenta',
@@ -211,6 +217,7 @@ export const router = createRouter({
       ejecucion,
       alertas,
       cronograma,
+      mapas,
       galeria,
       revisiones,
     ]),
