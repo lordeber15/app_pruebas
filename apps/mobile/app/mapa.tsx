@@ -21,6 +21,7 @@ import {
 import { leerPaquete, type EstacionPaquete } from '../src/campo.ts';
 import { useApp } from '../src/estado.ts';
 import { estiloNeutro, prepararMapaBase, type MapaBase } from '../src/mapa-base.ts';
+import { SeleccionArea } from '../src/seleccion-area.tsx';
 import { servidor } from '../src/sesion.ts';
 import { Aviso, BarraEstado, Boton, C, e, T } from '../src/ui.tsx';
 
@@ -143,7 +144,12 @@ type Estado =
       avances: globalThis.Map<string, AvanceEstacionLocal>;
     };
 
-export default function MapaEstaciones() {
+export default function PantallaMapa() {
+  const { seleccionar } = useLocalSearchParams<{ seleccionar?: string }>();
+  return seleccionar === '1' ? <SeleccionArea /> : <MapaEstaciones />;
+}
+
+const MapaEstaciones = () => {
   const { estacionId } = useLocalSearchParams<{ estacionId?: string }>();
   const insets = useSafeAreaInsets();
   const version = useApp((s) => s.version);
@@ -171,10 +177,12 @@ export default function MapaEstaciones() {
           }
           const avances = await avancesDeEstacionesLocales(d.paquete);
           if (!sigue()) return;
-          // Con señal, el mapa base del servidor sirve de respaldo al recorte local (bloque 8).
+          // Las áreas descargadas primero; sin ellas y con señal, el mapa del servidor.
           const url = conectado ? await servidor().catch(() => null) : null;
           if (!sigue()) return;
-          setBase(prepararMapaBase(url));
+          const mapaBase = await prepararMapaBase(url);
+          if (!sigue()) return;
+          setBase(mapaBase);
           setEstado({ tipo: 'listo', estaciones: d.paquete.estaciones, avances });
           // Solo se consulta el permiso: el punto azul aparece si ya fue concedido.
           const permiso = await Location.getForegroundPermissionsAsync();
@@ -349,48 +357,77 @@ export default function MapaEstaciones() {
           </ScrollView>
           {sinFondo ? (
             <Text style={[T.suave, { paddingHorizontal: 10, paddingBottom: 8, fontSize: 13 }]}>
-              Sin mapa base: conéctese para verlo. Las estaciones se muestran igual.
+              Sin mapa base en este celular. Con WiFi, descárguelo en «Mapas sin conexión». Las
+              estaciones se muestran igual.
+            </Text>
+          ) : base.origen === 'servidor' ? (
+            <Text style={[T.suave, { paddingHorizontal: 10, paddingBottom: 8, fontSize: 13 }]}>
+              Mapa en línea: para verlo sin señal, descárguelo en «Mapas sin conexión».
             </Text>
           ) : null}
         </View>
 
-        {conUbicacion || puedePedir ? (
+        <View
+          style={{
+            position: 'absolute',
+            right: 12,
+            bottom: est === undefined ? 16 : 236,
+            alignItems: 'flex-end',
+            gap: 8,
+          }}
+        >
           <Pressable
             accessibilityRole="button"
-            accessibilityState={{ selected: seguir !== undefined }}
-            onPress={() =>
-              conUbicacion
-                ? setSeguir((x) => (x === undefined ? 'default' : undefined))
-                : void pedirUbicacion()
-            }
+            onPress={() => router.push('/mapas')}
             style={{
-              position: 'absolute',
-              right: 12,
-              bottom: est === undefined ? 16 : 236,
               minHeight: 48,
               justifyContent: 'center',
               paddingHorizontal: 16,
               borderRadius: 8,
               borderWidth: 1,
-              borderColor: seguir === undefined ? C.linea : C.liquenOscuro,
-              backgroundColor: seguir === undefined ? C.hoja : C.liquen,
+              borderColor: C.linea,
+              backgroundColor: C.hoja,
             }}
           >
-            <Text
-              style={{
-                fontSize: 16,
-                fontWeight: '700',
-                color: seguir === undefined ? C.tinta : '#FFFFFF',
-              }}
-            >
-              {!conUbicacion
-                ? 'Mostrar mi ubicación'
-                : seguir === undefined
-                  ? 'Seguir mi ubicación'
-                  : 'Dejar de seguir'}
+            <Text style={{ fontSize: 16, fontWeight: '700', color: C.tinta }}>
+              Mapas sin conexión
             </Text>
           </Pressable>
-        ) : null}
+          {conUbicacion || puedePedir ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ selected: seguir !== undefined }}
+              onPress={() =>
+                conUbicacion
+                  ? setSeguir((x) => (x === undefined ? 'default' : undefined))
+                  : void pedirUbicacion()
+              }
+              style={{
+                minHeight: 48,
+                justifyContent: 'center',
+                paddingHorizontal: 16,
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: seguir === undefined ? C.linea : C.liquenOscuro,
+                backgroundColor: seguir === undefined ? C.hoja : C.liquen,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 16,
+                  fontWeight: '700',
+                  color: seguir === undefined ? C.tinta : '#FFFFFF',
+                }}
+              >
+                {!conUbicacion
+                  ? 'Mostrar mi ubicación'
+                  : seguir === undefined
+                    ? 'Seguir mi ubicación'
+                    : 'Dejar de seguir'}
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
 
         {est === undefined ? null : (
           <View
@@ -437,4 +474,4 @@ export default function MapaEstaciones() {
       </View>
     </View>
   );
-}
+};

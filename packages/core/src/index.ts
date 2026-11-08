@@ -21,3 +21,4 @@ export * from './reglas/presentacion.ts';
 export * from './contrasena.ts';
 export * from './configuracion/estacion.ts';
 export * from './fechas.ts';
+export * from './mapas.ts';

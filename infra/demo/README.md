@@ -142,6 +142,31 @@ docker run --rm -v "$PWD/infra/demo/mapa:/out" protomaps/go-pmtiles extract \
 
 Si esa fecha ya no existe, use una reciente con el formato `AAAAMMDD`. Luego súbalo a la VPS, por ejemplo con `scp infra/demo/mapa/base.pmtiles usuario@su-vps:/ruta/del/repo/infra/demo/mapa/`.
 
+## Mapas sin conexión
+
+Los celulares descargan un recorte del mapa base para trabajar en modo avión (RF-M05). El servidor (contenedor `worker`) lo genera con `pmtiles`, que ya viene en la imagen. Hay dos tipos de paquete:
+
+- **Por brigada**: el área de las estaciones de cada brigada en el cronograma vigente, más 5 km. Se crean solos al publicar el cronograma base (o cargar A01) y se regeneran al aprobar un cambio que mueve el área. Coordinación o el Jefe de Proyecto también pueden generarlos a mano desde la web.
+- **Por área**: un rectángulo que marca un usuario (hasta 80 km por lado y 10 áreas por usuario y proyecto). El personal de campo solo para su brigada.
+
+Cada paquete llega hasta el zoom 15 y como máximo 150 MB; si el área pesa más, queda en error con un aviso para marcar un área más pequeña.
+
+**Fuente del recorte.** Por defecto el worker recorta `infra/demo/mapa/base.pmtiles` (el mismo de la web), que solo llega al zoom 13: los paquetes quedan en zoom 13. Para tener zoom 15, ponga en `infra/demo/.env` la URL de un build de Protomaps:
+
+```
+MAPA_FUENTE=https://build.protomaps.com/AAAAMMDD.pmtiles
+```
+
+El worker lee de esa URL solo los trozos del área (necesita salida a Internet, que tiene por la red `borde`). Sin `base.pmtiles` y sin `MAPA_FUENTE`, los paquetes quedan en error con el aviso «El mapa base no está instalado en el servidor».
+
+**Después de actualizar a esta versión, reconstruya las imágenes** para que el worker tenga `pmtiles`:
+
+```
+docker compose -f infra/demo/docker-compose.demo.yml up -d --build
+```
+
+Los recortes se arman en el volumen `campo-demo_mapas-tmp` y se borran al terminar; los paquetes listos viven en MinIO.
+
 ## Operación
 
 | Acción | Comando (desde la carpeta del repositorio) |

@@ -8,10 +8,12 @@ import { noAutenticado } from '../../plataforma/errores.ts';
 import { requiereSesion, type Actor } from '../../plataforma/sesion.ts';
 import * as borrador from './borrador.ts';
 import * as cronograma from './servicio.ts';
+import type { AlCambiarCronograma } from '../mapas/servicio.ts';
 
 interface Opciones {
   readonly auth: Auth;
   readonly db: Db;
+  readonly alCambiarCronograma?: AlCambiarCronograma;
 }
 
 const conId = z.object({ id: z.uuid() });
@@ -41,7 +43,10 @@ const actor = (request: FastifyRequest): Actor => {
  * autorización por rol + alcance está en el servicio: proponer Coordinación y JdP; decidir solo
  * el JdP; ver el cronograma, los miembros de cada brigada la suya.
  */
-export const rutasCronograma: FastifyPluginAsyncZod<Opciones> = (app, { auth, db }) => {
+export const rutasCronograma: FastifyPluginAsyncZod<Opciones> = (
+  app,
+  { auth, db, alCambiarCronograma },
+) => {
   app.addHook('preHandler', requiereSesion(auth, db));
 
   app.get(
@@ -93,11 +98,17 @@ export const rutasCronograma: FastifyPluginAsyncZod<Opciones> = (app, { auth, db
     },
     async (request, reply) =>
       reply.status(201).send(
-        await cronograma.aplicarAhora(db, actor(request), request.params.id, {
-          motivo: request.body.motivo,
-          cambios: request.body.cambios,
-          alertaId: request.body.alerta_id,
-        }),
+        await cronograma.aplicarAhora(
+          db,
+          actor(request),
+          request.params.id,
+          {
+            motivo: request.body.motivo,
+            cambios: request.body.cambios,
+            alertaId: request.body.alerta_id,
+          },
+          alCambiarCronograma,
+        ),
       ),
   );
 
@@ -134,11 +145,18 @@ export const rutasCronograma: FastifyPluginAsyncZod<Opciones> = (app, { auth, db
     async (request, reply) =>
       reply
         .status(201)
-        .send(await borrador.publicarBorrador(db, actor(request), request.params.id)),
+        .send(
+          await borrador.publicarBorrador(
+            db,
+            actor(request),
+            request.params.id,
+            alCambiarCronograma,
+          ),
+        ),
   );
 
   app.post('/cronograma/solicitudes/:id/aprobar', { schema: { params: conId } }, async (request) =>
-    cronograma.aprobarSolicitud(db, actor(request), request.params.id),
+    cronograma.aprobarSolicitud(db, actor(request), request.params.id, alCambiarCronograma),
   );
 
   app.post(

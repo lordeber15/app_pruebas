@@ -18,6 +18,8 @@ import { rutasDispositivos } from './modulos/dispositivos/rutas.ts';
 import { rutasEjecuciones } from './modulos/ejecuciones/rutas.ts';
 import { rutasEstaciones } from './modulos/estaciones/rutas.ts';
 import { rutasGaleria } from './modulos/galeria/rutas.ts';
+import { rutasMapas } from './modulos/mapas/rutas.ts';
+import { crearAlCambiarCronograma } from './modulos/mapas/servicio.ts';
 import { rutasPaquete } from './modulos/paquete/rutas.ts';
 import { rutasSeguimiento } from './modulos/seguimiento/rutas.ts';
 import { rutasSync } from './modulos/sync/rutas.ts';
@@ -93,13 +95,28 @@ export const crearApp = async (config: Config, pool: pg.Pool): Promise<Aplicacio
   await app.register(rutasPaquete, { prefix: '/api/v1', auth, db });
   await app.register(rutasSync, { prefix: '/api/v1', auth, db, config });
   await app.register(rutasArchivos, { auth, db, config });
-  await app.register(rutasWeb, { prefix: '/api/v1', auth, db, firmador: crearFirmador(config) });
+  const firmador = crearFirmador(config);
+  const opcionesMapas = {
+    zoomMax: config.MAPA_ZOOM_MAXIMO,
+    ladoMaximoKm: config.MAPA_LADO_MAXIMO_KM,
+  };
+  // Tras publicar el cronograma base o aprobar un cambio: áreas de mapa de las brigadas.
+  const alCambiarCronograma = crearAlCambiarCronograma(db, opcionesMapas, app.log);
+  await app.register(rutasWeb, { prefix: '/api/v1', auth, db, firmador, alCambiarCronograma });
   await app.register(rutasEjecuciones, { prefix: '/api/v1', auth, db });
   await app.register(rutasAlertas, { prefix: '/api/v1', auth, db });
-  await app.register(rutasCronograma, { prefix: '/api/v1', auth, db });
+  await app.register(rutasCronograma, { prefix: '/api/v1', auth, db, alCambiarCronograma });
   await app.register(rutasSeguimiento, { prefix: '/api/v1', auth, db });
   await app.register(rutasEstaciones, { prefix: '/api/v1', auth, db });
   await app.register(rutasGaleria, { prefix: '/api/v1', auth, db });
+  await app.register(rutasMapas, {
+    prefix: '/api/v1',
+    auth,
+    db,
+    firmador,
+    opciones: opcionesMapas,
+    ttlSegundos: config.S3_PRESIGN_TTL_SECONDS,
+  });
 
   return { app, db, auth };
 };

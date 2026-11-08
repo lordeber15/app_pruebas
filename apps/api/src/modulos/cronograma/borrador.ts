@@ -5,6 +5,7 @@ import { ProblemaHttp } from '../../plataforma/errores.ts';
 import { generarId } from '../../plataforma/ids.ts';
 import type { Actor } from '../../plataforma/sesion.ts';
 import { exigirGlobal, noEncontrado } from '../alcance/autorizacion.ts';
+import type { AlCambiarCronograma } from '../mapas/servicio.ts';
 
 /**
  * Cronograma base armado desde la web (RN-35, RF-W12) para un proyecto sin A01. Coordinación o el
@@ -142,10 +143,15 @@ export const descartarFilaBorrador = async (
   if (r.numUpdatedRows === 0n) throw noEncontrado('La fila del borrador');
 };
 
-export const publicarBorrador = async (db: Db, actor: Actor, proyectoId: string) => {
+export const publicarBorrador = async (
+  db: Db,
+  actor: Actor,
+  proyectoId: string,
+  alCambiar?: AlCambiarCronograma,
+) => {
   exigirGlobal(actor, 'configurar_proyecto');
   await exigirProyecto(db, proyectoId);
-  return db.transaction().execute(async (tx) => {
+  const r = await db.transaction().execute(async (tx) => {
     // Dos publicaciones simultáneas: la segunda espera y encuentra el base ya creado.
     await tx.selectFrom('proyecto').select('id').where('id', '=', proyectoId).forUpdate().execute();
     if (await tieneBase(tx, proyectoId)) throw yaPublicado();
@@ -228,4 +234,7 @@ export const publicarBorrador = async (db: Db, actor: Actor, proyectoId: string)
       reservas_programadas: reservas.ubicadas,
     };
   });
+  // Después del commit: las áreas de mapa de las brigadas (un fallo solo queda en el log).
+  await alCambiar?.(proyectoId, actor.usuarioId);
+  return r;
 };

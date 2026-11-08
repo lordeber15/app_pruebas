@@ -295,6 +295,13 @@ export default function Inicio() {
                 texto="Mapa de estaciones"
                 alPresionar={() => router.push('/mapa')}
               />
+              {datos.paquete.estaciones.length > 0 ? (
+                <Boton
+                  variante="secundario"
+                  texto="Mapas sin conexión"
+                  alPresionar={() => router.push('/mapas')}
+                />
+              ) : null}
               <Boton
                 variante="secundario"
                 texto="Registrar alerta"

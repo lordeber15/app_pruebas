@@ -1,3 +1,4 @@
+import { LADO_MAXIMO_AREA_KM, ZOOM_MAXIMO_MAPA } from '@campo/core';
 import { z } from 'zod';
 
 /** Variables de entorno de la API (doc. 03 §6). Se validan al arrancar: sin valor, no arranca. */
@@ -25,6 +26,10 @@ const esquema = z.object({
   /** Intentos de login por IP por minuto. Holgado: muchos celulares comparten IP (NAT del operador). */
   RATE_LIMIT_LOGIN_IP: z.coerce.number().int().positive().default(30),
   SYNC_MAX_EVENTOS_LOTE: z.coerce.number().int().positive().default(500),
+  /** Zoom máximo de los paquetes de mapa sin conexión (RF-M05; aprobado: 15). */
+  MAPA_ZOOM_MAXIMO: z.coerce.number().int().min(0).max(ZOOM_MAXIMO_MAPA).default(ZOOM_MAXIMO_MAPA),
+  /** Lado máximo, en km, de un área de mapa marcada por un usuario. */
+  MAPA_LADO_MAXIMO_KM: z.coerce.number().positive().max(500).default(LADO_MAXIMO_AREA_KM),
 });
 
 export type Config = z.infer<typeof esquema>;

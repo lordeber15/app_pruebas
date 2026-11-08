@@ -1,3 +1,4 @@
+import type { Bbox } from '@campo/core';
 import * as maplibregl from 'maplibre-gl';
 import type { GeoJSONSource, StyleSpecification } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -7,6 +8,7 @@ import urlWorker from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 import { Protocol } from 'pmtiles';
 import { useEffect, useRef, useState } from 'react';
 import capasBase from './capas-base.json';
+import { poligonoDeBbox } from './rectangulo.ts';
 
 /**
  * Mapa con MapLibre + PMTiles (ADR-005). El mapa base sale de /mapa/base.pmtiles, servido por la
@@ -51,10 +53,11 @@ export interface PuntoMapa {
 /**
  * Geometría GeoJSON sobre el mapa (D02 §11): unidades (punto, línea o polígono) y tracks de una
  * ejecución. Los tracks se dibujan con línea discontinua para no depender solo del color.
+ * `area`: rectángulo de un mapa sin conexión (RF-M05), con borde discontinuo y su etiqueta escrita.
  */
 export interface CapaMapa {
   readonly id: string;
-  readonly tipo: 'unidad' | 'track';
+  readonly tipo: 'unidad' | 'track' | 'area';
   readonly etiqueta: string;
   readonly geometria: { readonly type: string; readonly coordinates: unknown };
 }
@@ -131,6 +134,21 @@ const hayMapaBase = async (): Promise<boolean> => {
   }
 };
 
+const bboxDeEsquinas = (a: maplibregl.LngLat, b: maplibregl.LngLat): Bbox => {
+  const r = (x: number) => Math.round(x * 1e5) / 1e5;
+  return [
+    r(Math.min(a.lng, b.lng)),
+    r(Math.min(a.lat, b.lat)),
+    r(Math.max(a.lng, b.lng)),
+    r(Math.max(a.lat, b.lat)),
+  ];
+};
+
+const bboxVisible = (m: maplibregl.Map): Bbox => {
+  const l = m.getBounds();
+  return bboxDeEsquinas(l.getSouthWest(), l.getNorthEast());
+};
+
 const SIN_CAPAS: readonly CapaMapa[] = [];
 const SIN_MARCADORES: readonly MarcadorMapa[] = [];
 
@@ -141,6 +159,10 @@ export const Mapa = ({
   alElegir,
   alto = '32rem',
   etiqueta = 'Mapa de estaciones',
+  marcarRectangulo = false,
+  alMarcarRectangulo,
+  rectanguloMarcado = null,
+  alCambiarVista,
 }: {
   puntos: readonly PuntoMapa[];
   capas?: readonly CapaMapa[];
@@ -149,6 +171,16 @@ export const Mapa = ({
   alElegir?: (id: string) => void;
   alto?: string;
   etiqueta?: string;
+  /**
+   * Modo dibujo (opcional): con `true`, un clic fija una esquina, mover el puntero muestra la vista
+   * previa y el segundo clic fija la esquina opuesta. Escape cancela la primera esquina.
+   */
+  marcarRectangulo?: boolean;
+  alMarcarRectangulo?: (bbox: Bbox) => void;
+  /** Rectángulo ya marcado (borrador): se dibuja sin volver a encuadrar el mapa. */
+  rectanguloMarcado?: Bbox | null;
+  /** Área visible al terminar cada movimiento: alternativa de teclado para marcar un rectángulo. */
+  alCambiarVista?: (bbox: Bbox) => void;
 }) => {
   const contenedor = useRef<HTMLDivElement>(null);
   const mapa = useRef<maplibregl.Map | null>(null);
@@ -158,6 +190,16 @@ export const Mapa = ({
   const encuadrado = useRef('');
   const elegir = useRef(alElegir);
   elegir.current = alElegir;
+  const marcando = useRef(marcarRectangulo);
+  marcando.current = marcarRectangulo;
+  const alMarcar = useRef(alMarcarRectangulo);
+  alMarcar.current = alMarcarRectangulo;
+  const alVista = useRef(alCambiarVista);
+  alVista.current = alCambiarVista;
+  const marcado = useRef(rectanguloMarcado);
+  marcado.current = rectanguloMarcado;
+  const esquina = useRef<maplibregl.LngLat | null>(null);
+  const [conEsquina, setConEsquina] = useState(false);
 
   useEffect(() => {
     if (contenedor.current === null) return;
@@ -181,10 +223,41 @@ export const Mapa = ({
           data: { type: 'FeatureCollection', features: [] },
         });
         m.addLayer({
+          id: 'capas-area-relleno',
+          type: 'fill',
+          source: 'capas',
+          filter: ['==', ['get', 'tipo'], 'area'],
+          paint: { 'fill-color': '#2e5e4e', 'fill-opacity': 0.06 },
+        });
+        m.addLayer({
+          id: 'capas-area-linea',
+          type: 'line',
+          source: 'capas',
+          filter: ['==', ['get', 'tipo'], 'area'],
+          paint: { 'line-color': '#224639', 'line-width': 2, 'line-dasharray': [3, 2] },
+        });
+        m.addLayer({
+          id: 'capas-area-etiqueta',
+          type: 'symbol',
+          source: 'capas',
+          filter: ['==', ['get', 'tipo'], 'area'],
+          layout: {
+            'text-field': ['get', 'etiqueta'],
+            'text-font': ['NotoSansRegular'],
+            'text-size': 13,
+            'text-max-width': 12,
+          },
+          paint: {
+            'text-color': '#18231f',
+            'text-halo-color': '#ffffff',
+            'text-halo-width': 2,
+          },
+        });
+        m.addLayer({
           id: 'capas-relleno',
           type: 'fill',
           source: 'capas',
-          filter: ['==', ['geometry-type'], 'Polygon'],
+          filter: ['all', ['!=', ['get', 'tipo'], 'area'], ['==', ['geometry-type'], 'Polygon']],
           paint: { 'fill-color': '#a86f1e', 'fill-opacity': 0.15 },
         });
         m.addLayer({
@@ -254,6 +327,55 @@ export const Mapa = ({
         m.on('mouseleave', 'estaciones', () => {
           m.getCanvas().style.cursor = '';
         });
+        // Rectángulo en dibujo o marcado (borrador): borde grueso discontinuo en ocre.
+        m.addSource('dibujo', {
+          type: 'geojson',
+          data: { type: 'FeatureCollection', features: [] },
+        });
+        m.addLayer({
+          id: 'dibujo-relleno',
+          type: 'fill',
+          source: 'dibujo',
+          paint: { 'fill-color': '#a86f1e', 'fill-opacity': 0.12 },
+        });
+        m.addLayer({
+          id: 'dibujo-linea',
+          type: 'line',
+          source: 'dibujo',
+          paint: { 'line-color': '#a86f1e', 'line-width': 3, 'line-dasharray': [1.5, 1] },
+        });
+        const dibujar = (bbox: Bbox | null) => {
+          void m.getSource<GeoJSONSource>('dibujo')?.setData({
+            type: 'FeatureCollection',
+            features:
+              bbox === null
+                ? []
+                : [{ type: 'Feature', geometry: poligonoDeBbox(bbox), properties: {} }],
+          });
+        };
+        m.on('click', (ev) => {
+          if (!marcando.current) return;
+          const a = esquina.current;
+          if (a === null) {
+            esquina.current = ev.lngLat;
+            setConEsquina(true);
+            dibujar(bboxDeEsquinas(ev.lngLat, ev.lngLat));
+            return;
+          }
+          esquina.current = null;
+          setConEsquina(false);
+          const bbox = bboxDeEsquinas(a, ev.lngLat);
+          dibujar(bbox);
+          alMarcar.current?.(bbox);
+        });
+        m.on('mousemove', (ev) => {
+          const a = esquina.current;
+          if (!marcando.current || a === null) return;
+          dibujar(bboxDeEsquinas(a, ev.lngLat));
+        });
+        m.on('moveend', () => alVista.current?.(bboxVisible(m)));
+        dibujar(marcado.current);
+        alVista.current?.(bboxVisible(m));
         mapa.current = m;
         setListo(true);
       });
@@ -307,6 +429,43 @@ export const Mapa = ({
     }
   }, [puntos, capas, marcadores, listo]);
 
+  // Modo dibujo: cursor en cruz; al salir de él se descarta la esquina a medio marcar.
+  useEffect(() => {
+    const m = mapa.current;
+    if (!listo || m === null) return;
+    m.getCanvas().style.cursor = marcarRectangulo ? 'crosshair' : '';
+    if (!marcarRectangulo && esquina.current !== null) {
+      esquina.current = null;
+      setConEsquina(false);
+    }
+  }, [marcarRectangulo, listo]);
+
+  // El borrador que llega por props (p. ej. «usar el área visible» o limpiar el formulario).
+  useEffect(() => {
+    const m = mapa.current;
+    if (!listo || m === null || esquina.current !== null) return;
+    void m.getSource<GeoJSONSource>('dibujo')?.setData({
+      type: 'FeatureCollection',
+      features:
+        rectanguloMarcado === null
+          ? []
+          : [{ type: 'Feature', geometry: poligonoDeBbox(rectanguloMarcado), properties: {} }],
+    });
+  }, [rectanguloMarcado, listo]);
+
+  const cancelarEsquina = () => {
+    const m = mapa.current;
+    esquina.current = null;
+    setConEsquina(false);
+    void m?.getSource<GeoJSONSource>('dibujo')?.setData({
+      type: 'FeatureCollection',
+      features:
+        marcado.current === null
+          ? []
+          : [{ type: 'Feature', geometry: poligonoDeBbox(marcado.current), properties: {} }],
+    });
+  };
+
   return (
     <div className="flex flex-col gap-2">
       <div
@@ -315,7 +474,20 @@ export const Mapa = ({
         className="w-full overflow-hidden rounded-md border border-linea"
         role="region"
         aria-label={etiqueta}
+        onKeyDown={(ev) => {
+          if (ev.key === 'Escape' && esquina.current !== null) {
+            ev.stopPropagation();
+            cancelarEsquina();
+          }
+        }}
       />
+      {marcarRectangulo ? (
+        <p role="status" className="text-sm text-tinta-suave">
+          {conEsquina
+            ? 'Primera esquina fijada. Haga clic en la esquina opuesta (Escape para cancelar).'
+            : 'Haga clic en una esquina del área que quiere marcar.'}
+        </p>
+      ) : null}
       {sinMapaBase ? (
         <p className="text-xs text-tinta-suave">
           Sin mapa base cargado: se muestran solo las estaciones. Cargue el archivo base.pmtiles en
