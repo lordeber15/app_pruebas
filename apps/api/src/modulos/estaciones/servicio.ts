@@ -19,7 +19,11 @@ const comoKysely = (db: Db): Kysely<unknown> => db as unknown as Kysely<unknown>
 
 const yaExiste = (e: unknown): never => {
   if ((e as { code?: string }).code === '23505') {
-    throw new ProblemaHttp(409, 'ESTACION_EXISTE', 'Ya hay una estación con ese código en el proyecto.');
+    throw new ProblemaHttp(
+      409,
+      'ESTACION_EXISTE',
+      'Ya hay una estación con ese código en el proyecto.',
+    );
   }
   throw e;
 };

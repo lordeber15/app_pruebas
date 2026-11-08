@@ -18,6 +18,7 @@ export const columnasProyecto = [
   'proyecto.subir_originales',
   'proyecto.dias_bloqueo',
   'proyecto.hora_cierre_jornada',
+  'proyecto.fotos_minimas_ejecucion',
 ] as const;
 
 /** Proyectos visibles: todos para Coordinación y JdP; si no, donde es miembro activo. */

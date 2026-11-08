@@ -221,7 +221,9 @@ export const cargarToce = async (
         especialidades: d01.especialidades.length,
         metodos: d01.metodos.length,
         estaciones: await cuenta(
-          sql<{ n: string }>`SELECT count(*)::text AS n FROM app.estacion WHERE proyecto_id = ${proyectoId}`.execute(
+          sql<{
+            n: string;
+          }>`SELECT count(*)::text AS n FROM app.estacion WHERE proyecto_id = ${proyectoId}`.execute(
             trx,
           ),
         ),

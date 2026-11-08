@@ -90,6 +90,8 @@ export interface Proyecto {
   subir_originales: boolean;
   dias_bloqueo: number;
   hora_cierre_jornada: string | null;
+  /** Decisión del proyecto, además de las fotos de D01. */
+  fotos_minimas_ejecucion: number;
 }
 
 export interface Brigada {
@@ -435,12 +437,7 @@ export interface BrigadaSeguimiento {
 // ── Avance por estación (métodos completos / aplicables) ──
 
 export type EstadoEstacion =
-  | 'con_incumplimiento'
-  | 'completa'
-  | 'en_curso'
-  | 'reprogramada'
-  | 'sin_datos'
-  | 'sin_iniciar';
+  'con_incumplimiento' | 'completa' | 'en_curso' | 'reprogramada' | 'sin_datos' | 'sin_iniciar';
 
 export interface EstacionAvance {
   id: string;

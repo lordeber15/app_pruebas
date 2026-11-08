@@ -56,7 +56,12 @@ interface EstacionAvance {
   fecha_programada: string | null;
   reprogramada: boolean;
   avance: { completos: number; aplicables: number; porcentaje: number | null; estado: string };
-  metodos: { metodo_id: string; porcentaje: number | null; completo: boolean; ejecuciones: number }[];
+  metodos: {
+    metodo_id: string;
+    porcentaje: number | null;
+    completo: boolean;
+    ejecuciones: number;
+  }[];
 }
 
 const paquete = async (token: string) => {
@@ -242,12 +247,19 @@ describe('armar el trabajo desde la web: estaciones, cronograma base y asignacio
 
   it('el código de estación es único en el proyecto (409) y los datos se validan (400)', async () => {
     const ruta = `/proyectos/${proyectoId}/estaciones`;
-    expect((await pedir(e, o.jefeProyecto.token, 'POST', ruta, estacionWeb('WEB-01'))).statusCode).toBe(
-      409,
-    );
     expect(
-      (await pedir(e, o.coordinacion.token, 'POST', ruta, estacionWeb('WEB-X', { zona_utm: '99S' })))
-        .statusCode,
+      (await pedir(e, o.jefeProyecto.token, 'POST', ruta, estacionWeb('WEB-01'))).statusCode,
+    ).toBe(409);
+    expect(
+      (
+        await pedir(
+          e,
+          o.coordinacion.token,
+          'POST',
+          ruta,
+          estacionWeb('WEB-X', { zona_utm: '99S' }),
+        )
+      ).statusCode,
     ).toBe(400);
   });
 
@@ -278,16 +290,25 @@ describe('armar el trabajo desde la web: estaciones, cronograma base y asignacio
 
   it('borrador del cronograma base: solo Coordinación y JdP; filas de otro proyecto se rechazan', async () => {
     const ruta = `/proyectos/${proyectoId}/cronograma/borrador`;
-    const fila = { brigada_id: brigadaA, fecha: '2026-11-10', tipo_actividad: 'estacion', estacion_id: est1 };
+    const fila = {
+      brigada_id: brigadaA,
+      fecha: '2026-11-10',
+      tipo_actividad: 'estacion',
+      estacion_id: est1,
+    };
     for (const p of [o.especialista, o.supervisorA, o.jefeA, o.admin]) {
       expect((await pedir(e, p.token, 'GET', ruta)).statusCode).toBe(403);
       expect((await pedir(e, p.token, 'POST', ruta, fila)).statusCode).toBe(403);
       expect((await pedir(e, p.token, 'POST', `${ruta}/publicar`)).statusCode).toBe(403);
     }
-    expect((await pedir(e, o.coordinacion.token, 'GET', `/proyectos/${generarId()}/cronograma/borrador`)).statusCode).toBe(404);
+    expect(
+      (await pedir(e, o.coordinacion.token, 'GET', `/proyectos/${generarId()}/cronograma/borrador`))
+        .statusCode,
+    ).toBe(404);
     // Estación sin estación, brigada ajena.
     expect(
-      (await pedir(e, o.coordinacion.token, 'POST', ruta, { ...fila, estacion_id: null })).statusCode,
+      (await pedir(e, o.coordinacion.token, 'POST', ruta, { ...fila, estacion_id: null }))
+        .statusCode,
     ).toBe(400);
     expect(
       (await pedir(e, o.coordinacion.token, 'POST', ruta, { ...fila, brigada_id: o.esc.brigadaId }))
@@ -323,8 +344,14 @@ describe('armar el trabajo desde la web: estaciones, cronograma base y asignacio
     });
     // Quitar una fila la deja descartada; no se borra.
     expect(
-      (await pedir(e, o.coordinacion.token, 'POST', `/cronograma/borrador/${r3.json<{ id: string }>().id}/descartar`))
-        .statusCode,
+      (
+        await pedir(
+          e,
+          o.coordinacion.token,
+          'POST',
+          `/cronograma/borrador/${r3.json<{ id: string }>().id}/descartar`,
+        )
+      ).statusCode,
     ).toBe(204);
     const borrador = (await pedir(e, o.coordinacion.token, 'GET', ruta)).json<{
       publicado: boolean;
@@ -347,7 +374,9 @@ describe('armar el trabajo desde la web: estaciones, cronograma base y asignacio
       ).statusCode,
     ).toBe(409);
 
-    const crono = (await pedir(e, o.coordinacion.token, 'GET', `/proyectos/${proyectoId}/cronograma`)).json<{
+    const crono = (
+      await pedir(e, o.coordinacion.token, 'GET', `/proyectos/${proyectoId}/cronograma`)
+    ).json<{
       version: { numero: number; es_base: boolean };
       items: unknown[];
     }>();
@@ -392,8 +421,15 @@ describe('armar el trabajo desde la web: estaciones, cronograma base y asignacio
       expect((await pedir(e, p.token, 'POST', ruta, cuerpo)).statusCode).toBe(403);
     }
     expect(
-      (await pedir(e, o.jefeProyecto.token, 'POST', `/proyectos/${generarId()}/cronograma/aplicar`, cuerpo))
-        .statusCode,
+      (
+        await pedir(
+          e,
+          o.jefeProyecto.token,
+          'POST',
+          `/proyectos/${generarId()}/cronograma/aplicar`,
+          cuerpo,
+        )
+      ).statusCode,
     ).toBe(404);
     const r = await pedir(e, o.jefeProyecto.token, 'POST', ruta, cuerpo);
     expect(r.statusCode).toBe(201);
@@ -408,22 +444,37 @@ describe('armar el trabajo desde la web: estaciones, cronograma base y asignacio
     const p = await paquete(campo.token);
     const deEst2 = p.reservas.filter((x) => x.estacion_id === est2);
     expect(deEst2.length).toBeGreaterThan(0);
-    expect(deEst2.every((x) => x.fecha_programada === '2026-11-12' && x.brigada_id === brigadaA)).toBe(
-      true,
-    );
+    expect(
+      deEst2.every((x) => x.fecha_programada === '2026-11-12' && x.brigada_id === brigadaA),
+    ).toBe(true);
   });
 
   it('cambiar de brigada: Coordinación propone, el JdP aprueba y las reservas siguen a su fila', async () => {
-    const crono = (await pedir(e, o.coordinacion.token, 'GET', `/proyectos/${proyectoId}/cronograma`)).json<{
+    const crono = (
+      await pedir(e, o.coordinacion.token, 'GET', `/proyectos/${proyectoId}/cronograma`)
+    ).json<{
       items: { id: string; estacion_id: string | null }[];
     }>();
     const fila = crono.items.find((i) => i.estacion_id === est1);
-    const s = await pedir(e, o.coordinacion.token, 'POST', `/proyectos/${proyectoId}/cronograma/solicitudes`, {
-      motivo: 'La brigada B toma WEB-01.',
-      cambios: [{ tipo: 'reprogramar', item_id: fila?.id, fecha: '2026-11-13', brigada_id: brigadaB }],
-    });
+    const s = await pedir(
+      e,
+      o.coordinacion.token,
+      'POST',
+      `/proyectos/${proyectoId}/cronograma/solicitudes`,
+      {
+        motivo: 'La brigada B toma WEB-01.',
+        cambios: [
+          { tipo: 'reprogramar', item_id: fila?.id, fecha: '2026-11-13', brigada_id: brigadaB },
+        ],
+      },
+    );
     expect(s.statusCode).toBe(201);
-    const ap = await pedir(e, o.jefeProyecto.token, 'POST', `/cronograma/solicitudes/${s.json<{ id: string }>().id}/aprobar`);
+    const ap = await pedir(
+      e,
+      o.jefeProyecto.token,
+      'POST',
+      `/cronograma/solicitudes/${s.json<{ id: string }>().id}/aprobar`,
+    );
     expect(ap.statusCode).toBe(200);
     const p = await paquete(campo.token);
     expect(p.reservas.some((x) => x.estacion_id === est1)).toBe(false);
@@ -465,14 +516,28 @@ describe('armar el trabajo desde la web: estaciones, cronograma base y asignacio
   });
 
   it('avance por estación: métodos completos / aplicables, con brigada, fecha y reprogramación', async () => {
-    const r = await pedir(e, o.coordinacion.token, 'GET', `/proyectos/${proyectoId}/estaciones/avance`);
+    const r = await pedir(
+      e,
+      o.coordinacion.token,
+      'GET',
+      `/proyectos/${proyectoId}/estaciones/avance`,
+    );
     expect(r.statusCode).toBe(200);
     const { estaciones, hoy } = r.json<{ estaciones: EstacionAvance[]; hoy: string }>();
     expect(hoy).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(estaciones.map((s) => s.codigo)).toEqual(['WEB-01A', 'WEB-02']);
     const [uno, dos] = estaciones;
-    expect(uno).toMatchObject({ brigada_id: brigadaB, fecha_programada: '2026-11-13', reprogramada: true });
-    expect(uno?.avance).toMatchObject({ completos: 0, aplicables: metodos1, porcentaje: null, estado: 'reprogramada' });
+    expect(uno).toMatchObject({
+      brigada_id: brigadaB,
+      fecha_programada: '2026-11-13',
+      reprogramada: true,
+    });
+    expect(uno?.avance).toMatchObject({
+      completos: 0,
+      aplicables: metodos1,
+      porcentaje: null,
+      estado: 'reprogramada',
+    });
     // RN-37: con una ejecución en curso hay datos, pero ningún método completo.
     expect(dos?.avance.estado).toBe('en_curso');
     expect(dos?.avance.completos).toBe(0);
@@ -481,12 +546,67 @@ describe('armar el trabajo desde la web: estaciones, cronograma base y asignacio
   });
 
   it('avance por estación: el especialista ve solo las de su brigada; Admin y otro proyecto, 404', async () => {
-    const mio = (await pedir(e, campo.token, 'GET', `/proyectos/${proyectoId}/estaciones/avance`)).json<{
+    const mio = (
+      await pedir(e, campo.token, 'GET', `/proyectos/${proyectoId}/estaciones/avance`)
+    ).json<{
       estaciones: EstacionAvance[];
     }>();
     expect(mio.estaciones.map((s) => s.codigo)).toEqual(['WEB-02']);
-    expect((await pedir(e, o.admin.token, 'GET', `/proyectos/${proyectoId}/estaciones/avance`)).statusCode).toBe(404);
-    expect((await pedir(e, o.especialista.token, 'GET', `/proyectos/${proyectoId}/estaciones/avance`)).statusCode).toBe(404);
-    expect((await pedir(e, o.coordinacion.token, 'GET', `/proyectos/${generarId()}/estaciones/avance`)).statusCode).toBe(404);
+    expect(
+      (await pedir(e, o.admin.token, 'GET', `/proyectos/${proyectoId}/estaciones/avance`))
+        .statusCode,
+    ).toBe(404);
+    expect(
+      (await pedir(e, o.especialista.token, 'GET', `/proyectos/${proyectoId}/estaciones/avance`))
+        .statusCode,
+    ).toBe(404);
+    expect(
+      (await pedir(e, o.coordinacion.token, 'GET', `/proyectos/${generarId()}/estaciones/avance`))
+        .statusCode,
+    ).toBe(404);
+  });
+});
+
+describe('fotos mínimas por ejecución (decisión del proyecto, además de D01)', () => {
+  it('Coordinación y JdP la ajustan; los demás roles reciben 403; fuera de rango, 400', async () => {
+    const r = await pedir(e, o.coordinacion.token, 'POST', '/proyectos', {
+      nombre: 'Proyecto con fotos mínimas',
+      validacion_activa: false,
+      fotos_minimas_ejecucion: 3,
+    });
+    expect(r.statusCode).toBe(201);
+    const id = r.json<{ id: string }>().id;
+    const ver = async () =>
+      (await pedir(e, o.coordinacion.token, 'GET', `/proyectos/${id}`)).json<{
+        fotos_minimas_ejecucion: number;
+      }>().fotos_minimas_ejecucion;
+    expect(await ver()).toBe(3);
+
+    const ruta = `/proyectos/${id}`;
+    expect(
+      (await pedir(e, o.jefeProyecto.token, 'PATCH', ruta, { fotos_minimas_ejecucion: 0 }))
+        .statusCode,
+    ).toBe(204);
+    expect(await ver()).toBe(0);
+
+    for (const p of [o.especialista, o.supervisorA, o.jefeA, o.admin]) {
+      expect(
+        (await pedir(e, p.token, 'PATCH', ruta, { fotos_minimas_ejecucion: 5 })).statusCode,
+      ).toBe(403);
+    }
+    for (const v of [-1, 21, 1.5]) {
+      expect(
+        (await pedir(e, o.coordinacion.token, 'PATCH', ruta, { fotos_minimas_ejecucion: v }))
+          .statusCode,
+      ).toBe(400);
+    }
+    expect(
+      (
+        await pedir(e, o.coordinacion.token, 'PATCH', `/proyectos/${generarId()}`, {
+          fotos_minimas_ejecucion: 2,
+        })
+      ).statusCode,
+    ).toBe(404);
+    expect(await ver()).toBe(0);
   });
 });

@@ -208,9 +208,7 @@ const DialogoEstacion = ({
   alCerrar: () => void;
 }) => {
   const qc = useQueryClient();
-  const [f, setF] = useState<Formulario>(
-    estacion === null ? VACIO : desdeEstacion(estacion),
-  );
+  const [f, setF] = useState<Formulario>(estacion === null ? VACIO : desdeEstacion(estacion));
   const cambiar = (k: keyof Formulario) => (v: string) => setF((x) => ({ ...x, [k]: v }));
   const guardar = useMutation({
     mutationFn: async () => {
@@ -223,7 +221,11 @@ const DialogoEstacion = ({
         region: f.region === '' ? null : f.region,
       });
       if (!r.success) {
-        throw new ErrorApi(400, 'DATOS_INVALIDOS', r.error.issues[0]?.message ?? 'Revise los datos.');
+        throw new ErrorApi(
+          400,
+          'DATOS_INVALIDOS',
+          r.error.issues[0]?.message ?? 'Revise los datos.',
+        );
       }
       return estacion === null
         ? api.post(`/proyectos/${proyectoId}/estaciones`, r.data)
@@ -313,10 +315,7 @@ const DialogoEstacion = ({
               </select>
             )}
           </Campo>
-          <Campo
-            etiqueta="Región"
-            ayuda="Define qué métodos condicionales aplican (RN-28)."
-          >
+          <Campo etiqueta="Región" ayuda="Define qué métodos condicionales aplican (RN-28).">
             {(id) => (
               <select
                 id={id}

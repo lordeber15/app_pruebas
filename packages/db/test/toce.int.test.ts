@@ -11,7 +11,12 @@ import { Kysely, PostgresDialect, sql } from 'kysely';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { iniciarBaseDePrueba, type BaseDePrueba } from '../src/pruebas.ts';
-import { cargarToce, leerSemillaA01, leerSemillaD01, type ResumenCargaToce } from '../src/semillas/toce.ts';
+import {
+  cargarToce,
+  leerSemillaA01,
+  leerSemillaD01,
+  type ResumenCargaToce,
+} from '../src/semillas/toce.ts';
 
 const PROY = '0192f0c8-0000-7000-8000-000000000010';
 
@@ -367,7 +372,11 @@ describe('demo con fechas cercanas (fecha de inicio de A01)', () => {
     const r = await cargarToce(db, { proyectoId: PROY3, incluirA01: false });
     expect(r).toMatchObject({ a01: false, metodos: 33, estaciones: 0, brigadas: 0, reservas: 0 });
     expect(
-      await n(sql<{ n: string }>`SELECT count(*)::text AS n FROM app.campania WHERE proyecto_id = ${PROY3}`),
+      await n(
+        sql<{
+          n: string;
+        }>`SELECT count(*)::text AS n FROM app.campania WHERE proyecto_id = ${PROY3}`,
+      ),
     ).toBe(0);
   });
 });

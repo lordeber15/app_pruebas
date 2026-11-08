@@ -25,17 +25,8 @@ import {
   Vacio,
 } from '../componentes/Ui.tsx';
 import { useYo } from '../sesion.ts';
+import { ACTIVIDAD, AsignarEstacion, BorradorBase } from './CronogramaArmado.tsx';
 import { useProyectoId } from './Proyectos.tsx';
-
-const ACTIVIDAD: Readonly<Record<string, string>> = {
-  estacion: 'Estación',
-  movilizacion: 'Movilización',
-  traslado: 'Traslado',
-  desmovilizacion: 'Desmovilización',
-  feriado: 'Feriado',
-  procesamiento: 'Procesamiento',
-  otro: 'Otro',
-};
 
 /** Estado de la fila con texto e ícono: el color nunca es el único indicador. */
 const ESTADO_FILA: Readonly<
@@ -88,12 +79,15 @@ const Propuesta = ({
   items,
   brigadas,
   ajustables,
+  aplicaAhora,
   alTerminar,
 }: {
   proyectoId: string;
   items: ItemCronograma[];
   brigadas: Brigada[];
   ajustables: SolicitudCronograma[];
+  /** El Jefe de Proyecto puede aprobar en el mismo paso (RN-36). */
+  aplicaAhora: boolean;
   alTerminar: () => void;
 }) => {
   const qc = useQueryClient();
@@ -103,17 +97,21 @@ const Propuesta = ({
   const [motivo, setMotivo] = useState('');
   const [ajustar, setAjustar] = useState('');
   const enviar = useMutation({
-    mutationFn: () => {
+    mutationFn: (ahora: boolean) => {
+      // Sin fecha nueva: cada fila conserva la suya (solo cambia de brigada).
       const cambios: CambioCronograma[] = items.map((i) =>
         accion === 'reprogramar'
           ? {
               tipo: 'reprogramar',
               item_id: i.id,
-              fecha,
+              fecha: fecha === '' ? i.fecha : fecha,
               brigada_id: brigada === '' ? null : brigada,
             }
           : { tipo: 'marcar', item_id: i.id, estado_fila: 'sujeta_a_decision' },
       );
+      if (ahora) {
+        return api.post(`/proyectos/${proyectoId}/cronograma/aplicar`, { motivo, cambios });
+      }
       return ajustar === ''
         ? api.post(`/proyectos/${proyectoId}/cronograma/solicitudes`, { motivo, cambios })
         : api.post(`/cronograma/solicitudes/${ajustar}/ajustar`, { motivo, cambios });
@@ -122,9 +120,10 @@ const Propuesta = ({
       setMotivo('');
       setFecha('');
       alTerminar();
-      await qc.invalidateQueries({ queryKey: ['solicitudes', proyectoId] });
+      await qc.invalidateQueries();
     },
   });
+  const sinCambio = accion === 'reprogramar' && fecha === '' && brigada === '';
 
   return (
     <form
@@ -132,11 +131,11 @@ const Propuesta = ({
       aria-labelledby="titulo-propuesta"
       onSubmit={(e) => {
         e.preventDefault();
-        enviar.mutate();
+        enviar.mutate(false);
       }}
     >
       <h2 id="titulo-propuesta" className="text-lg font-semibold">
-        Proponer una reprogramación
+        Mover o cambiar de brigada
       </h2>
       {items.length === 0 ? (
         <p className="text-sm text-tinta-suave">
@@ -158,7 +157,7 @@ const Propuesta = ({
             onChange={() => setAccion('reprogramar')}
             className="size-5 accent-liquen"
           />
-          Reprogramar a otra fecha
+          Mover de fecha o de brigada
         </label>
         <label className="flex min-h-11 items-center gap-2 text-sm">
           <input
@@ -173,12 +172,11 @@ const Propuesta = ({
       </fieldset>
       {accion === 'reprogramar' ? (
         <div className="grid gap-3 sm:grid-cols-2">
-          <Campo etiqueta="Nueva fecha">
+          <Campo etiqueta="Nueva fecha" ayuda="Déjela vacía si solo cambia de brigada.">
             {(id) => (
               <input
                 id={id}
                 type="date"
-                required
                 value={fecha}
                 onChange={(e) => setFecha(e.target.value)}
                 className={claseEntrada}
@@ -240,10 +238,24 @@ const Propuesta = ({
         </Campo>
       ) : null}
       <AvisoError error={enviar.error} />
-      <div>
-        <Boton type="submit" ocupado={enviar.isPending} disabled={items.length === 0}>
-          {ajustar === '' ? 'Enviar al Jefe de Proyecto' : 'Reenviar ajustada'}
+      <div className="flex flex-wrap gap-2">
+        <Boton
+          type="submit"
+          variante={aplicaAhora ? 'secundario' : 'principal'}
+          ocupado={enviar.isPending}
+          disabled={items.length === 0 || sinCambio}
+        >
+          {ajustar === '' ? 'Enviar como solicitud' : 'Reenviar ajustada'}
         </Boton>
+        {aplicaAhora && ajustar === '' ? (
+          <Boton
+            ocupado={enviar.isPending}
+            disabled={items.length === 0 || sinCambio || motivo.trim() === ''}
+            onClick={() => enviar.mutate(true)}
+          >
+            Aplicar ahora (crea la versión vigente)
+          </Boton>
+        ) : null}
       </div>
     </form>
   );
@@ -432,7 +444,16 @@ export const Cronograma = () => {
 
   return (
     <>
-      <Encabezado titulo="Cronograma" />
+      <Encabezado titulo="Cronograma">
+        {proponer ? (
+          <AsignarEstacion
+            proyectoId={proyectoId}
+            items={todos}
+            brigadas={brigadas.data?.brigadas ?? []}
+            aplicaAhora={aprueba}
+          />
+        ) : null}
+      </Encabezado>
       <p className="-mt-3 mb-4 max-w-prose text-sm text-tinta-suave">
         El cronograma base (A01) se conserva sin cambios. Cada reprogramación que aprueba el Jefe de
         Proyecto crea una versión vigente nueva, que los celulares reciben al volver a descargar su
@@ -442,9 +463,13 @@ export const Cronograma = () => {
       {q.isPending ? <Cargando que="el cronograma" /> : null}
       <AvisoError error={q.error} />
       {q.data !== undefined && q.data.version === null ? (
-        <Vacio titulo="Este proyecto aún no tiene cronograma">
-          El cronograma base llega con la carga de A01 (pestaña Estaciones).
-        </Vacio>
+        gestion ? (
+          <BorradorBase proyectoId={proyectoId} brigadas={brigadas.data?.brigadas ?? []} />
+        ) : (
+          <Vacio titulo="Este proyecto aún no tiene cronograma">
+            El cronograma base llega con la carga de A01 o lo arma Coordinación desde la web.
+          </Vacio>
+        )
       ) : null}
 
       {q.data?.version != null ? (
@@ -568,6 +593,7 @@ export const Cronograma = () => {
               ajustables={(solicitudes.data?.solicitudes ?? []).filter(
                 (s) => s.estado === 'ajuste_solicitado',
               )}
+              aplicaAhora={aprueba}
               alTerminar={() => setElegidos(new Set())}
             />
           ) : null}

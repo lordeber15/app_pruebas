@@ -132,7 +132,9 @@ export const rutasCronograma: FastifyPluginAsyncZod<Opciones> = (app, { auth, db
     '/proyectos/:id/cronograma/borrador/publicar',
     { schema: { params: conId } },
     async (request, reply) =>
-      reply.status(201).send(await borrador.publicarBorrador(db, actor(request), request.params.id)),
+      reply
+        .status(201)
+        .send(await borrador.publicarBorrador(db, actor(request), request.params.id)),
   );
 
   app.post('/cronograma/solicitudes/:id/aprobar', { schema: { params: conId } }, async (request) =>

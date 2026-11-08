@@ -87,9 +87,11 @@ export const CeldaAvance = ({ a }: { a: EstacionAvance['avance'] }) => {
 const fechaCorta = (iso: string | null): string => {
   if (iso === null) return 'Sin programar';
   const [y, m, d] = iso.split('-').map(Number);
-  return new Intl.DateTimeFormat('es-PE', { weekday: 'short', day: 'numeric', month: 'short' }).format(
-    new Date(y ?? 2000, (m ?? 1) - 1, d ?? 1),
-  );
+  return new Intl.DateTimeFormat('es-PE', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  }).format(new Date(y ?? 2000, (m ?? 1) - 1, d ?? 1));
 };
 
 /** Mapa de estaciones coloreado por estado, con leyenda y detalle de la estación elegida. */
@@ -105,8 +107,7 @@ export const MapaAvance = ({
     () =>
       estaciones.map((s): MarcadorMapa => {
         const e = ESTILO_ESTADO[s.avance.estado];
-        const p =
-          s.avance.porcentaje === null ? 'sin datos' : porcentaje(s.avance.porcentaje);
+        const p = s.avance.porcentaje === null ? 'sin datos' : porcentaje(s.avance.porcentaje);
         return {
           id: s.id,
           lat: s.lat,
@@ -135,7 +136,10 @@ export const MapaAvance = ({
         etiqueta="Mapa del estado de las estaciones"
       />
       <div className="flex flex-col gap-4">
-        <section aria-labelledby="leyenda-estado" className="rounded-md border border-linea bg-hoja p-3">
+        <section
+          aria-labelledby="leyenda-estado"
+          className="rounded-md border border-linea bg-hoja p-3"
+        >
           <h3 id="leyenda-estado" className="mb-2 text-sm font-semibold">
             Estado de las estaciones
           </h3>

@@ -40,7 +40,11 @@ export interface AvanceMetodo {
 /** `ejecuciones` en orden de apertura: el objetivo de campo es el de la última que lo fijó. */
 export const avanceDeMetodo = (
   config: ConfiguracionMetodo | null,
-  estacion: { readonly region: string | null; readonly za_ef: string | null; readonly uv: string | null },
+  estacion: {
+    readonly region: string | null;
+    readonly za_ef: string | null;
+    readonly uv: string | null;
+  },
   ejecuciones: readonly EjecucionParaAvance[],
 ): AvanceMetodo => {
   const objetivoCampo =

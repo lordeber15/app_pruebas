@@ -76,6 +76,92 @@ const FormularioDialogo = ({
 };
 export { FormularioDialogo };
 
+/** Fotos mínimas por ejecución: decisión del proyecto, además de las de D01 (0 a 20). */
+const CampoFotosMinimas = ({
+  valor,
+  alCambiar,
+}: {
+  valor: string;
+  alCambiar: (v: string) => void;
+}) => (
+  <Campo
+    etiqueta="Fotos mínimas por ejecución (decisión del proyecto; además de las de D01)"
+    ayuda="Entre 0 y 20. Con 0 solo se exigen las fotos que D01 define para cada método."
+  >
+    {(id) => (
+      <input
+        id={id}
+        type="number"
+        inputMode="numeric"
+        min={0}
+        max={20}
+        step={1}
+        required
+        value={valor}
+        onChange={(e) => alCambiar(e.target.value)}
+        className={claseEntrada}
+      />
+    )}
+  </Campo>
+);
+
+/** Ajustes del proyecto (Coordinación y JdP). */
+const AjustesProyecto = ({ proyecto }: { proyecto: Proyecto }) => {
+  const qc = useQueryClient();
+  const [nombre, setNombre] = useState(proyecto.nombre);
+  const [validacion, setValidacion] = useState(proyecto.validacion_activa);
+  const [originales, setOriginales] = useState(proyecto.subir_originales);
+  const [fotosMinimas, setFotosMinimas] = useState(String(proyecto.fotos_minimas_ejecucion));
+  return (
+    <FormularioDialogo
+      titulo="Ajustes del proyecto"
+      boton="Guardar ajustes"
+      abrir="Ajustes del proyecto"
+      alGuardar={async () => {
+        await api.patch(`/proyectos/${proyecto.id}`, {
+          nombre,
+          validacion_activa: validacion,
+          subir_originales: originales,
+          fotos_minimas_ejecucion: Number(fotosMinimas),
+        });
+        await qc.invalidateQueries({ queryKey: ['proyecto', proyecto.id] });
+        await qc.invalidateQueries({ queryKey: ['proyectos'] });
+      }}
+    >
+      <Campo etiqueta="Nombre del proyecto">
+        {(id) => (
+          <input
+            id={id}
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+            required
+            className={claseEntrada}
+          />
+        )}
+      </Campo>
+      <label className="flex min-h-11 items-center gap-3 text-sm">
+        <input
+          type="checkbox"
+          checked={validacion}
+          onChange={(e) => setValidacion(e.target.checked)}
+          className="size-5 accent-liquen"
+        />
+        Las ejecuciones se validan antes de cerrarse (validación humana, C1)
+      </label>
+      <label className="flex min-h-11 items-center gap-3 text-sm">
+        <input
+          type="checkbox"
+          checked={originales}
+          onChange={(e) => setOriginales(e.target.checked)}
+          className="size-5 accent-liquen"
+        />
+        Subir también las fotos originales (solo con WiFi)
+      </label>
+      <CampoFotosMinimas valor={fotosMinimas} alCambiar={setFotosMinimas} />
+    </FormularioDialogo>
+  );
+};
+
 // ── Lista de proyectos ──
 
 export const Proyectos = () => {
@@ -88,6 +174,7 @@ export const Proyectos = () => {
   const [nombre, setNombre] = useState('');
   const [validacion, setValidacion] = useState(true);
   const [originales, setOriginales] = useState(false);
+  const [fotosMinimas, setFotosMinimas] = useState('1');
   const activos = q.data?.proyectos.filter((p) => p.estado === 'activo').length ?? 0;
 
   return (
@@ -103,6 +190,7 @@ export const Proyectos = () => {
                 nombre,
                 validacion_activa: validacion,
                 subir_originales: originales,
+                fotos_minimas_ejecucion: Number(fotosMinimas),
               });
               setNombre('');
               await qc.invalidateQueries({ queryKey: ['proyectos'] });
@@ -137,6 +225,7 @@ export const Proyectos = () => {
               />
               Subir también las fotos originales (solo con WiFi)
             </label>
+            <CampoFotosMinimas valor={fotosMinimas} alCambiar={setFotosMinimas} />
             <p className="text-xs text-tinta-suave">Hay {activos} de 6 proyectos activos.</p>
           </FormularioDialogo>
         ) : null}
@@ -189,6 +278,7 @@ const PESTANAS = [
 
 export const MarcoProyecto = () => {
   const proyectoId = useProyectoId();
+  const yo = useYo();
   const q = useQuery({
     queryKey: ['proyecto', proyectoId],
     queryFn: () => api.get<Proyecto>(`/proyectos/${proyectoId}`),
@@ -200,7 +290,12 @@ export const MarcoProyecto = () => {
           Proyectos
         </Link>
       </p>
-      <h1 className="mb-4 text-2xl font-bold tracking-tight">{q.data?.nombre ?? 'Proyecto'}</h1>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold tracking-tight">{q.data?.nombre ?? 'Proyecto'}</h1>
+        {puede(yo.data).gestionar && q.data !== undefined ? (
+          <AjustesProyecto key={q.data.id} proyecto={q.data} />
+        ) : null}
+      </div>
       <AvisoError error={q.error} />
       <nav
         aria-label="Secciones del proyecto"

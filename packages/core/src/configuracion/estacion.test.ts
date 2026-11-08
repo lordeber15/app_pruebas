@@ -44,8 +44,7 @@ describe('RN-29 atributos de estación cargados desde la web', () => {
     expect(estacionCambioSchema.safeParse({ uv: 'Pajonal' }).success).toBe(true);
     expect(estacionCambioSchema.safeParse({ este: 451_000 }).success).toBe(false);
     expect(
-      estacionCambioSchema.safeParse({ zona_utm: '18S', este: 451_000, norte: 8_900_100 })
-        .success,
+      estacionCambioSchema.safeParse({ zona_utm: '18S', este: 451_000, norte: 8_900_100 }).success,
     ).toBe(true);
     expect(estacionCambioSchema.safeParse({}).success).toBe(false);
   });

@@ -147,12 +147,7 @@ export const publicarBorrador = async (db: Db, actor: Actor, proyectoId: string)
   await exigirProyecto(db, proyectoId);
   return db.transaction().execute(async (tx) => {
     // Dos publicaciones simultáneas: la segunda espera y encuentra el base ya creado.
-    await tx
-      .selectFrom('proyecto')
-      .select('id')
-      .where('id', '=', proyectoId)
-      .forUpdate()
-      .execute();
+    await tx.selectFrom('proyecto').select('id').where('id', '=', proyectoId).forUpdate().execute();
     if (await tieneBase(tx, proyectoId)) throw yaPublicado();
     const filas = await tx
       .selectFrom('cronograma_borrador_item')
@@ -210,7 +205,11 @@ export const publicarBorrador = async (db: Db, actor: Actor, proyectoId: string)
     await tx
       .updateTable('cronograma_borrador_item')
       .set({ estado: 'publicada', version_id: versionId, actualizado_por: actor.usuarioId })
-      .where('id', 'in', filas.map((f) => f.id))
+      .where(
+        'id',
+        'in',
+        filas.map((f) => f.id),
+      )
       .execute();
     // Las brigadas del cronograma quedan en la campaña.
     await tx

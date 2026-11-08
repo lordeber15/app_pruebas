@@ -1,9 +1,4 @@
-import {
-  configuracionMetodoSchema,
-  puedeIntentar,
-  type Avance,
-  type Objetivo,
-} from '@campo/core';
+import { configuracionMetodoSchema, puedeIntentar, type Avance, type Objetivo } from '@campo/core';
 import type { Db } from '@campo/db';
 import { sql } from 'kysely';
 import type { Actor } from '../../plataforma/sesion.ts';

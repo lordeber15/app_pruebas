@@ -35,6 +35,8 @@ export interface DatosProyecto {
   readonly subirOriginales: boolean;
   readonly diasBloqueo: number;
   readonly horaCierreJornada: string | null;
+  /** Decisión del proyecto, además de las fotos de D01 (regla `foto_ejecucion`). */
+  readonly fotosMinimasEjecucion: number;
 }
 
 export const crearProyecto = async (db: Db, actor: Actor, d: DatosProyecto) => {
@@ -59,6 +61,7 @@ export const crearProyecto = async (db: Db, actor: Actor, d: DatosProyecto) => {
         subir_originales: d.subirOriginales,
         dias_bloqueo: d.diasBloqueo,
         hora_cierre_jornada: d.horaCierreJornada,
+        fotos_minimas_ejecucion: d.fotosMinimasEjecucion,
         creado_por: actor.usuarioId,
         actualizado_por: actor.usuarioId,
       })
@@ -96,6 +99,9 @@ export const actualizarProyecto = async (
         ...(d.subirOriginales === undefined ? {} : { subir_originales: d.subirOriginales }),
         ...(d.diasBloqueo === undefined ? {} : { dias_bloqueo: d.diasBloqueo }),
         ...(d.horaCierreJornada === undefined ? {} : { hora_cierre_jornada: d.horaCierreJornada }),
+        ...(d.fotosMinimasEjecucion === undefined
+          ? {}
+          : { fotos_minimas_ejecucion: d.fotosMinimasEjecucion }),
         ...(d.estado === undefined ? {} : { estado: d.estado }),
         actualizado_por: actor.usuarioId,
       })
