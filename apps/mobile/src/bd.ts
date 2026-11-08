@@ -11,7 +11,12 @@ import { Directory, Paths } from 'expo-file-system';
  * - mapa_local: catálogo de mapas sin conexión (RF-M05): lo último que dijo el servidor y la copia
  *   descargada, para usarlos sin señal. Los archivos viven en `mapa/` (src/mapas.ts).
  */
-let bd: DB | null = null;
+/**
+ * Una sola conexión para toda la app. Se guarda la promesa (no la conexión) para que dos llamadas
+ * simultáneas al arrancar no abran dos conexiones que luego se bloquean entre sí
+ * («database is locked»).
+ */
+let bd: Promise<DB> | null = null;
 
 const ESQUEMA = [
   `CREATE TABLE IF NOT EXISTS outbox (
@@ -104,13 +109,21 @@ const actualizarEsquema = async (b: DB): Promise<void> => {
   }
 };
 
-export const abrirBd = async (): Promise<DB> => {
-  if (bd !== null) return bd;
+const abrirNueva = async (): Promise<DB> => {
   const nueva = open({ name: 'campo.sqlite' });
+  // Si otra operación tiene la base ocupada, se espera en vez de fallar.
+  await nueva.execute('PRAGMA busy_timeout = 5000');
   for (const sql of ESQUEMA) await nueva.execute(sql);
   await actualizarEsquema(nueva);
-  bd = nueva;
   return nueva;
+};
+
+export const abrirBd = (): Promise<DB> => {
+  bd ??= abrirNueva().catch((err: unknown) => {
+    bd = null;
+    throw err;
+  });
+  return bd;
 };
 
 export const consultar = async <T>(sql: string, params: Scalar[] = []): Promise<T[]> => {

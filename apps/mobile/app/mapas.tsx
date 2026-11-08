@@ -177,7 +177,7 @@ export default function MapasSinConexion() {
   const [consultando, setConsultando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
-  const [errorLectura, setErrorLectura] = useState(false);
+  const [errorLectura, setErrorLectura] = useState<string | false>(false);
   const [intento, setIntento] = useState(0);
 
   const leerLocal = useCallback(async () => {
@@ -208,8 +208,9 @@ export default function MapasSinConexion() {
             if (sigue()) setConsultando(false);
           }
           if (sigue()) await leerLocal();
-        } catch {
-          if (sigue()) setErrorLectura(true);
+        } catch (err) {
+          console.warn('mapas: lectura local', err);
+          if (sigue()) setErrorLectura(err instanceof Error ? err.message : String(err));
         }
       })();
       return () => {
@@ -221,7 +222,10 @@ export default function MapasSinConexion() {
   // Cambios locales (descarga terminada, copia borrada): se relee sin volver a la red.
   useFocusEffect(
     useCallback(() => {
-      void leerLocal().catch(() => setErrorLectura(true));
+      void leerLocal().catch((err: unknown) => {
+        console.warn('mapas: lectura local', err);
+        setErrorLectura(err instanceof Error ? err.message : String(err));
+      });
     }, [leerLocal, version]),
   );
 
