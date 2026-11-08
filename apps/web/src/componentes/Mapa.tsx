@@ -1,6 +1,9 @@
 import * as maplibregl from 'maplibre-gl';
 import type { GeoJSONSource, StyleSpecification } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+// MapLibre 6 calcula la URL de su worker en tiempo de ejecución y Vite no lo copia al build:
+// sin esto el worker da 404, no se dibuja ninguna tesela y el evento `load` nunca llega.
+import urlWorker from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 import { Protocol } from 'pmtiles';
 import { useEffect, useRef, useState } from 'react';
 import capasBase from './capas-base.json';
@@ -12,6 +15,7 @@ import capasBase from './capas-base.json';
 let protocoloRegistrado = false;
 const registrarProtocolo = () => {
   if (protocoloRegistrado) return;
+  maplibregl.setWorkerUrl(urlWorker);
   maplibregl.addProtocol('pmtiles', new Protocol().tile);
   protocoloRegistrado = true;
 };
@@ -170,7 +174,8 @@ export const Mapa = ({
         attributionControl: { compact: true },
       });
       m.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
-      m.on('load', () => {
+      // `style.load` (no `load`): las estaciones se dibujan aunque una tesela del mapa base falle.
+      m.once('style.load', () => {
         m.addSource('capas', {
           type: 'geojson',
           data: { type: 'FeatureCollection', features: [] },
