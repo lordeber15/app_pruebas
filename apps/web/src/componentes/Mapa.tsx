@@ -44,6 +44,28 @@ export interface PuntoMapa {
   readonly zaEf?: boolean;
 }
 
+/**
+ * Geometría GeoJSON sobre el mapa (D02 §11): unidades (punto, línea o polígono) y tracks de una
+ * ejecución. Los tracks se dibujan con línea discontinua para no depender solo del color.
+ */
+export interface CapaMapa {
+  readonly id: string;
+  readonly tipo: 'unidad' | 'track';
+  readonly etiqueta: string;
+  readonly geometria: { readonly type: string; readonly coordinates: unknown };
+}
+
+type DatosGeoJson = Parameters<GeoJSONSource['setData']>[0];
+
+/** Pares [lon, lat] de cualquier geometría GeoJSON, para encuadrar el mapa. */
+const coordenadas = (c: unknown, acc: [number, number][] = []): [number, number][] => {
+  if (!Array.isArray(c)) return acc;
+  const [a, b] = c as unknown[];
+  if (typeof a === 'number' && typeof b === 'number') acc.push([a, b]);
+  else for (const x of c as unknown[]) coordenadas(x, acc);
+  return acc;
+};
+
 const hayMapaBase = async (): Promise<boolean> => {
   try {
     const r = await fetch('/mapa/base.pmtiles', { method: 'HEAD' });
@@ -53,14 +75,20 @@ const hayMapaBase = async (): Promise<boolean> => {
   }
 };
 
+const SIN_CAPAS: readonly CapaMapa[] = [];
+
 export const Mapa = ({
   puntos,
+  capas = SIN_CAPAS,
   alElegir,
   alto = '32rem',
+  etiqueta = 'Mapa de estaciones',
 }: {
   puntos: readonly PuntoMapa[];
+  capas?: readonly CapaMapa[];
   alElegir?: (id: string) => void;
   alto?: string;
+  etiqueta?: string;
 }) => {
   const contenedor = useRef<HTMLDivElement>(null);
   const mapa = useRef<maplibregl.Map | null>(null);
@@ -85,6 +113,47 @@ export const Mapa = ({
       });
       m.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
       m.on('load', () => {
+        m.addSource('capas', {
+          type: 'geojson',
+          data: { type: 'FeatureCollection', features: [] },
+        });
+        m.addLayer({
+          id: 'capas-relleno',
+          type: 'fill',
+          source: 'capas',
+          filter: ['==', ['geometry-type'], 'Polygon'],
+          paint: { 'fill-color': '#a86f1e', 'fill-opacity': 0.15 },
+        });
+        m.addLayer({
+          id: 'capas-unidad-linea',
+          type: 'line',
+          source: 'capas',
+          filter: [
+            'all',
+            ['==', ['get', 'tipo'], 'unidad'],
+            ['any', ['==', ['geometry-type'], 'LineString'], ['==', ['geometry-type'], 'Polygon']],
+          ],
+          paint: { 'line-color': '#a86f1e', 'line-width': 3 },
+        });
+        m.addLayer({
+          id: 'capas-track',
+          type: 'line',
+          source: 'capas',
+          filter: ['==', ['get', 'tipo'], 'track'],
+          paint: { 'line-color': '#224639', 'line-width': 2, 'line-dasharray': [2, 1.5] },
+        });
+        m.addLayer({
+          id: 'capas-unidad-punto',
+          type: 'circle',
+          source: 'capas',
+          filter: ['all', ['==', ['get', 'tipo'], 'unidad'], ['==', ['geometry-type'], 'Point']],
+          paint: {
+            'circle-radius': 5,
+            'circle-color': '#a86f1e',
+            'circle-stroke-color': '#ffffff',
+            'circle-stroke-width': 2,
+          },
+        });
         m.addSource('puntos', {
           type: 'geojson',
           data: { type: 'FeatureCollection', features: [] },
@@ -144,12 +213,24 @@ export const Mapa = ({
         properties: { id: p.id, zaEf: p.zaEf === true },
       })),
     });
-    if (puntos.length > 0) {
+    void m.getSource<GeoJSONSource>('capas')?.setData({
+      type: 'FeatureCollection',
+      features: capas.map((c) => ({
+        type: 'Feature',
+        geometry: c.geometria,
+        properties: { id: c.id, tipo: c.tipo, etiqueta: c.etiqueta },
+      })),
+    } as DatosGeoJson);
+    const todos: [number, number][] = [
+      ...puntos.map((p): [number, number] => [p.lon, p.lat]),
+      ...capas.flatMap((c) => coordenadas(c.geometria.coordinates)),
+    ];
+    if (todos.length > 0) {
       const limites = new maplibregl.LngLatBounds();
-      for (const p of puntos) limites.extend([p.lon, p.lat]);
-      m.fitBounds(limites, { padding: 48, maxZoom: 15, duration: 0 });
+      for (const c of todos) limites.extend(c);
+      m.fitBounds(limites, { padding: 48, maxZoom: capas.length > 0 ? 18 : 15, duration: 0 });
     }
-  }, [puntos, listo]);
+  }, [puntos, capas, listo]);
 
   return (
     <div className="flex flex-col gap-2">
@@ -158,7 +239,7 @@ export const Mapa = ({
         style={{ height: alto }}
         className="w-full overflow-hidden rounded-md border border-linea"
         role="region"
-        aria-label="Mapa de estaciones"
+        aria-label={etiqueta}
       />
       {sinMapaBase ? (
         <p className="text-xs text-tinta-suave">

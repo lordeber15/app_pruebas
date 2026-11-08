@@ -13,6 +13,7 @@ import type pg from 'pg';
 import type { Config } from './config.ts';
 import { rutasArchivos } from './modulos/archivos/rutas.ts';
 import { rutasDispositivos } from './modulos/dispositivos/rutas.ts';
+import { rutasEjecuciones } from './modulos/ejecuciones/rutas.ts';
 import { rutasPaquete } from './modulos/paquete/rutas.ts';
 import { rutasSync } from './modulos/sync/rutas.ts';
 import { rutasWeb } from './modulos/web/rutas.ts';
@@ -88,6 +89,7 @@ export const crearApp = async (config: Config, pool: pg.Pool): Promise<Aplicacio
   await app.register(rutasSync, { prefix: '/api/v1', auth, db, config });
   await app.register(rutasArchivos, { auth, db, config });
   await app.register(rutasWeb, { prefix: '/api/v1', auth, db, firmador: crearFirmador(config) });
+  await app.register(rutasEjecuciones, { prefix: '/api/v1', auth, db });
 
   return { app, db, auth };
 };

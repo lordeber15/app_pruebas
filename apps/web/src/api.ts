@@ -145,3 +145,91 @@ export interface Revision {
   metodo_nombre: string;
   usuario_nombre: string;
 }
+
+// ── Ejecuciones (D02 §11) ──
+
+export type EstadoEjecucion =
+  'en_curso' | 'evidencia_pendiente' | 'completa' | 'parcial' | 'validada' | 'observada';
+
+export interface EjecucionFila {
+  id: string;
+  estado: EstadoEjecucion;
+  abierta_en: string;
+  cerrada_en: string | null;
+  qa_evaluado_en: string | null;
+  desviacion_tipo: 'ninguna' | 'parcial' | 'imposibilidad' | 'excepcional';
+  desviacion_explicacion: string | null;
+  brigada_id: string | null;
+  estacion_id: string;
+  estacion_codigo: string;
+  metodo_nombre: string;
+  especialidad_nombre: string;
+  usuario_nombre: string;
+  brigada_nombre: string | null;
+  unidades: number;
+  incumplimientos_obligatorios: number | null;
+  advertencias: number | null;
+  ultima_recepcion: string | null;
+}
+
+export interface GeometriaGeoJson {
+  type: string;
+  coordinates: unknown;
+}
+
+export interface ResultadoReglaQa {
+  regla: string;
+  tipo_control: 'obligatorio' | 'advertencia' | 'informativo' | 'referencia' | 'criterio_humano';
+  estado: 'cumple' | 'incumple' | 'no_aplica' | 'no_evaluable' | 'informativo';
+  mensaje: string;
+  texto_d01: string;
+  unidad_id: string | null;
+}
+
+export interface EjecucionDetalle extends Omit<
+  EjecucionFila,
+  'unidades' | 'incumplimientos_obligatorios' | 'advertencias'
+> {
+  proyecto_id: string;
+  datos: Record<string, unknown>;
+  objetivo_campo: number | null;
+  estacion_za_ef: string | null;
+  estacion_lat: number;
+  estacion_lon: number;
+  metodo_codigo: string;
+  resultado_qa: {
+    resultados: ResultadoReglaQa[];
+    incumplimientos_obligatorios: number;
+    advertencias: number;
+  } | null;
+  unidades: {
+    id: string;
+    codigo: string;
+    tipo_unidad: string;
+    estado: 'abierta' | 'cerrada';
+    orden: number;
+    inicio: string | null;
+    fin: string | null;
+    datos: Record<string, unknown>;
+    registros: Record<string, unknown>[];
+    unidad_vinculada_id: string | null;
+    geometria: GeometriaGeoJson | null;
+  }[];
+  tracks: {
+    id: string;
+    unidad_id: string | null;
+    inicio: string;
+    fin: string;
+    puntos: number;
+    geometria: GeometriaGeoJson | null;
+  }[];
+  fotos: {
+    id: string;
+    unidad_id: string | null;
+    tipo_foto: 'contexto' | 'metodologica' | 'primer_plano' | 'cientifica' | null;
+    orientacion: 'N' | 'S' | 'E' | 'O' | null;
+    estado: string;
+    capturado_en: string;
+    candidata_reporte: boolean;
+  }[];
+}

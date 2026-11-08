@@ -1,7 +1,7 @@
 import type { ConfiguracionMetodo, TipoControl } from '../configuracion/metodo.ts';
 import { describirVentanas } from './horario.ts';
 import { esZaEf, resolverObjetivo } from './objetivo.ts';
-import type { EstacionEvaluacion, Objetivo } from './tipos.ts';
+import type { EstacionEvaluacion, Objetivo, ReglaEvaluada } from './tipos.ts';
 
 /**
  * Lo que la app muestra al iniciar un método (RF-M04, D02 §6 «Inicio de método», CA-20):
@@ -24,6 +24,27 @@ export const ETIQUETAS_TIPO_CONTROL: Readonly<Record<TipoControl, string>> = {
   informativo: 'Informativo',
   referencia: 'Referencia metodológica',
   criterio_humano: 'Criterio de campo',
+};
+
+/** Nombre visible de cada regla evaluada (resultados de QA en la web y títulos de alertas). */
+export const ETIQUETAS_REGLA: Readonly<Record<ReglaEvaluada, string>> = {
+  cantidad_unidades: 'Cantidad de unidades',
+  cantidad_registros: 'Cantidad de registros',
+  referencia_esfuerzo: 'Referencia de esfuerzo',
+  separacion_minima_m: 'Separación mínima entre unidades',
+  duracion_unidad_min: 'Duración mínima por unidad',
+  horario: 'Horario',
+  geometria: 'Georreferenciación',
+  track: 'Track del recorrido',
+  fotos_contexto: 'Fotos de contexto',
+  fotos_metodologicas: 'Fotos metodológicas',
+  campos_obligatorios: 'Campos obligatorios',
+  confirmacion: 'Confirmación requerida',
+  mensaje: 'Mensaje del método',
+  tiempo_efectivo: 'Tiempo efectivo de búsqueda',
+  parametros_tecnicos: 'Parámetros técnicos',
+  vinculo_unidad: 'Vínculo con otra unidad',
+  desviacion: 'Desviación declarada',
 };
 
 const textoObjetivo = (o: Objetivo): string => {
