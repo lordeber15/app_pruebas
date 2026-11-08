@@ -299,8 +299,19 @@ export const configuracionMetodoSchema = z.object({
   registros: z.object({ etiqueta: texto, campos: z.array(campoSchema).min(1) }).nullable(),
   validaciones: z.array(validacionSchema),
   vinculo: z.object({ texto: texto, metodos: z.array(z.string()) }).nullable(),
-  /** Columnas de trazabilidad de D01, verbatim. */
-  fuente: z.object({ estado: texto, origen: texto, pendiente: texto }),
+  /**
+   * Columnas de trazabilidad de D01, verbatim. `campos`, `validaciones` y `asignacion` son las
+   * columnas «Campos mínimos a capturar», «Validaciones / alertas» y «Asignación provisional a
+   * estaciones»: texto fuente, no reglas (las reglas están en `campos` y `validaciones`).
+   */
+  fuente: z.object({
+    estado: texto,
+    origen: texto,
+    pendiente: texto,
+    campos: textoOpcional.optional(),
+    validaciones: textoOpcional.optional(),
+    asignacion: textoOpcional.optional(),
+  }),
 });
 export type ConfiguracionMetodo = z.infer<typeof configuracionMetodoSchema>;
 

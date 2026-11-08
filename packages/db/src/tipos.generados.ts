@@ -462,6 +462,28 @@ export interface EvidenciaItem {
   tarea_id: string;
 }
 
+export interface ImportacionD01 {
+  actualizado_en: Generated<Timestamp>;
+  actualizado_por: string | null;
+  aplicado_en: Timestamp | null;
+  aplicado_por: string | null;
+  archivo: Buffer;
+  archivo_bytes: number;
+  archivo_nombre: string;
+  archivo_sha256: string;
+  con_errores: boolean;
+  configuracion_base_id: string | null;
+  configuracion_id: string | null;
+  creado_en: Generated<Timestamp>;
+  creado_por: string;
+  estado: Generated<string>;
+  id: string;
+  metodos: Json;
+  motivo: string | null;
+  proyecto_id: string;
+  vista_previa: Json;
+}
+
 export interface Jornada {
   abierta_en: Timestamp;
   actualizado_en: Generated<Timestamp>;
@@ -709,6 +731,7 @@ export interface DB {
   estacion_metodologia: EstacionMetodologia;
   evento: Evento;
   evidencia_item: EvidenciaItem;
+  importacion_d01: ImportacionD01;
   jornada: Jornada;
   metodo: Metodo;
   miembro_brigada: MiembroBrigada;

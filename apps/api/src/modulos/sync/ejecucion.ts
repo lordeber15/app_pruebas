@@ -114,7 +114,7 @@ export const ejecucionAbierta = async (
   const metodo = await tx
     .selectFrom('metodo as m')
     .innerJoin('configuracion_metodologica as c', 'c.id', 'm.configuracion_id')
-    .select(['m.id', 'm.clase', 'c.proyecto_id'])
+    .select(['m.id', 'm.clase', 'm.codigo', 'c.proyecto_id'])
     .where('m.id', '=', p.metodo_id)
     .executeTakeFirst();
   const estacion = await tx
@@ -135,15 +135,25 @@ export const ejecucionAbierta = async (
     if (propia === undefined) return noAplicado('FUERA_DE_ALCANCE');
     brigadaId = propia.id;
   } else {
+    // La reserva apunta al método de la configuración vigente; un celular con un paquete anterior
+    // a una versión nueva de D01 manda el mismo método de su versión (mismo código, RF-W09): la
+    // ejecución conserva ese método y esa versión.
     const reserva = await tx
-      .selectFrom('reserva')
-      .select(['id', 'estacion_id', 'metodo_id', 'brigada_id'])
-      .where('id', '=', p.reserva_id)
+      .selectFrom('reserva as r')
+      .leftJoin('metodo as rm', 'rm.id', 'r.metodo_id')
+      .select([
+        'r.id',
+        'r.estacion_id',
+        'r.metodo_id',
+        'r.brigada_id',
+        'rm.codigo as metodo_codigo',
+      ])
+      .where('r.id', '=', p.reserva_id)
       .executeTakeFirst();
     if (
       reserva === undefined ||
       reserva.estacion_id !== p.estacion_id ||
-      reserva.metodo_id !== p.metodo_id
+      (reserva.metodo_id !== p.metodo_id && reserva.metodo_codigo !== metodo.codigo)
     ) {
       return noAplicado('REFERENCIA_INVALIDA');
     }

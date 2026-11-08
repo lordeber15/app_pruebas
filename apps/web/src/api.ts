@@ -42,7 +42,65 @@ const pedir = async <T>(metodo: string, ruta: string, cuerpo?: unknown): Promise
   return datos as T;
 };
 
+const sinConexion = () =>
+  new ErrorApi(
+    0,
+    'SIN_CONEXION',
+    'No hay conexión con el servidor. Revise su red e intente de nuevo.',
+  );
+
+const errorDe = async (r: Response): Promise<ErrorApi> => {
+  let p: { detail?: string; codigo?: string } = {};
+  try {
+    p = (await r.json()) as typeof p;
+  } catch {
+    // Sin cuerpo RFC 9457: se usa el mensaje genérico.
+  }
+  return new ErrorApi(
+    r.status,
+    p.codigo ?? 'ERROR',
+    p.detail ?? 'La solicitud no se pudo completar.',
+  );
+};
+
+/** Sube un archivo como multipart/form-data (el navegador pone el límite). */
+const subir = async <T>(ruta: string, campo: string, archivo: File): Promise<T> => {
+  const datos = new FormData();
+  datos.append(campo, archivo, archivo.name);
+  let r: Response;
+  try {
+    r = await fetch(`/api/v1${ruta}`, { method: 'POST', credentials: 'include', body: datos });
+  } catch {
+    throw sinConexion();
+  }
+  if (!r.ok) throw await errorDe(r);
+  return (await r.json()) as T;
+};
+
+/** Descarga un archivo de la API y lo guarda con el nombre que indica el servidor. */
+const descargar = async (ruta: string, nombrePorDefecto: string): Promise<void> => {
+  let r: Response;
+  try {
+    r = await fetch(`/api/v1${ruta}`, { credentials: 'include' });
+  } catch {
+    throw sinConexion();
+  }
+  if (!r.ok) throw await errorDe(r);
+  const nombre =
+    /filename="([^"]+)"/.exec(r.headers.get('content-disposition') ?? '')?.[1] ?? nombrePorDefecto;
+  const url = URL.createObjectURL(await r.blob());
+  const enlace = document.createElement('a');
+  enlace.href = url;
+  enlace.download = nombre;
+  document.body.append(enlace);
+  enlace.click();
+  enlace.remove();
+  URL.revokeObjectURL(url);
+};
+
 export const api = {
+  subir,
+  descargar,
   get: <T>(ruta: string) => pedir<T>('GET', `/api/v1${ruta}`),
   post: <T>(ruta: string, cuerpo: unknown = {}) => pedir<T>('POST', `/api/v1${ruta}`, cuerpo),
   patch: <T>(ruta: string, cuerpo: unknown) => pedir<T>('PATCH', `/api/v1${ruta}`, cuerpo),
@@ -578,4 +636,72 @@ export interface PuntosGaleria {
   puntos: PuntoGaleria[];
   truncado: boolean;
   sin_coordenada: number;
+}
+
+// ── Configuración por método D01 por plantilla Excel (RF-W09) ──
+
+export interface ConfiguracionD01 {
+  vigente: {
+    numero: number;
+    origen: string;
+    notas: string | null;
+    creado_en: string;
+    creado_por_nombre: string | null;
+    metodos: number;
+  } | null;
+  importaciones: {
+    id: string;
+    estado: 'vista_previa' | 'aplicada';
+    archivo_nombre: string;
+    con_errores: boolean;
+    creado_en: string;
+    creado_por_nombre: string;
+    aplicado_en: string | null;
+    aplicado_por_nombre: string | null;
+    motivo: string | null;
+    version_numero: number | null;
+  }[];
+}
+
+export interface ErrorCeldaD01 {
+  hoja: string;
+  fila: number | null;
+  columna: string | null;
+  mensaje: string;
+}
+
+export interface ImportacionD01 {
+  id: string;
+  estado: 'vista_previa' | 'aplicada';
+  archivo_nombre: string;
+  con_errores: boolean;
+  aplicable: boolean;
+  creado_en: string;
+  version_base: number | null;
+  resumen: {
+    nuevos: number;
+    cambiados: number;
+    sin_cambio: number;
+    no_incluidos: number;
+    errores: number;
+  };
+  metodos: {
+    codigo: string;
+    nombre: string;
+    fila: number;
+    estado: 'nuevo' | 'cambiado' | 'sin_cambio';
+    cambios: { campo: string; antes: string; despues: string }[];
+  }[];
+  no_incluidos: { codigo: string; nombre: string }[];
+  errores: ErrorCeldaD01[];
+}
+
+export interface ResultadoAplicacionD01 {
+  configuracion_numero: number;
+  metodos: number;
+  estacion_metodo: number;
+  estacion_metodo_pendientes: number;
+  nominales_trasladadas: number;
+  reservas_trasladadas: number;
+  reservas_creadas: number;
 }

@@ -198,30 +198,30 @@ export const verMetodosDeEstacion = async (
     .orderBy('m.orden')
     .execute();
 
-  const filaIds = metodos.flatMap((m) => (m.fila_id === null ? [] : [m.fila_id]));
-  const decisiones =
-    filaIds.length === 0
-      ? []
-      : await db
-          .selectFrom('estacion_metodo_decision as d')
-          .innerJoin('usuario as u', 'u.id', 'd.creado_por')
-          .select(['d.estacion_metodo_id', 'd.decision', 'd.motivo', 'd.creado_en', 'u.nombre'])
-          .where('d.estacion_metodo_id', 'in', filaIds)
-          .orderBy('d.creado_en', 'desc')
-          .orderBy('d.id', 'desc')
-          .execute();
+  // Decisiones y ejecuciones por código de método: las tomadas o abiertas con una versión
+  // anterior de D01 siguen valiendo para el mismo método de la vigente (RF-W09).
+  const decisiones = await db
+    .selectFrom('estacion_metodo_decision as d')
+    .innerJoin('estacion_metodo as dem', 'dem.id', 'd.estacion_metodo_id')
+    .innerJoin('metodo as dm', 'dm.id', 'dem.metodo_id')
+    .innerJoin('usuario as u', 'u.id', 'd.creado_por')
+    .select(['dm.codigo', 'd.decision', 'd.motivo', 'd.creado_en', 'u.nombre'])
+    .where('dem.estacion_id', '=', estacionId)
+    .orderBy('d.creado_en', 'desc')
+    .orderBy('d.id', 'desc')
+    .execute();
   const ultima = new Map<string, (typeof decisiones)[number]>();
-  for (const d of decisiones)
-    if (!ultima.has(d.estacion_metodo_id)) ultima.set(d.estacion_metodo_id, d);
+  for (const d of decisiones) if (!ultima.has(d.codigo)) ultima.set(d.codigo, d);
 
   const ejecuciones = await db
-    .selectFrom('ejecucion')
-    .select(['metodo_id', (eb) => eb.fn.countAll<string>().as('n')])
-    .where('estacion_id', '=', estacionId)
-    .$if(alcance.soloPropias, (q) => q.where('usuario_id', '=', actor.usuarioId))
-    .groupBy('metodo_id')
+    .selectFrom('ejecucion as x')
+    .innerJoin('metodo as xm', 'xm.id', 'x.metodo_id')
+    .select(['xm.codigo', (eb) => eb.fn.countAll<string>().as('n')])
+    .where('x.estacion_id', '=', estacionId)
+    .$if(alcance.soloPropias, (q) => q.where('x.usuario_id', '=', actor.usuarioId))
+    .groupBy('xm.codigo')
     .execute();
-  const nEjec = new Map(ejecuciones.map((x) => [x.metodo_id, Number(x.n)]));
+  const nEjec = new Map(ejecuciones.map((x) => [x.codigo, Number(x.n)]));
 
   const estacionEval = { region: comoRegion(est.region), uv: est.uv, za_ef: est.za_ef };
   const grupos = new Map<
@@ -243,7 +243,7 @@ export const verMetodosDeEstacion = async (
     const estado = estadoEnMatriz(clase, fila);
     if (estado === 'condicion_pendiente') pendientes += 1;
     const config = configuracionMetodoSchema.safeParse(m.config);
-    const d = m.fila_id === null ? undefined : ultima.get(m.fila_id);
+    const d = m.fila_id === null ? undefined : ultima.get(m.codigo);
     const clave = m.especialidad_id ?? '';
     const grupo = grupos.get(clave) ?? {
       id: m.especialidad_id,
@@ -272,7 +272,7 @@ export const verMetodosDeEstacion = async (
         m.reserva_id === null || m.reserva_estado === null
           ? null
           : { id: m.reserva_id, estado: m.reserva_estado },
-      ejecuciones: nEjec.get(m.id) ?? 0,
+      ejecuciones: nEjec.get(m.codigo) ?? 0,
       admite_decision: rechazoDeDecision(clase) === null,
       decision:
         d === undefined
@@ -324,7 +324,7 @@ export const decidirMetodoEnEstacion = async (
     const metodo = await tx
       .selectFrom('metodo as m')
       .innerJoin('configuracion_metodologica as c', 'c.id', 'm.configuracion_id')
-      .select(['m.id', 'm.clase'])
+      .select(['m.id', 'm.clase', 'm.codigo'])
       .where('m.id', '=', metodoId)
       .where('c.proyecto_id', '=', est.proyecto_id)
       .where('c.estado', '=', 'vigente')
@@ -379,11 +379,13 @@ export const decidirMetodoEnEstacion = async (
     const reservaAntes = await reservaDe();
 
     if (d.decision === 'descartar') {
+      // Por código: también cuentan las abiertas con una versión anterior de D01.
       const ejecucion = await tx
-        .selectFrom('ejecucion')
-        .select('id')
-        .where('estacion_id', '=', estacionId)
-        .where('metodo_id', '=', metodoId)
+        .selectFrom('ejecucion as x')
+        .innerJoin('metodo as xm', 'xm.id', 'x.metodo_id')
+        .select('x.id')
+        .where('x.estacion_id', '=', estacionId)
+        .where('xm.codigo', '=', metodo.codigo)
         .limit(1)
         .executeTakeFirst();
       if (ejecucion !== undefined) {
