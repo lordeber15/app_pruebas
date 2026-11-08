@@ -274,3 +274,108 @@ describe('galería: agregado por estación para el mini mapa', () => {
     expect((await estaciones(o.coordinacion.token, '', generarId())).status).toBe(404);
   });
 });
+
+interface PuntoGaleria {
+  archivo_id: string;
+  ejecucion_id: string;
+  lat: number;
+  lon: number;
+  precision_m: number | null;
+  capturado_en: string;
+}
+interface Puntos {
+  puntos: PuntoGaleria[];
+  truncado: boolean;
+  sin_coordenada: number;
+}
+
+const puntos = async (token: string, query: string, proyecto = o.esc.proyectoId) => {
+  const r = await pedir(e, token, 'GET', `/proyectos/${proyecto}/galeria/puntos${query}`);
+  return { status: r.statusCode, cuerpo: r.json<Puntos>(), tipo: r.headers['content-type'] };
+};
+
+describe('galería: puntos GPS de cada foto para el mapa (F-02)', () => {
+  let sinCoordenada: string;
+  let movida: string;
+  beforeAll(async () => {
+    // Una foto propia de la estación 1 sin coordenada y otra con una coordenada distinta.
+    sinCoordenada = propiasEst1[4] ?? '';
+    movida = propiasEst1[1] ?? '';
+    await e.admin
+      .updateTable('archivo')
+      .set({ geom: null, precision_m: null })
+      .where('id', '=', sinCoordenada)
+      .execute();
+    await e.admin
+      .updateTable('archivo')
+      .set({ geom: sql<string>`ST_SetSRID(ST_MakePoint(-75.21, -10.12), 4326)`, precision_m: 3.5 })
+      .where('id', '=', movida)
+      .execute();
+  });
+
+  const est1 = () => `?estacion=${o.esc.estacionId}`;
+
+  it('F-02: cada foto en su coordenada con precisión; sin coordenada aparte; sin URLs', async () => {
+    const r = await puntos(o.coordinacion.token, est1());
+    expect(r.status).toBe(200);
+    expect(r.cuerpo.truncado).toBe(false);
+    expect(r.cuerpo.sin_coordenada).toBe(1);
+    const ids = r.cuerpo.puntos.map((p) => p.archivo_id);
+    expect(new Set(ids)).toEqual(
+      new Set([...propiasEst1.filter((x) => x !== sinCoordenada), fotoB]),
+    );
+    const m = r.cuerpo.puntos.find((p) => p.archivo_id === movida);
+    expect(m?.lat).toBeCloseTo(-10.12);
+    expect(m?.lon).toBeCloseTo(-75.21);
+    expect(m?.precision_m).toBeCloseTo(3.5);
+    expect(m?.capturado_en).toBe('2026-12-02T15:00:00.000Z');
+    expect(JSON.stringify(r.cuerpo)).not.toMatch(/https?:|ruta_|X-Amz/);
+  });
+
+  it('respeta los filtros (método, día, selección, brigada)', async () => {
+    const t = o.coordinacion.token;
+    const ids = async (q: string) =>
+      (await puntos(t, `${est1()}${q}`)).cuerpo.puntos.map((p) => p.archivo_id);
+    expect(await ids(`&metodo=${o.esc.eventoId}`)).toEqual([fotoB]);
+    expect(await ids('&fecha=2026-12-03')).toEqual([]);
+    expect((await puntos(t, `${est1()}&fecha=2026-12-03`)).cuerpo.sin_coordenada).toBe(1);
+    expect(await ids('&seleccion=candidatas')).toEqual([]);
+    expect(await ids(`&brigada=${o.esc.brigadaB}`)).toEqual([fotoB]);
+    const e2 = await puntos(t, `?estacion=${estacion2}`);
+    expect(new Set(e2.cuerpo.puntos.map((p) => p.archivo_id))).toEqual(new Set(propiasEst2));
+  });
+
+  it('el especialista solo ve lo suyo; el compañero de brigada, nada', async () => {
+    const d = await puntos(duenio.token, est1());
+    expect(d.cuerpo.puntos.map((p) => p.archivo_id)).not.toContain(fotoB);
+    expect(d.cuerpo.puntos).toHaveLength(4);
+    expect(d.cuerpo.sin_coordenada).toBe(1);
+    const c = await puntos(companero.token, est1());
+    expect(c.cuerpo).toEqual({ puntos: [], truncado: false, sin_coordenada: 0 });
+  });
+
+  it('negativas: otra brigada, otro proyecto, Administrador técnico y estación obligatoria', async () => {
+    const b = await puntos(o.jefeB.token, est1());
+    expect(b.cuerpo.puntos.map((p) => p.archivo_id)).toEqual([fotoB]);
+    expect(b.cuerpo.sin_coordenada).toBe(0);
+    expect((await puntos(o.jefeB.token, `${est1()}&brigada=${o.esc.brigadaId}`)).status).toBe(404);
+    expect((await puntos(ajeno.token, est1())).status).toBe(404);
+    expect((await puntos(o.admin.token, est1())).status).toBe(404);
+    expect((await puntos(o.coordinacion.token, est1(), generarId())).status).toBe(404);
+    const sin = await puntos(o.coordinacion.token, '');
+    expect(sin.status).toBe(400);
+    expect(sin.tipo).toContain('application/problem+json');
+    expect((await puntos(o.coordinacion.token, '?estacion=no-es-uuid')).status).toBe(400);
+  });
+
+  it('la lista de la galería trae la coordenada y la precisión para el visor', async () => {
+    type ConGps = Foto & { lat: number | null; lon: number | null; precision_m: number | null };
+    const r = await galeria(o.coordinacion.token, `${est1()}&limite=100`);
+    const fotos = r.cuerpo.fotos as ConGps[];
+    const f = fotos.find((x) => x.id === movida);
+    expect(f?.lat).toBeCloseTo(-10.12);
+    expect(f?.lon).toBeCloseTo(-75.21);
+    expect(f?.precision_m).toBeCloseTo(3.5);
+    expect(fotos.find((x) => x.id === sinCoordenada)?.lat).toBeNull();
+  });
+});

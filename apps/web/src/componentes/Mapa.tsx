@@ -79,6 +79,26 @@ export interface MarcadorMapa {
   readonly elegido?: boolean;
 }
 
+/** Punto de una fuente agrupada (p. ej. cada foto en su coordenada GPS). */
+export interface PuntoAgrupado {
+  readonly id: string;
+  readonly lat: number;
+  readonly lon: number;
+}
+
+/**
+ * Fuente GeoJSON con `cluster: true`: los puntos cercanos se juntan en un círculo con su número
+ * (clic = acercar hasta separarlos); cada punto suelto es un círculo con borde blanco y un punto
+ * blanco al centro, distinto del marcador de estación. `lineas`: trazos tenues (p. ej. las fotos
+ * de una misma ejecución en orden de captura). Son capas del lienzo, sin foco de teclado: quien
+ * las use debe ofrecer otra vía accesible a los mismos elementos.
+ */
+export interface FuenteAgrupada {
+  readonly puntos: readonly PuntoAgrupado[];
+  readonly lineas?: readonly (readonly (readonly [number, number])[])[];
+  readonly alElegir: (id: string) => void;
+}
+
 const crearMarcador = (m: MarcadorMapa, alElegir: (id: string) => void): HTMLButtonElement => {
   const b = document.createElement('button');
   b.type = 'button';
@@ -154,6 +174,7 @@ const SIN_MARCADORES: readonly MarcadorMapa[] = [];
 
 export const Mapa = ({
   puntos,
+  agrupados = null,
   capas = SIN_CAPAS,
   marcadores = SIN_MARCADORES,
   alElegir,
@@ -165,6 +186,8 @@ export const Mapa = ({
   alCambiarVista,
 }: {
   puntos: readonly PuntoMapa[];
+  /** Fuente agrupada opcional (clusters); sin ella el mapa se comporta como siempre. */
+  agrupados?: FuenteAgrupada | null;
   capas?: readonly CapaMapa[];
   /** Estaciones con estado (avance): se dibujan como marcadores accesibles. */
   marcadores?: readonly MarcadorMapa[];
@@ -194,6 +217,8 @@ export const Mapa = ({
   marcando.current = marcarRectangulo;
   const alMarcar = useRef(alMarcarRectangulo);
   alMarcar.current = alMarcarRectangulo;
+  const elegirAgrupado = useRef(agrupados?.alElegir);
+  elegirAgrupado.current = agrupados?.alElegir;
   const alVista = useRef(alCambiarVista);
   alVista.current = alCambiarVista;
   const marcado = useRef(rectanguloMarcado);
@@ -327,6 +352,90 @@ export const Mapa = ({
         m.on('mouseleave', 'estaciones', () => {
           m.getCanvas().style.cursor = '';
         });
+        // Fuente agrupada (opcional): trazos tenues, grupos con su número y puntos sueltos.
+        m.addSource('agrupados-lineas', {
+          type: 'geojson',
+          data: { type: 'FeatureCollection', features: [] },
+        });
+        m.addLayer({
+          id: 'agrupados-lineas',
+          type: 'line',
+          source: 'agrupados-lineas',
+          paint: { 'line-color': '#18231f', 'line-width': 1.5, 'line-opacity': 0.35 },
+        });
+        m.addSource('agrupados', {
+          type: 'geojson',
+          data: { type: 'FeatureCollection', features: [] },
+          cluster: true,
+          clusterRadius: 40,
+          clusterMaxZoom: 19,
+        });
+        m.addLayer({
+          id: 'agrupados-grupo',
+          type: 'circle',
+          source: 'agrupados',
+          filter: ['has', 'point_count'],
+          paint: {
+            'circle-color': '#a86f1e',
+            'circle-radius': ['step', ['get', 'point_count'], 14, 10, 18, 50, 22],
+            'circle-stroke-color': '#ffffff',
+            'circle-stroke-width': 2,
+          },
+        });
+        m.addLayer({
+          id: 'agrupados-numero',
+          type: 'symbol',
+          source: 'agrupados',
+          filter: ['has', 'point_count'],
+          layout: {
+            'text-field': ['get', 'point_count_abbreviated'],
+            'text-font': ['NotoSansRegular'],
+            'text-size': 13,
+            'text-allow-overlap': true,
+          },
+          paint: { 'text-color': '#ffffff', 'text-halo-color': '#5c3c10', 'text-halo-width': 1 },
+        });
+        m.addLayer({
+          id: 'agrupados-punto',
+          type: 'circle',
+          source: 'agrupados',
+          filter: ['!', ['has', 'point_count']],
+          paint: {
+            'circle-color': '#a86f1e',
+            'circle-radius': 7,
+            'circle-stroke-color': '#ffffff',
+            'circle-stroke-width': 2,
+          },
+        });
+        // Punto blanco al centro: la forma (anillo) distingue la foto del marcador de estación.
+        m.addLayer({
+          id: 'agrupados-centro',
+          type: 'circle',
+          source: 'agrupados',
+          filter: ['!', ['has', 'point_count']],
+          paint: { 'circle-color': '#ffffff', 'circle-radius': 2.5 },
+        });
+        m.on('click', 'agrupados-grupo', (ev) => {
+          const grupo: unknown = ev.features?.[0]?.properties['cluster_id'];
+          if (typeof grupo !== 'number') return;
+          const centro = ev.lngLat;
+          void m
+            .getSource<GeoJSONSource>('agrupados')
+            ?.getClusterExpansionZoom(grupo)
+            .then((zoom) => m.easeTo({ center: centro, zoom }));
+        });
+        m.on('click', 'agrupados-punto', (ev) => {
+          const id: unknown = ev.features?.[0]?.properties['id'];
+          if (typeof id === 'string') elegirAgrupado.current?.(id);
+        });
+        for (const capa of ['agrupados-grupo', 'agrupados-punto']) {
+          m.on('mouseenter', capa, () => {
+            m.getCanvas().style.cursor = 'pointer';
+          });
+          m.on('mouseleave', capa, () => {
+            m.getCanvas().style.cursor = '';
+          });
+        }
         // Rectángulo en dibujo o marcado (borrador): borde grueso discontinuo en ocre.
         m.addSource('dibujo', {
           type: 'geojson',
@@ -406,6 +515,25 @@ export const Mapa = ({
         properties: { id: c.id, tipo: c.tipo, etiqueta: c.etiqueta },
       })),
     } as DatosGeoJson);
+    const sueltos = agrupados?.puntos ?? [];
+    void m.getSource<GeoJSONSource>('agrupados')?.setData({
+      type: 'FeatureCollection',
+      features: sueltos.map((p) => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [p.lon, p.lat] },
+        properties: { id: p.id },
+      })),
+    });
+    void m.getSource<GeoJSONSource>('agrupados-lineas')?.setData({
+      type: 'FeatureCollection',
+      features: (agrupados?.lineas ?? [])
+        .filter((l) => l.length > 1)
+        .map((l) => ({
+          type: 'Feature',
+          geometry: { type: 'LineString', coordinates: l.map(([a, b]) => [a, b]) },
+          properties: {},
+        })),
+    });
     for (const mk of enMapa.current) mk.remove();
     enMapa.current = marcadores.map((mk) =>
       new maplibregl.Marker({
@@ -417,6 +545,7 @@ export const Mapa = ({
     const todos: [number, number][] = [
       ...puntos.map((p): [number, number] => [p.lon, p.lat]),
       ...marcadores.map((p): [number, number] => [p.lon, p.lat]),
+      ...sueltos.map((p): [number, number] => [p.lon, p.lat]),
       ...capas.flatMap((c) => coordenadas(c.geometria.coordinates)),
     ];
     // Encuadrar solo cuando cambia el conjunto de lugares (elegir un marcador no mueve el mapa).
@@ -425,9 +554,13 @@ export const Mapa = ({
       encuadrado.current = clave;
       const limites = new maplibregl.LngLatBounds();
       for (const c of todos) limites.extend(c);
-      m.fitBounds(limites, { padding: 48, maxZoom: capas.length > 0 ? 18 : 15, duration: 0 });
+      m.fitBounds(limites, {
+        padding: 48,
+        maxZoom: capas.length > 0 || sueltos.length > 0 ? 18 : 15,
+        duration: 0,
+      });
     }
-  }, [puntos, capas, marcadores, listo]);
+  }, [puntos, agrupados, capas, marcadores, listo]);
 
   // Modo dibujo: cursor en cruz; al salir de él se descarta la esquina a medio marcar.
   useEffect(() => {

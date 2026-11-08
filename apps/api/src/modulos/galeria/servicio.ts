@@ -32,6 +32,8 @@ import {
 const ZONA_HORARIA = 'America/Lima';
 export const LIMITE_GALERIA = 48;
 export const LIMITE_GALERIA_MAXIMO = 100;
+/** Tope de puntos del mapa por estación: más que eso se avisa como truncado. */
+export const LIMITE_PUNTOS = 1000;
 
 export interface FiltrosGaleria {
   readonly brigada?: string | undefined;
@@ -169,6 +171,10 @@ export const listarGaleria = async (
       'm.nombre as metodo_nombre',
       's.nombre as especialidad_nombre',
       'un.codigo as unidad_codigo',
+      // Coordenada y precisión GPS de la captura (F-02), para el visor.
+      sql<number | null>`ST_Y(a.geom)`.as('lat'),
+      sql<number | null>`ST_X(a.geom)`.as('lon'),
+      'a.precision_m',
     ]);
   if (desde !== null) {
     // Comparación de filas: estable aunque varias fotos compartan el mismo instante.
@@ -238,6 +244,58 @@ export const estacionesGaleria = async (
     .orderBy('e.codigo')
     .execute();
   return { estaciones: filas };
+};
+
+/**
+ * Puntos del mapa de una estación: cada foto visible en su coordenada GPS real (F-02), con el
+ * mismo alcance y filtros de la galería. Ligero: sin URLs firmadas (el visor pide la suya con
+ * `GET /archivos/:id/url`, que vuelve a autorizar) y con tope `LIMITE_PUNTOS`. Las fotos sin
+ * coordenada se cuentan aparte. Mismo orden que la galería (las más recientes si se trunca).
+ */
+export const puntosGaleria = async (
+  db: Db,
+  actor: Actor,
+  proyectoId: string,
+  f: FiltrosGaleria & { readonly estacion: string },
+) => {
+  const { consulta } = await alcanceGaleria(db, actor, proyectoId, f, { conEstacion: true });
+  if (consulta === null) return { puntos: [], truncado: false, sin_coordenada: 0 };
+  const [filas, sinCoordenada] = await Promise.all([
+    consulta
+      .innerJoin('metodo as m', 'm.id', 'x.metodo_id')
+      .innerJoin('usuario as us', 'us.id', 'a.usuario_id')
+      .leftJoin('unidad as un', 'un.id', 'a.unidad_id')
+      .where('a.geom', 'is not', null)
+      .select([
+        'a.id as archivo_id',
+        'x.id as ejecucion_id',
+        sql<number>`ST_Y(a.geom)`.as('lat'),
+        sql<number>`ST_X(a.geom)`.as('lon'),
+        'a.precision_m',
+        'a.capturado_en',
+        'a.tipo_foto',
+        'e.codigo as estacion_codigo',
+        'm.nombre as metodo_nombre',
+        'un.codigo as unidad_codigo',
+        'us.nombre as usuario_nombre',
+      ])
+      .orderBy('a.capturado_en', 'desc')
+      .orderBy('a.id', 'desc')
+      .limit(LIMITE_PUNTOS + 1)
+      .execute(),
+    consulta
+      .where('a.geom', 'is', null)
+      .select(sql<number>`count(*)::int`.as('n'))
+      .executeTakeFirstOrThrow(),
+  ]);
+  return {
+    puntos: filas.slice(0, LIMITE_PUNTOS).map((p) => ({
+      ...p,
+      capturado_en: new Date(p.capturado_en).toISOString(),
+    })),
+    truncado: filas.length > LIMITE_PUNTOS,
+    sin_coordenada: sinCoordenada.n,
+  };
 };
 
 /** Foto con su brigada y el rol del actor ahí; 404 si no está a su alcance. */

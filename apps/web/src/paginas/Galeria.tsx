@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   api,
   type Brigada,
@@ -7,7 +7,9 @@ import {
   type EstacionGaleria,
   type FotoGaleria,
   type Galeria as G,
+  type PuntosGaleria,
 } from '../api.ts';
+import type { FuenteAgrupada } from '../componentes/Mapa.tsx';
 import { Mapa, type MarcadorMapa } from '../componentes/MapaDiferido.tsx';
 import {
   AvisoError,
@@ -19,7 +21,12 @@ import {
   fechaHora,
   Vacio,
 } from '../componentes/Ui.tsx';
-import { textoAlternativo, TIPO_FOTO, VisorFoto } from '../componentes/VisorFoto.tsx';
+import {
+  textoAlternativo,
+  TIPO_FOTO,
+  VisorFoto,
+  type FotoVisor,
+} from '../componentes/VisorFoto.tsx';
 import { useProyectoId } from './Proyectos.tsx';
 
 /** Hoy en Lima (AAAA-MM-DD), para proponer la fecha del reporte diario. */
@@ -208,6 +215,20 @@ export const Galeria = () => {
   const [abiertaId, setAbiertaId] = useState<string | null>(null);
   const indiceAbierta = abiertaId === null ? -1 : fotos.findIndex((f) => f.id === abiertaId);
 
+  // Foto abierta desde el mapa que no está entre las cargadas: se recorre la lista del mapa.
+  const [delMapa, setDelMapa] = useState<{
+    readonly fotos: readonly FotoVisor[];
+    readonly id: string;
+  } | null>(null);
+  const indiceMapa = delMapa === null ? -1 : delMapa.fotos.findIndex((f) => f.id === delMapa.id);
+  const abrirDesdeMapa = (id: string, delMapaFotos: readonly FotoVisor[]) => {
+    if (fotos.some((f) => f.id === id)) {
+      setAbiertaId(id);
+      return;
+    }
+    setDelMapa({ fotos: delMapaFotos, id });
+  };
+
   const recargar = () => qc.invalidateQueries({ queryKey: ['galeria', proyectoId] });
 
   return (
@@ -336,6 +357,16 @@ export const Galeria = () => {
         consulta={consultaMapa}
         elegida={estacion}
         alElegir={setEstacion}
+        alAbrirFoto={abrirDesdeMapa}
+      />
+      <VisorFoto
+        fotos={delMapa?.fotos ?? []}
+        indice={indiceMapa === -1 ? null : indiceMapa}
+        origen="en el mapa"
+        alCambiar={(i) =>
+          setDelMapa((d) => (d === null ? null : { ...d, id: d.fotos[i]?.id ?? d.id }))
+        }
+        alCerrar={() => setDelMapa(null)}
       />
 
       {q.isPending ? <Cargando que="las fotos" /> : null}
@@ -387,21 +418,37 @@ export const Galeria = () => {
   );
 };
 
+/** Marcador de referencia de la estación elegida: cuadrado oscuro con «E», distinto de las fotos. */
+const referenciaEstacion = (s: EstacionGaleria): MarcadorMapa => ({
+  id: s.estacion_id,
+  lat: s.lat,
+  lon: s.lon,
+  etiqueta: `Posición de la estación ${s.codigo} (referencia)`,
+  icono: 'E',
+  forma: 'cuadrado',
+  fondo: '#18231f',
+  tinta: '#ffffff',
+});
+
 /**
- * Mini mapa de fotos por estación: un marcador con el número de fotos visibles con los filtros
- * activos (salvo la estación). Usa el agregado del servidor, no carga las fotos; MapLibre se
- * descarga diferido.
+ * Mini mapa de la galería. Sin estación elegida: un marcador por estación con el número de fotos
+ * visibles con los filtros activos (salvo la estación), del agregado del servidor. Con estación:
+ * cada foto en su coordenada GPS real (F-02), agrupadas las cercanas, la posición de la estación
+ * como referencia y una línea tenue que une las fotos de cada ejecución en orden de captura.
+ * MapLibre se descarga diferido; los puntos no traen URLs (el visor pide la suya al abrir).
  */
 const MapaFotos = ({
   proyectoId,
   consulta,
   elegida,
   alElegir,
+  alAbrirFoto,
 }: {
   proyectoId: string;
   consulta: string;
   elegida: string;
   alElegir: (estacionId: string) => void;
+  alAbrirFoto: (id: string, delMapa: readonly FotoVisor[]) => void;
 }) => {
   const q = useQuery({
     queryKey: ['galeria-estaciones', proyectoId, consulta],
@@ -410,29 +457,68 @@ const MapaFotos = ({
         `/proyectos/${proyectoId}/galeria/estaciones${consulta === '' ? '' : `?${consulta}`}`,
       ),
   });
+  const consultaPuntos = useMemo(() => {
+    const p = new URLSearchParams(consulta);
+    p.set('estacion', elegida);
+    return p.toString();
+  }, [consulta, elegida]);
+  const qp = useQuery({
+    queryKey: ['galeria-puntos', proyectoId, consultaPuntos],
+    queryFn: () =>
+      api.get<PuntosGaleria>(`/proyectos/${proyectoId}/galeria/puntos?${consultaPuntos}`),
+    enabled: elegida !== '',
+  });
   const estaciones = q.data?.estaciones;
-  const marcadores = useMemo(
-    () =>
-      (estaciones ?? []).map((s): MarcadorMapa => ({
-        id: s.estacion_id,
-        lat: s.lat,
-        lon: s.lon,
-        etiqueta: `${s.codigo}: ${String(s.fotos)} ${s.fotos === 1 ? 'foto' : 'fotos'}${s.estacion_id === elegida ? ' (filtro activo)' : '. Elija para filtrar la galería'}`,
-        icono: s.fotos > 99 ? '99+' : String(s.fotos),
-        forma: 'circulo',
-        fondo: '#2e5e4e',
-        tinta: '#ffffff',
-        elegido: s.estacion_id === elegida,
-      })),
-    [estaciones, elegida],
-  );
   const actual = estaciones?.find((s) => s.estacion_id === elegida);
+  const marcadores = useMemo(() => {
+    if (elegida !== '') return actual === undefined ? [] : [referenciaEstacion(actual)];
+    return (estaciones ?? []).map((s): MarcadorMapa => ({
+      id: s.estacion_id,
+      lat: s.lat,
+      lon: s.lon,
+      etiqueta: `${s.codigo}: ${String(s.fotos)} ${s.fotos === 1 ? 'foto' : 'fotos'}. Elija para filtrar la galería`,
+      icono: s.fotos > 99 ? '99+' : String(s.fotos),
+      forma: 'circulo',
+      fondo: '#2e5e4e',
+      tinta: '#ffffff',
+    }));
+  }, [estaciones, elegida, actual]);
+
+  const puntos = elegida === '' ? undefined : qp.data?.puntos;
+  const fotosMapa = useMemo(
+    (): readonly FotoVisor[] =>
+      (puntos ?? []).map(({ archivo_id, ...p }) => ({ ...p, id: archivo_id })),
+    [puntos],
+  );
+  const abrir = useRef(alAbrirFoto);
+  abrir.current = alAbrirFoto;
+  const agrupados = useMemo((): FuenteAgrupada | null => {
+    if (puntos === undefined) return null;
+    // Fotos de cada ejecución en orden de captura (ISO UTC: el orden de texto es el temporal).
+    const porEjecucion = new Map<string, { t: string; c: readonly [number, number] }[]>();
+    for (const p of puntos) {
+      const l = porEjecucion.get(p.ejecucion_id) ?? [];
+      l.push({ t: p.capturado_en, c: [p.lon, p.lat] });
+      porEjecucion.set(p.ejecucion_id, l);
+    }
+    return {
+      puntos: puntos.map((p) => ({ id: p.archivo_id, lat: p.lat, lon: p.lon })),
+      lineas: [...porEjecucion.values()].map((l) =>
+        l.sort((a, b) => a.t.localeCompare(b.t)).map((x) => x.c),
+      ),
+      alElegir: (id) => abrir.current(id, fotosMapa),
+    };
+  }, [puntos, fotosMapa]);
+
+  const hayEstaciones = estaciones !== undefined && estaciones.length > 0;
+  const n = qp.data?.puntos.length ?? 0;
+  const sinCoordenada = qp.data?.sin_coordenada ?? 0;
 
   return (
     <section aria-labelledby="titulo-mapa-fotos" className="mb-5">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <h2 id="titulo-mapa-fotos" className="text-base font-semibold">
-          Fotos por estación
+          {elegida === '' ? 'Fotos por estación' : 'Fotos en su ubicación GPS'}
         </h2>
         {elegida === '' ? (
           <p className="text-sm text-tinta-suave">Elija una estación en el mapa para filtrar.</p>
@@ -449,19 +535,45 @@ const MapaFotos = ({
           </div>
         )}
       </div>
-      {q.isPending ? <Cargando que="el mapa de fotos" /> : null}
-      <AvisoError error={q.error} />
-      {estaciones !== undefined && estaciones.length === 0 ? (
+      {q.isPending || (elegida !== '' && qp.isPending) ? <Cargando que="el mapa de fotos" /> : null}
+      <AvisoError error={q.error ?? (elegida === '' ? null : qp.error)} />
+      {elegida === '' && estaciones !== undefined && estaciones.length === 0 ? (
         <p className="text-sm text-tinta-suave">Ninguna estación tiene fotos con estos filtros.</p>
       ) : null}
-      {estaciones !== undefined && estaciones.length > 0 ? (
+      {hayEstaciones || (elegida !== '' && n > 0) ? (
         <Mapa
           puntos={[]}
           marcadores={marcadores}
-          alElegir={alElegir}
+          agrupados={agrupados}
+          alElegir={(id) => {
+            // El marcador de referencia no cambia el filtro.
+            if (elegida === '') alElegir(id);
+          }}
           alto="19rem"
-          etiqueta="Mapa de fotos por estación"
+          etiqueta={
+            elegida === ''
+              ? 'Mapa de fotos por estación'
+              : `Mapa de las fotos de la estación ${actual?.codigo ?? ''} en su ubicación GPS`
+          }
         />
+      ) : null}
+      {elegida !== '' && qp.data !== undefined ? (
+        <div className="mt-2 flex flex-col gap-1 text-sm text-tinta-suave">
+          <p role="status">
+            <span className="cifras">{n}</span> {n === 1 ? 'foto' : 'fotos'} en el mapa;{' '}
+            <span className="cifras">{sinCoordenada}</span> sin coordenada.
+            {qp.data.truncado
+              ? ' Hay más fotos de las que se pueden dibujar: se muestran las más recientes; afine los filtros (día o método) para ver el resto.'
+              : ''}
+          </p>
+          {n > 0 ? (
+            <p>
+              <span aria-hidden="true">● </span>Cada anillo es una foto; los círculos con número
+              agrupan fotos cercanas (haga clic para acercar) y el cuadrado «E» es la estación. Con
+              el teclado, abra las fotos desde la grilla de abajo.
+            </p>
+          ) : null}
+        </div>
       ) : null}
     </section>
   );

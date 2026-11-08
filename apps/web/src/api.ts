@@ -493,6 +493,10 @@ export interface FotoGaleria {
   metodo_nombre: string;
   especialidad_nombre: string;
   unidad_codigo: string | null;
+  /** Coordenada y precisión GPS de la captura (F-02); null si el celular no la tenía. */
+  lat: number | null;
+  lon: number | null;
+  precision_m: number | null;
   /** URL firmada (≤ 15 min) de la miniatura; null si el worker aún no la generó. */
   miniatura_url: string | null;
   puede_marcar: boolean;
@@ -512,4 +516,26 @@ export interface EstacionGaleria {
   lat: number;
   lon: number;
   fotos: number;
+}
+
+/** Una foto de la estación en su coordenada GPS, para el mapa de la galería (sin URL). */
+export interface PuntoGaleria {
+  archivo_id: string;
+  ejecucion_id: string;
+  lat: number;
+  lon: number;
+  precision_m: number | null;
+  capturado_en: string;
+  tipo_foto: string | null;
+  estacion_codigo: string;
+  metodo_nombre: string;
+  unidad_codigo: string | null;
+  usuario_nombre: string;
+}
+
+/** Puntos de una estación; `truncado` si superan el tope del servidor. */
+export interface PuntosGaleria {
+  puntos: PuntoGaleria[];
+  truncado: boolean;
+  sin_coordenada: number;
 }

@@ -10,8 +10,35 @@ export const TIPO_FOTO: Readonly<Record<string, string>> = {
   cientifica: 'Científica',
 };
 
+/**
+ * Lo que el visor necesita de una foto: lo trae la página de la galería y también el punto del
+ * mapa, así se abre una foto del mapa aunque aún no esté entre las cargadas en la grilla.
+ */
+export type FotoVisor = Pick<
+  FotoGaleria,
+  | 'id'
+  | 'tipo_foto'
+  | 'estacion_codigo'
+  | 'metodo_nombre'
+  | 'unidad_codigo'
+  | 'capturado_en'
+  | 'usuario_nombre'
+  | 'lat'
+  | 'lon'
+  | 'precision_m'
+>;
+
+/** Coordenada GPS de la captura con su precisión (F-02), en texto. */
+export const textoGps = (f: FotoVisor): string =>
+  f.lat === null || f.lon === null
+    ? 'Sin coordenada GPS'
+    : `GPS ${f.lat.toFixed(6)}, ${f.lon.toFixed(6)}` +
+      (f.precision_m === null
+        ? ', precisión desconocida'
+        : `, precisión ±${f.precision_m.toFixed(1)} m`);
+
 /** Texto alternativo completo: tipo, estación, método, unidad, fecha y autor. */
-export const textoAlternativo = (f: FotoGaleria): string =>
+export const textoAlternativo = (f: FotoVisor): string =>
   `${TIPO_FOTO[f.tipo_foto ?? ''] ?? 'Foto'} de la estación ${f.estacion_codigo}, ${f.metodo_nombre}` +
   (f.unidad_codigo === null ? '' : `, unidad ${f.unidad_codigo}`) +
   `, ${fechaHora(f.capturado_en)}, por ${f.usuario_nombre}`;
@@ -30,8 +57,11 @@ export const VisorFoto = ({
   indice,
   alCambiar,
   alCerrar,
+  origen = 'cargadas',
 }: {
-  fotos: readonly FotoGaleria[];
+  fotos: readonly FotoVisor[];
+  /** De dónde sale la lista que se recorre con las flechas (se muestra junto al número). */
+  origen?: string;
   /** Foto abierta; null = visor cerrado. */
   indice: number | null;
   alCambiar: (indice: number) => void;
@@ -79,11 +109,12 @@ export const VisorFoto = ({
             <div className="min-w-0">
               <h2 id="titulo-visor" className="text-base font-semibold">
                 Foto {indice + 1} de {fotos.length}
-                <span className="font-normal text-tinta-suave"> (cargadas)</span>
+                <span className="font-normal text-tinta-suave"> ({origen})</span>
               </h2>
               <p id="detalle-visor" className="text-sm text-tinta-suave">
                 {textoAlternativo(foto)}
               </p>
+              <p className="cifras text-sm text-tinta-suave">{textoGps(foto)}</p>
             </div>
             <button
               ref={cerrarRef}
@@ -123,7 +154,7 @@ export const VisorFoto = ({
 };
 
 /** Versión de 2 048 px: la URL firmada se pide aquí, no en la grilla. */
-const VistaGrande = ({ foto }: { foto: FotoGaleria }) => {
+const VistaGrande = ({ foto }: { foto: FotoVisor }) => {
   const q = useQuery({
     queryKey: ['url-archivo', foto.id, 'preview'],
     queryFn: () => api.get<{ url: string }>(`/archivos/${foto.id}/url?variante=preview`),
