@@ -269,6 +269,11 @@ export default function Inicio() {
               </View>
               <Boton
                 variante="secundario"
+                texto="Mapa de estaciones"
+                alPresionar={() => router.push('/mapa')}
+              />
+              <Boton
+                variante="secundario"
                 texto="Registrar alerta"
                 alPresionar={() => router.push('/alerta/nueva')}
               />
