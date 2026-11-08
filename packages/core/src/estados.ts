@@ -8,9 +8,11 @@ const incluye =
 /**
  * Reserva estación × método (interna): la crea la carga de D01/A01 para la brigada y la fecha del
  * cronograma vigente. `asignada` si tiene brigada; si no, `pendiente`. No se retiene por
- * dispositivo: cada especialista abre su propia ejecución (RN-19).
+ * dispositivo: cada especialista abre su propia ejecución (RN-19). `descartada`: Coordinación o
+ * el JdP descartaron el método CONDICIONAL en la estación; la reserva no se borra (nada se
+ * borra), deja de ir al celular y no cuenta en el avance. Si se vuelve a confirmar, se reactiva.
  */
-export const ESTADOS_RESERVA = ['pendiente', 'asignada'] as const;
+export const ESTADOS_RESERVA = ['pendiente', 'asignada', 'descartada'] as const;
 export type EstadoReserva = (typeof ESTADOS_RESERVA)[number];
 
 export const ESTADOS_EVENTO = [

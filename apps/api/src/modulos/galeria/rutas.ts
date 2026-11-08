@@ -56,6 +56,13 @@ export const rutasGaleria: FastifyPluginAsyncZod<Opciones> = (app, { auth, db, f
       galeria.estacionesGaleria(db, actor(request), request.params.id, request.query),
   );
 
+  // Cada foto de una estación en su coordenada GPS (F-02): mismo alcance y filtros, sin URLs.
+  app.get(
+    '/proyectos/:id/galeria/puntos',
+    { schema: { params: conId, querystring: filtros.extend({ estacion: z.uuid() }) } },
+    async (request) => galeria.puntosGaleria(db, actor(request), request.params.id, request.query),
+  );
+
   app.post(
     '/archivos/:id/candidata',
     { schema: { params: conId, body: z.object({ candidata: z.boolean() }) } },

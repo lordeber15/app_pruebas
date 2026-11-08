@@ -86,6 +86,7 @@ export const verSeguimiento = async (
     .where('r.proyecto_id', '=', proyectoId)
     .where('r.brigada_id', 'in', ids)
     .where('r.metodo_id', 'is not', null)
+    .where('r.estado', '<>', 'descartada')
     .execute();
 
   let qEjec = db

@@ -134,6 +134,46 @@ export interface Estacion {
   norte: string | null;
   lat: number;
   lon: number;
+  /** CONDICIONAL que esperan confirmación nominal (P-01). */
+  metodos_pendientes: number;
+}
+
+// ── Métodos a ejecutar por estación (RN-28, P-01) ──
+
+export type ClaseMetodo = 'todas' | 'condicional' | 'evento' | 'atributo' | 'transversal';
+export type EstadoMatriz =
+  'aplicable' | 'condicion_pendiente' | 'no_aplica' | 'descartado' | 'evento' | 'atributo';
+export type TipoControl =
+  'obligatorio' | 'advertencia' | 'informativo' | 'referencia' | 'criterio_humano';
+
+export interface MetodoDeEstacion {
+  metodo_id: string;
+  codigo: string;
+  nombre: string;
+  clase: ClaseMetodo;
+  estado: EstadoMatriz;
+  origen: 'clase' | 'condicion' | 'nominal' | null;
+  condicion_d01: string;
+  resumen_d01:
+    { clave: string; etiqueta: string; valor: string; tipo_control: TipoControl | null }[] | null;
+  reserva: { id: string; estado: string } | null;
+  ejecuciones: number;
+  admite_decision: boolean;
+  decision: { decision: 'confirmar' | 'descartar'; motivo: string; por: string; en: string } | null;
+  actualizado_en: string | null;
+}
+
+export interface MetodosDeEstacion {
+  estacion: {
+    id: string;
+    codigo: string;
+    region: string | null;
+    uv: string | null;
+    za_ef: string | null;
+  };
+  puede_decidir: boolean;
+  pendientes: number;
+  especialidades: { id: string | null; nombre: string; metodos: MetodoDeEstacion[] }[];
 }
 
 export interface Revision {
@@ -493,6 +533,10 @@ export interface FotoGaleria {
   metodo_nombre: string;
   especialidad_nombre: string;
   unidad_codigo: string | null;
+  /** Coordenada y precisión GPS de la captura (F-02); null si el celular no la tenía. */
+  lat: number | null;
+  lon: number | null;
+  precision_m: number | null;
   /** URL firmada (≤ 15 min) de la miniatura; null si el worker aún no la generó. */
   miniatura_url: string | null;
   puede_marcar: boolean;
@@ -512,4 +556,26 @@ export interface EstacionGaleria {
   lat: number;
   lon: number;
   fotos: number;
+}
+
+/** Una foto de la estación en su coordenada GPS, para el mapa de la galería (sin URL). */
+export interface PuntoGaleria {
+  archivo_id: string;
+  ejecucion_id: string;
+  lat: number;
+  lon: number;
+  precision_m: number | null;
+  capturado_en: string;
+  tipo_foto: string | null;
+  estacion_codigo: string;
+  metodo_nombre: string;
+  unidad_codigo: string | null;
+  usuario_nombre: string;
+}
+
+/** Puntos de una estación; `truncado` si superan el tope del servidor. */
+export interface PuntosGaleria {
+  puntos: PuntoGaleria[];
+  truncado: boolean;
+  sin_coordenada: number;
 }
