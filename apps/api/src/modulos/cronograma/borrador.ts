@@ -1,5 +1,10 @@
-import type { TipoActividadCronograma } from '@campo/core';
-import { crearCronogramaBase, sincronizarReservas, type Db } from '@campo/db';
+import type { EstadoFilaCronograma, TipoActividadCronograma } from '@campo/core';
+import {
+  aplicarActividadesEspeciales,
+  crearCronogramaBase,
+  sincronizarReservas,
+  type Db,
+} from '@campo/db';
 import { sql, type Kysely } from 'kysely';
 import { ProblemaHttp } from '../../plataforma/errores.ts';
 import { generarId } from '../../plataforma/ids.ts';
@@ -21,6 +26,9 @@ export interface FilaBorrador {
   readonly tipo_actividad: TipoActividadCronograma;
   readonly estacion_id: string | null;
   readonly detalle: string | null;
+  /** Desde la carga de A01: «PENDIENTE VALIDACIÓN» y las actividades especiales. */
+  readonly estado_fila?: EstadoFilaCronograma;
+  readonly actividad_especial?: string | null;
 }
 
 const yaPublicado = (): ProblemaHttp =>
@@ -51,7 +59,15 @@ const tieneBase = async (db: Db, proyectoId: string): Promise<boolean> =>
 export const verBorrador = async (db: Db, actor: Actor, proyectoId: string) => {
   exigirGlobal(actor, 'configurar_proyecto');
   await exigirProyecto(db, proyectoId);
-  const filas = await db
+  return {
+    publicado: await tieneBase(db, proyectoId),
+    filas: await filasDelBorrador(db, proyectoId),
+  };
+};
+
+/** Filas vigentes del borrador (sin las descartadas), en orden. */
+export const filasDelBorrador = (db: Db, proyectoId: string) =>
+  db
     .selectFrom('cronograma_borrador_item as i')
     .innerJoin('brigada as b', 'b.id', 'i.brigada_id')
     .leftJoin('estacion as e', 'e.id', 'i.estacion_id')
@@ -65,14 +81,14 @@ export const verBorrador = async (db: Db, actor: Actor, proyectoId: string) => {
       'i.estacion_id',
       'e.codigo as estacion_codigo',
       'i.detalle',
+      'i.estado_fila',
+      'i.actividad_especial',
     ])
     .where('i.proyecto_id', '=', proyectoId)
     .where('i.estado', '=', 'borrador')
     .orderBy('i.fecha')
     .orderBy('i.orden')
     .execute();
-  return { publicado: await tieneBase(db, proyectoId), filas };
-};
 
 export const agregarFilaBorrador = async (
   db: Db,
@@ -103,28 +119,47 @@ export const agregarFilaBorrador = async (
       throw new ProblemaHttp(400, 'FILA_INVALIDA', 'La estación indicada no es del proyecto.');
     }
   }
+  const [id] = await insertarFilasBorrador(db, actor, proyectoId, [f]);
+  return id ?? '';
+};
+
+/**
+ * Inserta filas al final del borrador (ya validadas contra el proyecto). La usan el alta fila por
+ * fila y la carga de la programación por Excel o tabla (RF-W09).
+ */
+export const insertarFilasBorrador = async (
+  db: Db,
+  actor: Actor,
+  proyectoId: string,
+  filas: readonly FilaBorrador[],
+): Promise<string[]> => {
+  if (filas.length === 0) return [];
   const orden = await db
     .selectFrom('cronograma_borrador_item')
-    .select(sql<number>`coalesce(max(orden), 0) + 1`.as('n'))
+    .select(sql<number>`coalesce(max(orden), 0)`.as('n'))
     .where('proyecto_id', '=', proyectoId)
     .executeTakeFirstOrThrow();
-  const id = generarId();
-  await db
-    .insertInto('cronograma_borrador_item')
-    .values({
-      id,
-      proyecto_id: proyectoId,
-      brigada_id: f.brigada_id,
-      fecha: f.fecha,
-      tipo_actividad: f.tipo_actividad,
-      estacion_id: f.estacion_id,
-      detalle: f.detalle,
-      orden: orden.n,
-      creado_por: actor.usuarioId,
-      actualizado_por: actor.usuarioId,
-    })
-    .execute();
-  return id;
+  const valores = filas.map((f, i) => ({
+    id: generarId(),
+    proyecto_id: proyectoId,
+    brigada_id: f.brigada_id,
+    fecha: f.fecha,
+    tipo_actividad: f.tipo_actividad,
+    estacion_id: f.estacion_id,
+    detalle: f.detalle,
+    estado_fila: f.estado_fila ?? 'ok',
+    actividad_especial: f.actividad_especial ?? null,
+    orden: orden.n + i + 1,
+    creado_por: actor.usuarioId,
+    actualizado_por: actor.usuarioId,
+  }));
+  for (let i = 0; i < valores.length; i += 500) {
+    await db
+      .insertInto('cronograma_borrador_item')
+      .values(valores.slice(i, i + 500))
+      .execute();
+  }
+  return valores.map((v) => v.id);
 };
 
 /** Quita una fila del borrador: queda `descartada`, nada se borra. */
@@ -164,6 +199,8 @@ export const publicarBorrador = async (
         'tipo_actividad',
         'estacion_id',
         'detalle',
+        'estado_fila',
+        'actividad_especial',
       ])
       .where('proyecto_id', '=', proyectoId)
       .where('estado', '=', 'borrador')
@@ -225,6 +262,8 @@ export const publicarBorrador = async (
       .where('campania_id', 'is', null)
       .where('id', 'in', [...new Set(filas.map((f) => f.brigada_id))])
       .execute();
+    // Epífitas y cámaras trampa del borrador: decisión nominal, como en la carga de A01 (RN-28).
+    await aplicarActividadesEspeciales(k, { proyectoId, versionId, usuarioId: actor.usuarioId });
     const reservas = await sincronizarReservas(k, { proyectoId, usuarioId: actor.usuarioId });
     return {
       version_id: versionId,

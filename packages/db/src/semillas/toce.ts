@@ -28,7 +28,7 @@ import {
 } from '@campo/core';
 import { sql, type Kysely } from 'kysely';
 import { z } from 'zod';
-import { crearCronogramaBase, METODOS_POR_ACTIVIDAD_ESPECIAL } from '../cronograma.ts';
+import { crearCronogramaBase, metodosDeActividadEspecial } from '../cronograma.ts';
 import { derivarAplicabilidad, geomDesdeUtm, sincronizarReservas } from '../estaciones.ts';
 
 const CARPETA_SEMILLAS = path.join(import.meta.dirname, '..', '..', 'semillas', 'toce');
@@ -351,7 +351,7 @@ export const cargarToce = async (
            AND i.estacion_id IS NOT NULL AND i.actividad_especial IS NOT NULL`.execute(trx)
     ).rows;
     for (const i of especiales) {
-      for (const codigo of METODOS_POR_ACTIVIDAD_ESPECIAL[i.actividad_especial] ?? []) {
+      for (const codigo of metodosDeActividadEspecial(i.actividad_especial)) {
         nominales.add(`${i.estacion_id}|${codigo}`);
       }
     }

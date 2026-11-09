@@ -249,6 +249,7 @@ export interface ConfiguracionMetodologica {
 }
 
 export interface CronogramaBorradorItem {
+  actividad_especial: string | null;
   actualizado_en: Generated<Timestamp>;
   actualizado_por: string | null;
   brigada_id: string;
@@ -257,6 +258,7 @@ export interface CronogramaBorradorItem {
   detalle: string | null;
   estacion_id: string | null;
   estado: Generated<string>;
+  estado_fila: Generated<string>;
   fecha: Timestamp;
   id: string;
   orden: Generated<number>;
@@ -460,6 +462,32 @@ export interface EvidenciaItem {
   id: string;
   orden: number;
   tarea_id: string;
+}
+
+export interface ImportacionProgramacion {
+  actualizado_en: Generated<Timestamp>;
+  actualizado_por: string | null;
+  alcance_brigadas: string[] | null;
+  aplicada_en: Timestamp | null;
+  aplicada_por: string | null;
+  creado_en: Generated<Timestamp>;
+  creado_por: string;
+  descartada_en: Timestamp | null;
+  descartada_por: string | null;
+  destino: string | null;
+  estado: Generated<string>;
+  filas: Json;
+  hash_archivo: string | null;
+  id: string;
+  motivo: string | null;
+  motivo_descarte: string | null;
+  nombre_archivo: string | null;
+  origen: string;
+  propuesta_en: Timestamp | null;
+  proyecto_id: string;
+  resumen: Json;
+  solicitud_id: string | null;
+  tamano_bytes: number | null;
 }
 
 export interface Jornada {
@@ -709,6 +737,7 @@ export interface DB {
   estacion_metodologia: EstacionMetodologia;
   evento: Evento;
   evidencia_item: EvidenciaItem;
+  importacion_programacion: ImportacionProgramacion;
   jornada: Jornada;
   metodo: Metodo;
   miembro_brigada: MiembroBrigada;

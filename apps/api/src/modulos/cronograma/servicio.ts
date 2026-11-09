@@ -13,7 +13,7 @@ import {
   type ItemCronograma,
   type MotivoRechazoCambio,
 } from '@campo/core';
-import { reubicarReservas, type Db } from '@campo/db';
+import { aplicarActividadesEspeciales, reubicarReservas, type Db } from '@campo/db';
 import { sql, type Kysely } from 'kysely';
 import { z } from 'zod';
 import { ProblemaHttp } from '../../plataforma/errores.ts';
@@ -417,7 +417,7 @@ export const listarSolicitudes = async (db: Db, actor: Actor, proyectoId: string
             brigada_despues: brigadas.get(c.item.brigada_id) ?? null,
             fecha_antes: null,
             fecha_despues: c.item.fecha,
-            estado_fila: 'ok',
+            estado_fila: c.item.estado_fila ?? 'ok',
             detalle: c.item.detalle,
           };
         }
@@ -607,12 +607,28 @@ const aprobarEnTransaccion = async (
       .values(filas.slice(i, i + 500))
       .execute();
   }
-  const reservas = await reubicarReservas(tx as unknown as Kysely<unknown>, {
+  const k = tx as unknown as Kysely<unknown>;
+  const reservas = await reubicarReservas(k, {
     proyectoId: proyectoId,
     versionAnteriorId: vigente.id,
     versionNuevaId: nuevaId,
     usuarioId: actor.usuarioId,
   });
+  // Una actividad especial agregada (epífitas, cámaras trampa) decide nominalmente sus métodos en
+  // la estación, como la carga de A01 (RN-28).
+  const conEspecial = cambios.flatMap((c) =>
+    c.tipo === 'agregar' && c.item.actividad_especial !== null && c.item.estacion_id !== null
+      ? [c.item.estacion_id]
+      : [],
+  );
+  if (conEspecial.length > 0) {
+    await aplicarActividadesEspeciales(k, {
+      proyectoId,
+      versionId: nuevaId,
+      usuarioId: actor.usuarioId,
+      estacionIds: [...new Set(conEspecial)],
+    });
+  }
   await tx
     .updateTable('solicitud_cronograma')
     .set({
@@ -708,4 +724,27 @@ export const aplicarAhora = async (
   });
   await alCambiar?.(proyectoId, actor.usuarioId);
   return r;
+};
+
+/**
+ * Solicitud de reprogramación dentro de una transacción abierta (la carga de la programación por
+ * Excel o tabla, RF-W09). Con `aprobar` (solo el JdP, como «Aplicar ahora»), también la aprueba.
+ * Valida los cambios contra la versión vigente igual que `proponerCambio`.
+ */
+export const solicitarEnTransaccion = async (
+  tx: Tx,
+  actor: Actor,
+  proyectoId: string,
+  p: Propuesta,
+  aprobar: boolean,
+): Promise<{ solicitud_id: string; version_id: string | null; numero: number | null }> => {
+  exigirGlobal(actor, aprobar ? 'aprobar_cronograma' : 'proponer_reprogramacion');
+  const campania = await campaniaDe(tx, proyectoId);
+  const vigente = campania === undefined ? undefined : await vigenteDe(tx, campania.id);
+  if (campania === undefined || vigente === undefined) throw sinCronograma();
+  await validarCambios(tx, proyectoId, await itemsDeVersion(tx, vigente.id), p.cambios);
+  const solicitudId = await insertarSolicitud(tx, actor, campania.id, vigente.id, p);
+  if (!aprobar) return { solicitud_id: solicitudId, version_id: null, numero: null };
+  const r = await aprobarEnTransaccion(tx, actor, solicitudId, proyectoId);
+  return { solicitud_id: solicitudId, version_id: r.version_id, numero: r.numero };
 };

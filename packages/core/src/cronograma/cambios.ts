@@ -51,6 +51,8 @@ export const cambioCronogramaSchema = z.discriminatedUnion('tipo', [
       estacion_id: id.nullable(),
       detalle: z.string().trim().max(500).nullable(),
       actividad_especial: z.string().trim().max(100).nullable(),
+      /** Estado de la fila agregada (p. ej. «pendiente_validacion» de A01); por defecto `ok`. */
+      estado_fila: z.enum(ESTADOS_FILA_CRONOGRAMA).optional(),
     }),
   }),
 ]);
@@ -88,7 +90,7 @@ export const aplicarCambiosCronograma = (
         if ((c.item.tipo_actividad === 'estacion') !== (c.item.estacion_id !== null)) {
           return fallo('ESTACION_SIN_ID');
         }
-        porId.set(c.item.id, { ...c.item, estado_fila: 'ok' });
+        porId.set(c.item.id, { ...c.item, estado_fila: c.item.estado_fila ?? 'ok' });
         break;
       }
     }

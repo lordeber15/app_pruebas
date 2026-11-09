@@ -28,6 +28,7 @@ import { DialogoMetodosEstacion } from '../componentes/MetodosEstacion.tsx';
 import { Paginacion, usePaginaCliente } from '../componentes/Paginacion.tsx';
 import { useYo } from '../sesion.ts';
 import { ACTIVIDAD, AsignarEstacion, BorradorBase } from './CronogramaArmado.tsx';
+import { CargarProgramacion } from './CronogramaCarga.tsx';
 import { useProyectoId } from './Proyectos.tsx';
 
 /** Estado de la fila con texto e ícono: el color nunca es el único indicador. */
@@ -408,6 +409,12 @@ export const Cronograma = () => {
   const yo = useYo();
   const gestion = yo.data?.rol_global === 'coordinacion' || yo.data?.rol_global === 'jefe_proyecto';
   const aprueba = yo.data?.rol_global === 'jefe_proyecto';
+  // RF-W09: el Supervisor de campo sugiere la programación de sus brigadas.
+  const brigadasSupervisa = new Set(
+    (yo.data?.membresias ?? [])
+      .filter((m) => m.rol === 'supervisor_campo')
+      .map((m) => m.brigada_id),
+  );
   const [version, setVersion] = useState<number | null>(null);
   const [brigada, setBrigada] = useState('');
   const [elegidos, setElegidos] = useState<ReadonlySet<string>>(new Set());
@@ -642,6 +649,17 @@ export const Cronograma = () => {
             />
           ) : null}
         </div>
+      ) : null}
+
+      {gestion || brigadasSupervisa.size > 0 ? (
+        <CargarProgramacion
+          proyectoId={proyectoId}
+          brigadas={(brigadas.data?.brigadas ?? []).filter(
+            (b) => gestion || brigadasSupervisa.has(b.id),
+          )}
+          gestion={gestion}
+          aprueba={aprueba}
+        />
       ) : null}
 
       {gestion ? (

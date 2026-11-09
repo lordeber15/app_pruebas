@@ -1,3 +1,4 @@
+import type { ActividadEspecial } from '@campo/core';
 import { sql, type Kysely } from 'kysely';
 
 /**
@@ -7,10 +8,16 @@ import { sql, type Kysely } from 'kysely';
  */
 
 /** Actividades especiales de A01 (hoja 02) y los métodos de D01 que programan nominalmente. */
-export const METODOS_POR_ACTIVIDAD_ESPECIAL: Readonly<Record<string, readonly string[]>> = {
+export const METODOS_POR_ACTIVIDAD_ESPECIAL: Readonly<
+  Record<ActividadEspecial, readonly string[]>
+> = {
   EPÍFITAS: ['epifitas.vasculares', 'epifitas.no_vasculares'],
   'CÁMARAS TRAMPA': ['mamiferos_mayores.camaras_trampa'],
 };
+
+/** Métodos que programa nominalmente una actividad especial (vacío si no es una de A01). */
+export const metodosDeActividadEspecial = (actividad: string): readonly string[] =>
+  Object.entries(METODOS_POR_ACTIVIDAD_ESPECIAL).find(([a]) => a === actividad)?.[1] ?? [];
 
 export interface ItemParaReserva {
   readonly id: string;
