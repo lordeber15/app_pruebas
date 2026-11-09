@@ -1,3 +1,4 @@
+import { alertarEstacionesFuera } from '../cartografia/servicio.ts';
 import type { EstacionCambio, EstacionNueva } from '@campo/core';
 import { derivarAplicabilidad, geomDesdeUtm, sincronizarReservas, type Db } from '@campo/db';
 import { sql, type Kysely } from 'kysely';
@@ -168,6 +169,10 @@ export const actualizarEstacion = async (
            SET geom = e.geom, titulo = e.codigo || ' · ' || m.nombre, actualizado_por = ${actor.usuarioId}
           FROM app.estacion e, app.metodo m
          WHERE r.estacion_id = e.id AND m.id = r.metodo_id AND e.id = ${estacionId}`.execute(tx);
+    }
+    // Si cambió la posición y la estación tiene polígono, se revisa que siga dentro (KMZ).
+    if ('geom' in ubicacion) {
+      await alertarEstacionesFuera(tx, actual.proyecto_id, [estacionId], actor.usuarioId);
     }
     // La aplicabilidad depende de región, UV y ZA/EF: se vuelve a derivar (sin tocar lo nominal).
     // Una reserva de un método que deja de aplicar no se borra.

@@ -15,6 +15,7 @@ export * from './cronograma/cambios.ts';
 export * from './reglas/tipos.ts';
 export * from './reglas/objetivo.ts';
 export * from './reglas/esfuerzo.ts';
+export * from './cartografia.ts';
 export * from './reglas/avance-estacion.ts';
 export * from './reglas/geometria.ts';
 export * from './reglas/horario.ts';

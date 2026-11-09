@@ -4,7 +4,10 @@ import {
   evaluarEjecucion,
   geometriaCapturadaSchema,
   interrupcionSchema,
+  multiPoligonoSchema,
   type ConfiguracionMetodo,
+  type CoordenadasMultiPoligono,
+  type MultiPoligono,
   type Interrupcion,
   type TipoInterrupcion,
   type EvaluacionEjecucion,
@@ -43,6 +46,20 @@ export interface EstacionPaquete {
   region: string | null;
   lat: number;
   lon: number;
+  /**
+   * Polígono del proyecto (KMZ, 2026-11-09) y si la estación queda dentro; `null` sin polígono.
+   * Faltan en paquetes descargados antes: se tratan como sin polígono.
+   */
+  poligono_id?: string | null;
+  dentro_poligono?: boolean | null;
+}
+
+/** Polígono del proyecto cargado por KMZ en la web; solo los de las estaciones del paquete. */
+export interface PoligonoPaquete {
+  id: string;
+  proyecto_id: string;
+  nombre: string;
+  geometria: MultiPoligono;
 }
 
 export interface ItemCronogramaPaquete {
@@ -86,6 +103,8 @@ export interface Paquete {
   }[];
   cronograma: ItemCronogramaPaquete[];
   estaciones: EstacionPaquete[];
+  /** Ausente en paquetes antiguos; `leerPaquete` lo deja siempre como lista (vacía si falta). */
+  poligonos: PoligonoPaquete[];
   especialidades: {
     id: string;
     codigo: string;
@@ -137,14 +156,20 @@ export const leerPaquete = async (): Promise<{
   );
   if (fila === undefined) return null;
   if (cache?.descargado_en === fila.descargado_en) return cache;
-  const crudo = JSON.parse(fila.contenido) as Omit<Paquete, 'metodos'> & {
+  const crudo = JSON.parse(fila.contenido) as Omit<Paquete, 'metodos' | 'poligonos'> & {
     metodos: (Omit<MetodoPaquete, 'config'> & { config: unknown })[];
+    poligonos?: (Omit<PoligonoPaquete, 'geometria'> & { geometria: unknown })[];
   };
   const metodos = crudo.metodos.flatMap((m) => {
     const c = configuracionMetodoSchema.safeParse(m.config);
     return c.success ? [{ ...m, config: c.data }] : [];
   });
-  cache = { descargado_en: fila.descargado_en, paquete: { ...crudo, metodos } };
+  // Un polígono con geometría inválida se descarta: la estación queda como sin polígono.
+  const poligonos = (crudo.poligonos ?? []).flatMap((pg) => {
+    const g = multiPoligonoSchema.safeParse(pg.geometria);
+    return g.success ? [{ ...pg, geometria: g.data }] : [];
+  });
+  cache = { descargado_en: fila.descargado_en, paquete: { ...crudo, metodos, poligonos } };
   return cache;
 };
 
@@ -252,11 +277,30 @@ export const metodosDeEstacion = (p: Paquete, estacionId: string): EspecialidadE
   );
 };
 
+/**
+ * La estación queda fuera de su polígono (KMZ, 2026-11-09). Solo `false` explícito: sin polígono
+ * o con un paquete antiguo no se marca nada.
+ */
+export const estacionFueraDePoligono = (e: EstacionPaquete): boolean => e.dentro_poligono === false;
+
+/** Coordenadas del polígono asignado a la estación, si viene en el paquete y es válido. */
+export const poligonoDeEstacion = (
+  p: Pick<Paquete, 'poligonos'>,
+  e: EstacionPaquete,
+): PoligonoPaquete | null =>
+  e.poligono_id === undefined || e.poligono_id === null
+    ? null
+    : (p.poligonos.find((x) => x.id === e.poligono_id) ?? null);
+
 const REGIONES: readonly string[] = ['COSTA', 'SIERRA', 'SELVA'];
-export const estacionParaReglas = (e: EstacionPaquete) => ({
+export const estacionParaReglas = (
+  e: EstacionPaquete,
+  poligono: CoordenadasMultiPoligono | null = null,
+) => ({
   region: REGIONES.includes(e.region ?? '') ? (e.region as Region) : null,
   za_ef: e.za_ef,
   uv: e.uv,
+  poligono,
 });
 
 // ── Ejecución ─────────────────────────────────────────────────────────────────────────────────
@@ -748,7 +792,11 @@ export const evaluarLocal = async (
   const codigoDe = new Map(p.metodos.map((m) => [m.id, m.codigo]));
   const evaluacion = evaluarEjecucion({
     metodo: metodo.config,
-    estacion: estacionParaReglas(estacion),
+    // Advertencia `dentro_poligono` por unidad fuera del polígono de la estación (no bloquea).
+    estacion: estacionParaReglas(
+      estacion,
+      poligonoDeEstacion(p, estacion)?.geometria.coordinates ?? null,
+    ),
     ejecucion: {
       abierta_en: ej.abierta_en,
       cerrada_en: ej.cerrada_en,

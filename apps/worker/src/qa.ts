@@ -1,4 +1,5 @@
 import {
+  multiPoligonoSchema,
   configuracionMetodoSchema,
   crearGeneradorUuidV7,
   ETIQUETAS_REGLA,
@@ -196,10 +197,22 @@ const armarContexto = async (
     .executeTakeFirstOrThrow();
 
   const estacion = await tx
-    .selectFrom('estacion')
-    .select(['codigo', 'region', 'za_ef', 'uv'])
-    .where('id', '=', ej.estacion_id)
+    .selectFrom('estacion as e')
+    .leftJoin('poligono as p', 'p.id', 'e.poligono_id')
+    .select([
+      'e.codigo',
+      'e.region',
+      'e.za_ef',
+      'e.uv',
+      // Polígono del proyecto (KMZ): una unidad fuera es advertencia (2026-11-09).
+      sql<string | null>`ST_AsGeoJSON(p.geom, 7)`.as('poligono'),
+    ])
+    .where('e.id', '=', ej.estacion_id)
     .executeTakeFirstOrThrow();
+  const poligono =
+    estacion.poligono === null
+      ? null
+      : multiPoligonoSchema.safeParse(JSON.parse(estacion.poligono));
 
   const unidades = await tx
     .selectFrom('unidad')
@@ -279,6 +292,7 @@ const armarContexto = async (
         region: incluye(REGIONES, estacion.region) ? estacion.region : null,
         za_ef: estacion.za_ef,
         uv: estacion.uv,
+        poligono: poligono?.success === true ? poligono.data.coordinates : null,
       },
       ejecucion: {
         abierta_en: ej.abierta_en.toISOString(),

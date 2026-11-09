@@ -1,5 +1,6 @@
 import { estacionNuevaSchema, fechaEnZona } from '@campo/core';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link } from '@tanstack/react-router';
 import { useRef, useState } from 'react';
 import { api, ErrorApi, type AvanceEstaciones, type Estacion } from '../api.ts';
 import { CeldaAvance, MapaAvance } from '../componentes/AvanceEstaciones.tsx';
@@ -433,6 +434,21 @@ export const Estaciones = () => {
         Atributos precargados desde A01 o registrados aquí por Coordinación: nunca se piden al
         especialista. El avance de cada estación es la cantidad de métodos completos sobre los
         métodos que le aplican.
+      </p>
+      <p className="mb-4">
+        <Link
+          to="/p/$proyectoId/poligonos"
+          params={{ proyectoId }}
+          className="inline-flex min-h-11 items-center gap-2 rounded-md border border-linea bg-hoja px-4 text-sm font-semibold text-tinta hover:border-tinta-suave"
+        >
+          Polígonos del proyecto (KMZ)
+          <span aria-hidden="true">→</span>
+        </Link>
+        <span className="ml-3 text-sm text-tinta-suave">
+          {gestionar
+            ? 'Cargue el KMZ del proyecto y asigne cada estación a su polígono.'
+            : 'Vea los polígonos del proyecto y qué estaciones quedan fuera.'}
+        </span>
       </p>
       {gestionar ? <ConfiguracionD01 proyectoId={proyectoId} /> : null}
       {est.isPending ? <Cargando que="las estaciones" /> : null}

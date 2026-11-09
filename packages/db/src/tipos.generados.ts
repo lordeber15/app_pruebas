@@ -200,6 +200,20 @@ export interface Campania {
   proyecto_id: string;
 }
 
+export interface Capa {
+  actualizado_en: Generated<Timestamp>;
+  actualizado_por: string | null;
+  archivo: Buffer;
+  archivo_bytes: number;
+  archivo_nombre: string;
+  archivo_sha256: string;
+  creado_en: Generated<Timestamp>;
+  creado_por: string;
+  id: string;
+  nombre: string;
+  proyecto_id: string;
+}
+
 export interface CatalogoMetodologia {
   actualizado_en: Generated<Timestamp>;
   actualizado_por: string | null;
@@ -388,6 +402,7 @@ export interface Estacion {
   geom: string;
   id: string;
   norte: Numeric | null;
+  poligono_id: string | null;
   proyecto_id: string;
   region: string | null;
   uv: string | null;
@@ -588,6 +603,19 @@ export interface PaqueteMapaDescarga {
   version: number;
 }
 
+export interface Poligono {
+  actualizado_en: Generated<Timestamp>;
+  actualizado_por: string | null;
+  capa_id: string;
+  creado_en: Generated<Timestamp>;
+  creado_por: string;
+  geom: string;
+  id: string;
+  nombre: string;
+  orden: number;
+  proyecto_id: string;
+}
+
 export interface Proyecto {
   actualizado_en: Generated<Timestamp>;
   actualizado_por: string | null;
@@ -741,6 +769,7 @@ export interface DB {
   auth_verification: AuthVerification;
   brigada: Brigada;
   campania: Campania;
+  capa: Capa;
   catalogo_metodologia: CatalogoMetodologia;
   categoria_foto: CategoriaFoto;
   comentario: Comentario;
@@ -766,6 +795,7 @@ export interface DB {
   miembro_brigada: MiembroBrigada;
   paquete_mapa: PaqueteMapa;
   paquete_mapa_descarga: PaqueteMapaDescarga;
+  poligono: Poligono;
   proyecto: Proyecto;
   registro_esfuerzo: RegistroEsfuerzo;
   regla_alerta: ReglaAlerta;

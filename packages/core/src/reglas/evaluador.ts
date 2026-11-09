@@ -5,6 +5,7 @@ import type {
   TipoUnidad,
   Validacion,
 } from '../configuracion/metodo.ts';
+import { puntoEnMultiPoligono } from '../cartografia.ts';
 import { tieneTexto } from '../resultado.ts';
 import {
   geometriaRequerida,
@@ -750,6 +751,44 @@ const evaluarFotoEjecucion = (ctx: ContextoEvaluacion): ResultadoRegla[] => {
   ];
 };
 
+/**
+ * Unidades fuera del polígono de su estación (KMZ del proyecto, decisión del usuario 2026-11-09):
+ * **advertencia**, nunca obligatorio, porque D01 no lo define (RN-31). Se usa el punto
+ * representativo de la unidad (el mismo de la separación mínima); sin geometría no se evalúa.
+ */
+const evaluarDentroPoligono = (ctx: ContextoEvaluacion): ResultadoRegla[] => {
+  const poligono = ctx.estacion.poligono;
+  if (poligono === undefined || poligono === null || poligono.length === 0) return [];
+  const texto = 'Polígono del proyecto asignado a la estación (KMZ)';
+  return ctx.ejecucion.unidades.flatMap((u) => {
+    const p = puntoRepresentativo(u.geometria);
+    if (p === null) return [];
+    return puntoEnMultiPoligono(p, poligono)
+      ? [
+          resultado(
+            'dentro_poligono',
+            'advertencia',
+            texto,
+            'cumple',
+            `${u.codigo}: dentro del polígono`,
+            {
+              unidad_id: u.id,
+            },
+          ),
+        ]
+      : [
+          resultado(
+            'dentro_poligono',
+            'advertencia',
+            texto,
+            'incumple',
+            `${u.codigo}: fuera del polígono de la estación`,
+            { unidad_id: u.id },
+          ),
+        ];
+  });
+};
+
 export const evaluarEjecucion = (ctx: ContextoEvaluacion): EvaluacionEjecucion => {
   const { metodo, estacion, ejecucion } = ctx;
   const principales = ejecucion.unidades.filter((u) => u.tipo === metodo.unidad.tipo);
@@ -773,6 +812,7 @@ export const evaluarEjecucion = (ctx: ContextoEvaluacion): EvaluacionEjecucion =
   const resultados = [
     ...metodo.validaciones.flatMap((v) => evaluarValidacion(v, c)),
     ...evaluarFotoEjecucion(ctx),
+    ...evaluarDentroPoligono(ctx),
     ...evaluarDesviacion(ejecucion),
   ];
 

@@ -4,8 +4,10 @@ import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ejecucionesDeEstacion,
+  estacionFueraDePoligono,
   leerPaquete,
   metodosDeEstacion,
+  poligonoDeEstacion,
   type EjecucionLocal,
   type EspecialidadEnEstacion,
   type EstacionPaquete,
@@ -19,6 +21,7 @@ import {
 import { ResumenAvanceEstacion } from '../../src/avance-vista.tsx';
 import { useApp } from '../../src/estado.ts';
 import {
+  Aviso,
   BarraEstado,
   BarraProgreso,
   Boton,
@@ -114,13 +117,18 @@ export default function Estacion() {
   const [ejecuciones, setEjecuciones] = useState<EjecucionLocal[]>([]);
   const [abiertas, setAbiertas] = useState<Set<string>>(new Set());
   const [avance, setAvance] = useState<AvanceEstacionLocal | null>(null);
+  const [poligono, setPoligono] = useState<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       void (async () => {
         const d = await leerPaquete();
         if (d === null) return;
-        setEst(d.paquete.estaciones.find((x) => x.id === id) ?? null);
+        const estacion = d.paquete.estaciones.find((x) => x.id === id) ?? null;
+        setEst(estacion);
+        setPoligono(
+          estacion === null ? null : (poligonoDeEstacion(d.paquete, estacion)?.nombre ?? null),
+        );
         setEspecialidades(metodosDeEstacion(d.paquete, id));
         setEjecuciones(await ejecucionesDeEstacion(id));
         setAvance(await avanceDeEstacionLocal(d.paquete, id));
@@ -163,6 +171,13 @@ export default function Estacion() {
         <View style={{ gap: 8 }}>
           <Text style={T.titular}>{est.codigo}</Text>
           <AtributosEstacion est={est} />
+          {poligono === null ? null : <Text style={T.suave}>Polígono: {poligono}</Text>}
+          {estacionFueraDePoligono(est) ? (
+            <Aviso tipo="atencion">
+              ⚠ Las coordenadas de esta estación quedan fuera de su polígono. Coordinación ya fue
+              alertada.
+            </Aviso>
+          ) : null}
         </View>
         {avance === null ? null : (
           <View style={e.tarjeta}>

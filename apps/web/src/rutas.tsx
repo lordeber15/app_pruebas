@@ -21,6 +21,7 @@ import { Equipo, MarcoProyecto, Proyectos } from './paginas/Proyectos.tsx';
 import { Cronograma } from './paginas/Cronograma.tsx';
 import { Galeria } from './paginas/Galeria.tsx';
 import { MapasSinConexion } from './paginas/MapasSinConexion.tsx';
+import { Poligonos } from './paginas/Poligonos.tsx';
 import { Revisiones } from './paginas/Revisiones.tsx';
 import { Seguimiento } from './paginas/Seguimiento.tsx';
 import { puede, useYo } from './sesion.ts';
@@ -148,6 +149,11 @@ const estaciones = createRoute({
   path: '/',
   component: Estaciones,
 });
+const poligonos = createRoute({
+  getParentRoute: () => proyecto,
+  path: '/poligonos',
+  component: Poligonos,
+});
 const equipo = createRoute({ getParentRoute: () => proyecto, path: '/equipo', component: Equipo });
 const revisiones = createRoute({
   getParentRoute: () => proyecto,
@@ -211,6 +217,7 @@ export const router = createRouter({
     inicio,
     proyecto.addChildren([
       estaciones,
+      poligonos,
       equipo,
       seguimiento,
       ejecuciones,

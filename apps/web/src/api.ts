@@ -1,4 +1,4 @@
-import type { EsfuerzoEjecucion, Interrupcion } from '@campo/core';
+import type { EsfuerzoEjecucion, Interrupcion, MultiPoligono } from '@campo/core';
 
 /**
  * Cliente de la API. Mismo origen que la web (el nginx de la imagen reenvía /api), con la cookie
@@ -81,15 +81,29 @@ const descargar = async (ruta: string, nombrePorDefecto: string): Promise<void> 
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 };
 
-/** Sube un .xlsx como cuerpo crudo; el nombre va en la cabecera `x-nombre-archivo`. */
-const subir = async <T>(ruta: string, archivo: File): Promise<T> => {
+const TIPO_XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+/**
+ * Sube un archivo como cuerpo crudo (por defecto un .xlsx); el nombre va en la cabecera
+ * `x-nombre-archivo`. `cabeceras` admite otras cabeceras de texto, que se codifican con
+ * `encodeURIComponent` (p. ej. `x-nombre-capa` del KMZ).
+ */
+const subir = async <T>(
+  ruta: string,
+  archivo: File,
+  opciones: { tipo?: string; cabeceras?: Readonly<Record<string, string>> } = {},
+): Promise<T> => {
   let r: Response;
+  const extra = Object.fromEntries(
+    Object.entries(opciones.cabeceras ?? {}).map(([k, v]) => [k, encodeURIComponent(v)]),
+  );
   try {
     r = await fetch(`/api/v1${ruta}`, {
       method: 'POST',
       credentials: 'include',
       headers: {
-        'content-type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ...extra,
+        'content-type': opciones.tipo ?? TIPO_XLSX,
         'x-nombre-archivo': encodeURIComponent(archivo.name),
       },
       body: archivo,
@@ -778,4 +792,37 @@ export interface ResultadoAplicacionD01 {
   nominales_trasladadas: number;
   reservas_trasladadas: number;
   reservas_creadas: number;
+}
+
+// ── Polígonos del proyecto por KMZ (decisión del usuario, 2026-11-09; P-06) ──
+
+export type {
+  CapaProyecto,
+  EstacionEnPoligono,
+  MultiPoligono,
+  PoligonoProyecto,
+} from '@campo/core';
+
+/** Vista previa real de `POST /proyectos/:id/capas/vista-previa` (no guarda nada). */
+export interface VistaPreviaCapa {
+  poligonos: {
+    nombre: string;
+    geometria: MultiPoligono;
+    estaciones_dentro: { id: string; codigo: string }[];
+  }[];
+  ignorados: { nombre: string; motivo: string }[];
+}
+
+export interface CapaCargada {
+  capa_id: string;
+  poligonos: number;
+  ignorados: { nombre: string; motivo: string }[];
+  estaciones_asignadas: number;
+}
+
+export interface AsignacionPoligono {
+  asignadas: number;
+  /** Códigos de las estaciones que quedaron fuera del polígono asignado. */
+  fuera: string[];
+  alertas_nuevas: number;
 }
