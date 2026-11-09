@@ -8,6 +8,7 @@ import {
   evaluarLocal,
   fotosDeEjecucion,
   fotosMinimasEjecucion,
+  interrupcionesDe,
   leerPaquete,
   nuevaUnidad,
   unidadesDe,
@@ -17,6 +18,7 @@ import {
   type UnidadLocal,
 } from '../../src/campo.ts';
 import { useApp } from '../../src/estado.ts';
+import { TarjetaInterrupciones } from '../../src/interrupciones.tsx';
 import { mayuscula, NOMBRE_UNIDAD, sinCodigo } from '../../src/textos.ts';
 import {
   AccionInferior,
@@ -262,6 +264,7 @@ export default function Ejecucion() {
             )}
           </View>
         ) : null}
+        <TarjetaInterrupciones ejecucionId={id} lista={interrupcionesDe(d.ej)} cerrada={cerrada} />
         <Boton
           variante="secundario"
           texto="Registrar alerta de esta ejecución"

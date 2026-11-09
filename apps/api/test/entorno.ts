@@ -337,6 +337,8 @@ export const cerrar = (
   ejecucionId: string,
   archivoIds: string[],
   desviacion = { tipo: 'ninguna', explicacion: null as string | null },
+  /** T-10; sin valor se omite, como lo envía un celular N−1. */
+  interrupciones?: unknown[],
 ) =>
   sobre(
     'ejecucion_cerrada',
@@ -349,6 +351,7 @@ export const cerrar = (
       confirmaciones: [],
       objetivo_campo: null,
       archivo_ids: archivoIds,
+      ...(interrupciones === undefined ? {} : { interrupciones }),
     },
   );
 

@@ -17,6 +17,7 @@ import { rutasConfiguracion } from './modulos/configuracion/rutas.ts';
 import { rutasCronograma } from './modulos/cronograma/rutas.ts';
 import { rutasDispositivos } from './modulos/dispositivos/rutas.ts';
 import { rutasEjecuciones } from './modulos/ejecuciones/rutas.ts';
+import { rutasCartografia } from './modulos/cartografia/rutas.ts';
 import { rutasEstaciones } from './modulos/estaciones/rutas.ts';
 import { rutasGaleria } from './modulos/galeria/rutas.ts';
 import { rutasMapas } from './modulos/mapas/rutas.ts';
@@ -111,6 +112,7 @@ export const crearApp = async (config: Config, pool: pg.Pool): Promise<Aplicacio
   await app.register(rutasProgramacion, { prefix: '/api/v1', auth, db, alCambiarCronograma });
   await app.register(rutasSeguimiento, { prefix: '/api/v1', auth, db });
   await app.register(rutasEstaciones, { prefix: '/api/v1', auth, db });
+  await app.register(rutasCartografia, { prefix: '/api/v1', auth, db });
   await app.register(rutasConfiguracion, { prefix: '/api/v1', auth, db });
   await app.register(rutasGaleria, { prefix: '/api/v1', auth, db, firmador });
   await app.register(rutasMapas, {

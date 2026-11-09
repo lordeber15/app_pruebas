@@ -94,24 +94,52 @@ export const paqueteCampo = async (db: Db, usuarioId: string) => {
     estacionIds.length === 0
       ? []
       : await db
-          .selectFrom('estacion')
+          .selectFrom('estacion as e')
+          .leftJoin('poligono as pg', 'pg.id', 'e.poligono_id')
           .select([
-            'id',
-            'proyecto_id',
-            'codigo',
-            'zona_utm',
-            sql<number | null>`este::float8`.as('este'),
-            sql<number | null>`norte::float8`.as('norte'),
-            'aid_aii',
-            'uv',
-            'za_ef',
-            'region',
-            sql<number>`ST_Y(geom)`.as('lat'),
-            sql<number>`ST_X(geom)`.as('lon'),
+            'e.id',
+            'e.proyecto_id',
+            'e.codigo',
+            'e.zona_utm',
+            sql<number | null>`e.este::float8`.as('este'),
+            sql<number | null>`e.norte::float8`.as('norte'),
+            'e.aid_aii',
+            'e.uv',
+            'e.za_ef',
+            'e.region',
+            sql<number>`ST_Y(e.geom)`.as('lat'),
+            sql<number>`ST_X(e.geom)`.as('lon'),
+            // Polígono del proyecto (KMZ) y si la estación queda dentro; null sin polígono.
+            'e.poligono_id',
+            sql<boolean | null>`CASE WHEN pg.id IS NULL THEN NULL ELSE ST_Covers(pg.geom, e.geom) END`.as(
+              'dentro_poligono',
+            ),
           ])
-          .where('id', 'in', estacionIds)
-          .orderBy('codigo')
+          .where('e.id', 'in', estacionIds)
+          .orderBy('e.codigo')
           .execute();
+
+  // Polígonos de las estaciones del paquete, simplificados a ~1 m (GeoJSON MultiPolygon).
+  const poligonoIds = [
+    ...new Set(estaciones.flatMap((e) => (e.poligono_id === null ? [] : [e.poligono_id]))),
+  ];
+  const poligonos =
+    poligonoIds.length === 0
+      ? []
+      : (
+          await db
+            .selectFrom('poligono')
+            .select([
+              'id',
+              'proyecto_id',
+              'nombre',
+              sql<string>`ST_AsGeoJSON(ST_Multi(ST_SimplifyPreserveTopology(geom, 0.00001)), 6)`.as(
+                'geojson',
+              ),
+            ])
+            .where('id', 'in', poligonoIds)
+            .execute()
+        ).map(({ geojson, ...p }) => ({ ...p, geometria: JSON.parse(geojson) as unknown }));
 
   const especialidades = await db
     .selectFrom('especialidad')
@@ -155,6 +183,7 @@ export const paqueteCampo = async (db: Db, usuarioId: string) => {
     brigadas: brigadas.map(({ rol, ...b }) => ({ ...b, rol })),
     cronograma,
     estaciones,
+    poligonos,
     especialidades,
     metodos,
     aplicabilidad,

@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   agendaDeEstaciones,
   descargarPaqueteCampo,
+  estacionFueraDePoligono,
   fechaLocal,
   leerPaquete,
   resumenPorEstacion,
@@ -53,7 +54,9 @@ const FilaEstacion = ({
   return (
     <Fila
       alPresionar={() => router.push({ pathname: '/estacion/[id]', params: { id: est.id } })}
-      etiquetaAccesible={`Estación ${est.codigo}`}
+      etiquetaAccesible={`Estación ${est.codigo}${
+        estacionFueraDePoligono(est) ? ', coordenadas fuera de su polígono' : ''
+      }`}
       derecha={
         resumen === undefined ? null : (
           <View style={{ alignItems: 'flex-end', gap: 4 }}>
@@ -70,6 +73,9 @@ const FilaEstacion = ({
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         <Text style={T.titulo}>{est.codigo}</Text>
         {est.za_ef === null ? null : <Etiqueta tono="tinta" texto={`ZA/EF ${est.za_ef}`} />}
+        {estacionFueraDePoligono(est) ? (
+          <Etiqueta tono="error" texto="⚠ Fuera de su polígono" />
+        ) : null}
         {item.estado_fila === 'pendiente_validacion' ? (
           <Etiqueta tono="atencion" texto="Programación por validar" />
         ) : null}

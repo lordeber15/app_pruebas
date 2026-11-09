@@ -63,6 +63,17 @@ export interface CapaMapa {
 }
 
 /**
+ * Polígono del proyecto cargado por KMZ (P-06): relleno tenue y contorno continuo en verde
+ * líquen, con su nombre escrito sobre el mapa. Son capas del lienzo, sin foco de teclado: quien
+ * las use debe listar los mismos polígonos fuera del mapa.
+ */
+export interface PoligonoMapa {
+  readonly id: string;
+  readonly nombre: string;
+  readonly geometria: { readonly type: string; readonly coordinates: unknown };
+}
+
+/**
  * Marcador accesible (botón en el DOM) para mostrar un estado: forma + ícono + color, con su
  * texto completo en `etiqueta` para lectores de pantalla y como información al pasar el puntero.
  * El color nunca es el único indicador.
@@ -145,6 +156,22 @@ const coordenadas = (c: unknown, acc: [number, number][] = []): [number, number]
   return acc;
 };
 
+/** Esquinas suroeste y noreste de un conjunto de pares [lon, lat]. */
+const esquinas = (pares: readonly [number, number][]): [number, number][] => {
+  if (pares.length === 0) return [];
+  let [x0, y0, x1, y1] = [Infinity, Infinity, -Infinity, -Infinity];
+  for (const [x, y] of pares) {
+    x0 = Math.min(x0, x);
+    y0 = Math.min(y0, y);
+    x1 = Math.max(x1, x);
+    y1 = Math.max(y1, y);
+  }
+  return [
+    [x0, y0],
+    [x1, y1],
+  ];
+};
+
 const hayMapaBase = async (): Promise<boolean> => {
   try {
     const r = await fetch('/mapa/base.pmtiles', { method: 'HEAD' });
@@ -171,11 +198,13 @@ const bboxVisible = (m: maplibregl.Map): Bbox => {
 
 const SIN_CAPAS: readonly CapaMapa[] = [];
 const SIN_MARCADORES: readonly MarcadorMapa[] = [];
+const SIN_POLIGONOS: readonly PoligonoMapa[] = [];
 
 export const Mapa = ({
   puntos,
   agrupados = null,
   capas = SIN_CAPAS,
+  poligonos = SIN_POLIGONOS,
   marcadores = SIN_MARCADORES,
   alElegir,
   alto = '32rem',
@@ -189,6 +218,8 @@ export const Mapa = ({
   /** Fuente agrupada opcional (clusters); sin ella el mapa se comporta como siempre. */
   agrupados?: FuenteAgrupada | null;
   capas?: readonly CapaMapa[];
+  /** Polígonos del proyecto (KMZ): se dibujan debajo de todo lo demás. */
+  poligonos?: readonly PoligonoMapa[];
   /** Estaciones con estado (avance): se dibujan como marcadores accesibles. */
   marcadores?: readonly MarcadorMapa[];
   alElegir?: (id: string) => void;
@@ -243,6 +274,38 @@ export const Mapa = ({
       m.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
       // `style.load` (no `load`): las estaciones se dibujan aunque una tesela del mapa base falle.
       m.once('style.load', () => {
+        m.addSource('poligonos', {
+          type: 'geojson',
+          data: { type: 'FeatureCollection', features: [] },
+        });
+        m.addLayer({
+          id: 'poligonos-relleno',
+          type: 'fill',
+          source: 'poligonos',
+          paint: { 'fill-color': '#2e5e4e', 'fill-opacity': 0.1 },
+        });
+        m.addLayer({
+          id: 'poligonos-linea',
+          type: 'line',
+          source: 'poligonos',
+          paint: { 'line-color': '#224639', 'line-width': 2 },
+        });
+        m.addLayer({
+          id: 'poligonos-etiqueta',
+          type: 'symbol',
+          source: 'poligonos',
+          layout: {
+            'text-field': ['get', 'nombre'],
+            'text-font': ['NotoSansRegular'],
+            'text-size': 12,
+            'text-max-width': 12,
+          },
+          paint: {
+            'text-color': '#224639',
+            'text-halo-color': '#ffffff',
+            'text-halo-width': 2,
+          },
+        });
         m.addSource('capas', {
           type: 'geojson',
           data: { type: 'FeatureCollection', features: [] },
@@ -515,6 +578,14 @@ export const Mapa = ({
         properties: { id: c.id, tipo: c.tipo, etiqueta: c.etiqueta },
       })),
     } as DatosGeoJson);
+    void m.getSource<GeoJSONSource>('poligonos')?.setData({
+      type: 'FeatureCollection',
+      features: poligonos.map((p) => ({
+        type: 'Feature',
+        geometry: p.geometria,
+        properties: { id: p.id, nombre: p.nombre },
+      })),
+    } as DatosGeoJson);
     const sueltos = agrupados?.puntos ?? [];
     void m.getSource<GeoJSONSource>('agrupados')?.setData({
       type: 'FeatureCollection',
@@ -547,6 +618,8 @@ export const Mapa = ({
       ...marcadores.map((p): [number, number] => [p.lon, p.lat]),
       ...sueltos.map((p): [number, number] => [p.lon, p.lat]),
       ...capas.flatMap((c) => coordenadas(c.geometria.coordinates)),
+      // Un KMZ puede traer miles de vértices: para encuadrar basta su rectángulo envolvente.
+      ...poligonos.flatMap((p) => esquinas(coordenadas(p.geometria.coordinates))),
     ];
     // Encuadrar solo cuando cambia el conjunto de lugares (elegir un marcador no mueve el mapa).
     const clave = todos.map(([a, b]) => `${a.toFixed(5)},${b.toFixed(5)}`).join(';');
@@ -556,11 +629,11 @@ export const Mapa = ({
       for (const c of todos) limites.extend(c);
       m.fitBounds(limites, {
         padding: 48,
-        maxZoom: capas.length > 0 || sueltos.length > 0 ? 18 : 15,
+        maxZoom: capas.length > 0 || sueltos.length > 0 || poligonos.length > 0 ? 18 : 15,
         duration: 0,
       });
     }
-  }, [puntos, agrupados, capas, marcadores, listo]);
+  }, [puntos, agrupados, capas, poligonos, marcadores, listo]);
 
   // Modo dibujo: cursor en cruz; al salir de él se descarta la esquina a medio marcar.
   useEffect(() => {

@@ -7,6 +7,7 @@ import {
   type FilaSeguimiento,
 } from '../api.ts';
 import { MapaAvance } from '../componentes/AvanceEstaciones.tsx';
+import { LineaEsfuerzo } from '../componentes/Esfuerzo.tsx';
 import {
   AvisoError,
   Campo,
@@ -99,10 +100,24 @@ const Objetivo = ({ f }: { f: FilaSeguimiento }) => {
 const Estados = ({ f }: { f: FilaSeguimiento }) => {
   const partes = Object.entries(f.por_estado);
   if (partes.length === 0) return <span className="text-tinta-suave">—</span>;
+  const resumen = partes
+    .map(([estado, n]) => `${String(n)} ${ESTADO_EJECUCION[estado] ?? estado}`)
+    .join(', ');
+  // RF-T05 / RN-19: el esfuerzo del método es la suma de una fila por usuario.
   return (
-    <span>
-      {partes.map(([estado, n]) => `${String(n)} ${ESTADO_EJECUCION[estado] ?? estado}`).join(', ')}
-    </span>
+    <details>
+      <summary className="cursor-pointer">{resumen}</summary>
+      <ul className="mt-2 flex flex-col gap-1 text-sm">
+        {f.esfuerzo_por_usuario.map((x) => (
+          <li key={x.ejecucion_id}>
+            <span className="font-semibold">{x.usuario_nombre}</span>{' '}
+            <span className="text-tinta-suave">({ESTADO_EJECUCION[x.estado] ?? x.estado})</span>
+            <br />
+            <LineaEsfuerzo e={x.esfuerzo} />
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 };
 
@@ -144,7 +159,7 @@ const TablaBrigada = ({ b }: { b: BrigadaSeguimiento }) => {
               <th className={th}>Programada</th>
               <th className={th}>Objetivo aplicable</th>
               <th className={th}>Avance elemental</th>
-              <th className={th}>Ejecuciones</th>
+              <th className={th}>Ejecuciones y esfuerzo por usuario</th>
             </tr>
           </thead>
           <tbody>

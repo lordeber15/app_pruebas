@@ -104,8 +104,15 @@ const actualizarEsquema = async (b: DB): Promise<void> => {
     );
     await b.execute('DROP TABLE archivo_local_anterior');
   }
-  if ((await columnas(b, 'ejecucion_local')).includes('tarea_id')) {
+  const ejecucionCols = await columnas(b, 'ejecucion_local');
+  if (ejecucionCols.includes('tarea_id')) {
     await b.execute('ALTER TABLE ejecucion_local RENAME COLUMN tarea_id TO reserva_id');
+  }
+  // T-10 (RF-T05): interrupciones o fallas con motivo, en JSON.
+  if (!ejecucionCols.includes('interrupciones')) {
+    await b.execute(
+      "ALTER TABLE ejecucion_local ADD COLUMN interrupciones TEXT NOT NULL DEFAULT '[]'",
+    );
   }
 };
 

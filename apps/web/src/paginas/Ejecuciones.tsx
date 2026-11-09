@@ -12,6 +12,7 @@ import {
   type Estacion,
   type ResultadoReglaQa,
 } from '../api.ts';
+import { SeccionEsfuerzo } from '../componentes/Esfuerzo.tsx';
 import { Mapa, type CapaMapa } from '../componentes/MapaDiferido.tsx';
 import { Paginacion, usePaginaCursor } from '../componentes/Paginacion.tsx';
 import {
@@ -527,6 +528,13 @@ export const EjecucionDetalle = () => {
               Línea discontinua: track del recorrido.
               {capas.length === 0 ? ' Esta ejecución aún no tiene geometrías recibidas.' : ''}
             </p>
+          </section>
+
+          <section aria-labelledby="titulo-esfuerzo">
+            <h2 id="titulo-esfuerzo" className="mb-3 text-lg font-semibold">
+              Esfuerzo planificado vs. ejecutado
+            </h2>
+            <SeccionEsfuerzo esfuerzo={d.esfuerzo} interrupciones={d.interrupciones} />
           </section>
 
           <section aria-labelledby="titulo-qa">

@@ -1,4 +1,10 @@
-import type { EvaluacionEjecucion, ResultadoRegla, TipoDesviacion } from '@campo/core';
+import {
+  resumirEsfuerzo,
+  type EvaluacionEjecucion,
+  type Interrupcion,
+  type ResultadoRegla,
+  type TipoDesviacion,
+} from '@campo/core';
 import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView, Text, TextInput, View } from 'react-native';
@@ -8,6 +14,7 @@ import {
   ejecucion as leerEjecucion,
   evaluarLocal,
   guardarBorradorCierre,
+  interrupcionesDe,
   leerPaquete,
   unidadesDe,
   type MetodoPaquete,
@@ -85,6 +92,12 @@ export default function Cierre() {
   const [confirmaciones, setConfirmaciones] = useState<string[]>([]);
   const [objetivo, setObjetivo] = useState('');
   const [abiertas, setAbiertas] = useState(0);
+  // T-10: lo necesario para mostrar el esfuerzo planificado vs. ejecutado antes de cerrar.
+  const [base, setBase] = useState<{
+    abierta_en: string;
+    unidades: { inicio: string | null; fin: string | null }[];
+    interrupciones: Interrupcion[];
+  } | null>(null);
   const [cerrando, setCerrando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [listo, setListo] = useState(false);
@@ -106,7 +119,13 @@ export default function Cierre() {
         setExplicacion(ej.desviacion_explicacion ?? '');
         setConfirmaciones(JSON.parse(ej.confirmaciones) as string[]);
         setObjetivo(ej.objetivo_campo === null ? '' : String(ej.objetivo_campo));
-        setAbiertas((await unidadesDe(id)).filter((u) => u.estado === 'abierta').length);
+        const unidades = await unidadesDe(id);
+        setAbiertas(unidades.filter((u) => u.estado === 'abierta').length);
+        setBase({
+          abierta_en: ej.abierta_en,
+          unidades: unidades.map((u) => ({ inicio: u.inicio, fin: u.fin })),
+          interrupciones: interrupcionesDe(ej),
+        });
         setListo(true);
       })();
     }, [id]),
@@ -150,6 +169,17 @@ export default function Cierre() {
     confirmacion !== undefined &&
     ev.resultados.some((r) => r.regla === 'confirmacion' && r.estado !== 'no_aplica');
   const esReferencia = ev.objetivo.origen === 'referencia' || ev.objetivo.origen === 'campo';
+  const esfuerzo =
+    base === null
+      ? null
+      : resumirEsfuerzo({
+          objetivo: ev.objetivo,
+          ejecutado: ev.avance.ejecutado,
+          abierta_en: base.abierta_en,
+          cerrada_en: new Date().toISOString(),
+          unidades: base.unidades,
+          interrupciones: base.interrupciones,
+        });
   const faltaExplicar = desviacion !== 'ninguna' && explicacion.trim() === '';
   const bloqueado = (obligatorios.length > 0 && desviacion === 'ninguna') || faltaExplicar;
 
@@ -190,6 +220,30 @@ export default function Cierre() {
             {abiertas > 0 ? `; ${String(abiertas)} abiertas se terminarán al cerrar` : ''}.
           </Text>
         </View>
+
+        {esfuerzo === null ? null : (
+          <View style={[e.tarjeta, { gap: 6 }]}>
+            <Text style={T.etiqueta}>Esfuerzo</Text>
+            <Text style={T.cuerpo}>
+              Planificado:{' '}
+              {esfuerzo.planificado.cantidad === null
+                ? 'lo define usted en campo'
+                : `${String(esfuerzo.planificado.cantidad)} ${esfuerzo.planificado.unidad_texto}`}
+            </Text>
+            <Text style={T.cuerpo}>
+              Ejecutado: {esfuerzo.ejecutado.cantidad} {esfuerzo.planificado.unidad_texto}
+            </Text>
+            {esfuerzo.ejecutado.duracion_min === null ? null : (
+              <Text style={T.suave}>
+                Duración {Math.round(esfuerzo.ejecutado.duracion_min)} min
+                {esfuerzo.ejecutado.interrumpido_min > 0
+                  ? `; ${String(Math.round(esfuerzo.ejecutado.interrumpido_min))} min interrumpidos (${String(esfuerzo.ejecutado.interrupciones + esfuerzo.ejecutado.fallas)} registros)`
+                  : ''}
+                .
+              </Text>
+            )}
+          </View>
+        )}
 
         {obligatorios.length === 0 ? (
           <Aviso tipo="ok">Cumple todo lo obligatorio de D01 para este método.</Aviso>

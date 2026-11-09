@@ -46,6 +46,7 @@ export const ETIQUETAS_REGLA: Readonly<Record<ReglaEvaluada, string>> = {
   vinculo_unidad: 'Vínculo con otra unidad',
   desviacion: 'Desviación declarada',
   foto_ejecucion: 'Foto mínima de la ejecución',
+  dentro_poligono: 'Dentro del polígono de la estación',
 };
 
 const textoObjetivo = (o: Objetivo): string => {

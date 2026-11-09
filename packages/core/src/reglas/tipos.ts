@@ -5,6 +5,7 @@ import type {
   TipoUnidad,
   TipoValidacion,
 } from '../configuracion/metodo.ts';
+import type { CoordenadasMultiPoligono } from '../cartografia.ts';
 import type { EstadoUnidad, Orientacion, TipoDesviacion, TipoFoto } from '../estados.ts';
 
 /**
@@ -81,6 +82,11 @@ export interface EstacionEvaluacion {
   /** Atributo ZA/EF de A01; no nulo significa que la estación es ZA/EF (RN-32). */
   readonly za_ef: string | null;
   readonly uv: string | null;
+  /**
+   * Polígono asignado a la estación (KMZ del proyecto, 2026-11-09), en coordenadas GeoJSON
+   * MultiPolygon. Ausente o nulo: la regla `dentro_poligono` no se evalúa.
+   */
+  readonly poligono?: CoordenadasMultiPoligono | null;
 }
 
 export interface ContextoEvaluacion {
@@ -111,7 +117,7 @@ export type EstadoRegla = 'cumple' | 'incumple' | 'no_aplica' | 'no_evaluable' |
  * `desviacion` y `foto_ejecucion` no son validaciones de D01: la primera viene de D02 §6 y la
  * segunda es una regla del proyecto (RN-04 ampliada, 2026-11-08).
  */
-export type ReglaEvaluada = TipoValidacion | 'desviacion' | 'foto_ejecucion';
+export type ReglaEvaluada = TipoValidacion | 'desviacion' | 'foto_ejecucion' | 'dentro_poligono';
 
 export interface ResultadoRegla {
   readonly regla: ReglaEvaluada;

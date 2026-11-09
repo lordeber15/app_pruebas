@@ -3,7 +3,13 @@ import {
   eventoSchema,
   evaluarEjecucion,
   geometriaCapturadaSchema,
+  interrupcionSchema,
+  multiPoligonoSchema,
   type ConfiguracionMetodo,
+  type CoordenadasMultiPoligono,
+  type MultiPoligono,
+  type Interrupcion,
+  type TipoInterrupcion,
   type EvaluacionEjecucion,
   type GeometriaCapturada,
   type Region,
@@ -40,6 +46,20 @@ export interface EstacionPaquete {
   region: string | null;
   lat: number;
   lon: number;
+  /**
+   * Polígono del proyecto (KMZ, 2026-11-09) y si la estación queda dentro; `null` sin polígono.
+   * Faltan en paquetes descargados antes: se tratan como sin polígono.
+   */
+  poligono_id?: string | null;
+  dentro_poligono?: boolean | null;
+}
+
+/** Polígono del proyecto cargado por KMZ en la web; solo los de las estaciones del paquete. */
+export interface PoligonoPaquete {
+  id: string;
+  proyecto_id: string;
+  nombre: string;
+  geometria: MultiPoligono;
 }
 
 export interface ItemCronogramaPaquete {
@@ -83,6 +103,8 @@ export interface Paquete {
   }[];
   cronograma: ItemCronogramaPaquete[];
   estaciones: EstacionPaquete[];
+  /** Ausente en paquetes antiguos; `leerPaquete` lo deja siempre como lista (vacía si falta). */
+  poligonos: PoligonoPaquete[];
   especialidades: {
     id: string;
     codigo: string;
@@ -134,14 +156,20 @@ export const leerPaquete = async (): Promise<{
   );
   if (fila === undefined) return null;
   if (cache?.descargado_en === fila.descargado_en) return cache;
-  const crudo = JSON.parse(fila.contenido) as Omit<Paquete, 'metodos'> & {
+  const crudo = JSON.parse(fila.contenido) as Omit<Paquete, 'metodos' | 'poligonos'> & {
     metodos: (Omit<MetodoPaquete, 'config'> & { config: unknown })[];
+    poligonos?: (Omit<PoligonoPaquete, 'geometria'> & { geometria: unknown })[];
   };
   const metodos = crudo.metodos.flatMap((m) => {
     const c = configuracionMetodoSchema.safeParse(m.config);
     return c.success ? [{ ...m, config: c.data }] : [];
   });
-  cache = { descargado_en: fila.descargado_en, paquete: { ...crudo, metodos } };
+  // Un polígono con geometría inválida se descarta: la estación queda como sin polígono.
+  const poligonos = (crudo.poligonos ?? []).flatMap((pg) => {
+    const g = multiPoligonoSchema.safeParse(pg.geometria);
+    return g.success ? [{ ...pg, geometria: g.data }] : [];
+  });
+  cache = { descargado_en: fila.descargado_en, paquete: { ...crudo, metodos, poligonos } };
   return cache;
 };
 
@@ -249,11 +277,30 @@ export const metodosDeEstacion = (p: Paquete, estacionId: string): EspecialidadE
   );
 };
 
+/**
+ * La estación queda fuera de su polígono (KMZ, 2026-11-09). Solo `false` explícito: sin polígono
+ * o con un paquete antiguo no se marca nada.
+ */
+export const estacionFueraDePoligono = (e: EstacionPaquete): boolean => e.dentro_poligono === false;
+
+/** Coordenadas del polígono asignado a la estación, si viene en el paquete y es válido. */
+export const poligonoDeEstacion = (
+  p: Pick<Paquete, 'poligonos'>,
+  e: EstacionPaquete,
+): PoligonoPaquete | null =>
+  e.poligono_id === undefined || e.poligono_id === null
+    ? null
+    : (p.poligonos.find((x) => x.id === e.poligono_id) ?? null);
+
 const REGIONES: readonly string[] = ['COSTA', 'SIERRA', 'SELVA'];
-export const estacionParaReglas = (e: EstacionPaquete) => ({
+export const estacionParaReglas = (
+  e: EstacionPaquete,
+  poligono: CoordenadasMultiPoligono | null = null,
+) => ({
   region: REGIONES.includes(e.region ?? '') ? (e.region as Region) : null,
   za_ef: e.za_ef,
   uv: e.uv,
+  poligono,
 });
 
 // ── Ejecución ─────────────────────────────────────────────────────────────────────────────────
@@ -273,6 +320,8 @@ export interface EjecucionLocal {
   objetivo_campo: number | null;
   incumplimientos: number | null;
   advertencias: number | null;
+  /** JSON de `Interrupcion[]` (T-10). */
+  interrupciones: string;
 }
 
 export interface UnidadLocal {
@@ -317,6 +366,60 @@ export const resumenPorEstacion = () =>
 
 export const ejecucion = async (id: string) =>
   (await consultar<EjecucionLocal>('SELECT * FROM ejecucion_local WHERE id = ?', [id]))[0] ?? null;
+
+/** Interrupciones o fallas registradas (T-10); lo ilegible se ignora, nunca bloquea. */
+export const interrupcionesDe = (ej: Pick<EjecucionLocal, 'interrupciones'>): Interrupcion[] => {
+  try {
+    const r = interrupcionSchema.array().safeParse(JSON.parse(ej.interrupciones));
+    return r.success ? r.data : [];
+  } catch {
+    return [];
+  }
+};
+
+/**
+ * Registra el inicio de una interrupción o falla con su motivo (T-10, RF-T05). No bloquea nada:
+ * solo descuenta su tiempo de la duración efectiva. Se envía con el cierre de la ejecución.
+ */
+export const iniciarInterrupcion = (
+  ejecucionId: string,
+  tipo: TipoInterrupcion,
+  motivo: string,
+  unidadId: string | null = null,
+) =>
+  enCola(`ejecucion:${ejecucionId}`, async () => {
+    const ej = await ejecucion(ejecucionId);
+    if (ej === null || ej.estado_local !== 'en_curso') return;
+    const lista = interrupcionesDe(ej);
+    if (lista.some((i) => i.fin === null)) return;
+    lista.push({
+      id: generarId(),
+      tipo,
+      motivo: motivo.trim(),
+      inicio: new Date().toISOString(),
+      fin: null,
+      unidad_id: unidadId,
+    });
+    await ejecutar('UPDATE ejecucion_local SET interrupciones = ? WHERE id = ?', [
+      JSON.stringify(lista),
+      ejecucionId,
+    ]);
+    avisarCambio();
+  });
+
+/** Reanuda la ejecución: cierra la interrupción abierta con la hora actual. */
+export const reanudarEjecucion = (ejecucionId: string) =>
+  enCola(`ejecucion:${ejecucionId}`, async () => {
+    const ej = await ejecucion(ejecucionId);
+    if (ej === null) return;
+    const ahora = new Date().toISOString();
+    const lista = interrupcionesDe(ej).map((i) => (i.fin === null ? { ...i, fin: ahora } : i));
+    await ejecutar('UPDATE ejecucion_local SET interrupciones = ? WHERE id = ?', [
+      JSON.stringify(lista),
+      ejecucionId,
+    ]);
+    avisarCambio();
+  });
 
 export const unidadesDe = (ejecucionId: string) =>
   consultar<UnidadLocal>('SELECT * FROM unidad_local WHERE ejecucion_id = ? ORDER BY orden', [
@@ -689,7 +792,11 @@ export const evaluarLocal = async (
   const codigoDe = new Map(p.metodos.map((m) => [m.id, m.codigo]));
   const evaluacion = evaluarEjecucion({
     metodo: metodo.config,
-    estacion: estacionParaReglas(estacion),
+    // Advertencia `dentro_poligono` por unidad fuera del polígono de la estación (no bloquea).
+    estacion: estacionParaReglas(
+      estacion,
+      poligonoDeEstacion(p, estacion)?.geometria.coordinates ?? null,
+    ),
     ejecucion: {
       abierta_en: ej.abierta_en,
       cerrada_en: ej.cerrada_en,
@@ -776,6 +883,11 @@ export const cerrarEjecucion = async (
   }
   const fotos = await fotosDeEjecucion(ejecucionId);
   const cerradaEn = new Date().toISOString();
+  // Una interrupción sin reanudar termina con el cierre (T-10).
+  const actual = await ejecucion(ejecucionId);
+  const interrupciones = (actual === null ? [] : interrupcionesDe(actual)).map((i) =>
+    i.fin === null ? { ...i, fin: cerradaEn } : i,
+  );
   await registrarEvento({
     tipo: 'ejecucion_cerrada',
     entidad: { tipo: 'ejecucion', id: ejecucionId },
@@ -790,15 +902,17 @@ export const cerrarEjecucion = async (
       confirmaciones: c.confirmaciones,
       objetivo_campo: c.objetivo_campo,
       archivo_ids: fotos.map((f) => f.id),
+      interrupciones,
     },
   });
   const final = await evaluarLocal(p, ejecucionId, c);
   await ejecutar(
-    "UPDATE ejecucion_local SET estado_local = 'cerrada', cerrada_en = ?, incumplimientos = ?, advertencias = ? WHERE id = ?",
+    "UPDATE ejecucion_local SET estado_local = 'cerrada', cerrada_en = ?, incumplimientos = ?, advertencias = ?, interrupciones = ? WHERE id = ?",
     [
       cerradaEn,
       final?.evaluacion.incumplimientos_obligatorios ?? null,
       final?.evaluacion.advertencias ?? null,
+      JSON.stringify(interrupciones),
       ejecucionId,
     ],
   );
