@@ -699,3 +699,71 @@ export interface PuntosGaleria {
   truncado: boolean;
   sin_coordenada: number;
 }
+
+// ── Configuración por método D01 por plantilla Excel (RF-W09) ──
+
+export interface ConfiguracionD01 {
+  vigente: {
+    numero: number;
+    origen: string;
+    notas: string | null;
+    creado_en: string;
+    creado_por_nombre: string | null;
+    metodos: number;
+  } | null;
+  importaciones: {
+    id: string;
+    estado: 'vista_previa' | 'aplicada';
+    archivo_nombre: string;
+    con_errores: boolean;
+    creado_en: string;
+    creado_por_nombre: string;
+    aplicado_en: string | null;
+    aplicado_por_nombre: string | null;
+    motivo: string | null;
+    version_numero: number | null;
+  }[];
+}
+
+export interface ErrorCeldaD01 {
+  hoja: string;
+  fila: number | null;
+  columna: string | null;
+  mensaje: string;
+}
+
+export interface ImportacionD01 {
+  id: string;
+  estado: 'vista_previa' | 'aplicada';
+  archivo_nombre: string;
+  con_errores: boolean;
+  aplicable: boolean;
+  creado_en: string;
+  version_base: number | null;
+  resumen: {
+    nuevos: number;
+    cambiados: number;
+    sin_cambio: number;
+    no_incluidos: number;
+    errores: number;
+  };
+  metodos: {
+    codigo: string;
+    nombre: string;
+    fila: number;
+    estado: 'nuevo' | 'cambiado' | 'sin_cambio';
+    cambios: { campo: string; antes: string; despues: string }[];
+  }[];
+  no_incluidos: { codigo: string; nombre: string }[];
+  errores: ErrorCeldaD01[];
+}
+
+export interface ResultadoAplicacionD01 {
+  configuracion_numero: number;
+  metodos: number;
+  estacion_metodo: number;
+  estacion_metodo_pendientes: number;
+  nominales_trasladadas: number;
+  reservas_trasladadas: number;
+  reservas_creadas: number;
+}

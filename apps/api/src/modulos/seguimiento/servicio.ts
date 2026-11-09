@@ -206,10 +206,13 @@ export const verSeguimiento = async (
         }))
         .sort((x, y) => y.ultima_sincronizacion.localeCompare(x.ultima_sincronizacion));
 
+      // Por código de método: una ejecución abierta con una versión anterior de D01 suma al mismo
+      // método de la vigente, al que apunta la reserva (RF-W09).
+      const codigoDe = (metodoId: string): string => metodos.get(metodoId)?.codigo ?? metodoId;
       const claves = new Map<string, { estacion: string; metodo: string; fecha: string | null }>();
       for (const r of reservas) {
         if (r.brigada_id !== b.id || r.estacion_id === null || r.metodo_id === null) continue;
-        claves.set(`${r.estacion_id}|${r.metodo_id}`, {
+        claves.set(`${r.estacion_id}|${codigoDe(r.metodo_id)}`, {
           estacion: r.estacion_id,
           metodo: r.metodo_id,
           fecha: r.fecha,
@@ -217,7 +220,7 @@ export const verSeguimiento = async (
       }
       const ejecucionesBrigada = ejecuciones.filter((x) => x.brigada_id === b.id);
       for (const x of ejecucionesBrigada) {
-        const k = `${x.estacion_id}|${x.metodo_id}`;
+        const k = `${x.estacion_id}|${codigoDe(x.metodo_id)}`;
         if (!claves.has(k))
           claves.set(k, { estacion: x.estacion_id, metodo: x.metodo_id, fecha: null });
       }
@@ -228,7 +231,9 @@ export const verSeguimiento = async (
         const m = metodos.get(c.metodo);
         if (e === undefined || m === undefined) continue;
         const propiasFila = ejecucionesBrigada
-          .filter((x) => x.estacion_id === c.estacion && x.metodo_id === c.metodo)
+          .filter(
+            (x) => x.estacion_id === c.estacion && codigoDe(x.metodo_id) === codigoDe(c.metodo),
+          )
           .sort((x, y) => new Date(x.abierta_en).getTime() - new Date(y.abierta_en).getTime());
         // RN-38: el valor final definido en campo (bofedales) es el de la última ejecución que lo fijó.
         const { objetivo, avance } = avanceDeMetodo(m.config, e, propiasFila);

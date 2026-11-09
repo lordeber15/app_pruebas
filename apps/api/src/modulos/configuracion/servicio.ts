@@ -8,7 +8,7 @@ import { verProyecto } from '../organizacion/servicio.ts';
 /**
  * Carga la configuración TOCE (D01 por método y A01 con estaciones, brigadas, cronograma y
  * reservas) en un proyecto, desde la web (RF-W09, `03` §8). Usa la semilla curada por GENIA que
- * también carga `db:toce`; la plantilla Excel editable por el cliente queda para después.
+ * también carga `db:toce`. La plantilla Excel editable (D01 por método) está en `importacion-d01.ts`.
  * Idempotente: repetirla no duplica nada y respeta las decisiones nominales ya tomadas.
  *
  * `fechaInicio` (demo): corre las fechas de A01 para que empiecen ese día; solo al crear el

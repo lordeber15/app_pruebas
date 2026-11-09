@@ -28,6 +28,7 @@ import {
 } from '@campo/core';
 import { sql, type Kysely } from 'kysely';
 import { z } from 'zod';
+import { crearVersionConfiguracion } from '../configuracion.ts';
 import { crearCronogramaBase, metodosDeActividadEspecial } from '../cronograma.ts';
 import { derivarAplicabilidad, geomDesdeUtm, sincronizarReservas } from '../estaciones.ts';
 
@@ -167,38 +168,37 @@ export const cargarToce = async (
           FROM app.configuracion_metodologica c
          WHERE c.proyecto_id = ${proyectoId} AND c.estado = 'vigente'`.execute(trx)
     ).rows[0];
-    let configuracionId: string;
     let numero: number;
     if (vigente !== undefined && vigente.origen === origen && !vigente.en_uso) {
-      configuracionId = vigente.id;
+      // 3. Ninguna ejecución la usa: los métodos se actualizan en sitio (config en jsonb).
       numero = vigente.numero;
+      for (const [orden, m] of d01.metodos.entries()) {
+        await sql`
+          INSERT INTO app.metodo (id, configuracion_id, especialidad_id, codigo, nombre, clase,
+                                  tipo_geometria, requiere_track, orden, config, creado_por)
+          VALUES (${uuid()}, ${vigente.id}, ${especialidadId.get(m.especialidad) ?? null}, ${m.codigo},
+                  ${m.nombre}, ${m.clase}, ${m.geometria.tipo}, ${m.track}, ${orden},
+                  ${JSON.stringify(m)}::jsonb, ${usuarioId})
+          ON CONFLICT (configuracion_id, codigo) DO UPDATE
+            SET especialidad_id = EXCLUDED.especialidad_id, nombre = EXCLUDED.nombre,
+                clase = EXCLUDED.clase, tipo_geometria = EXCLUDED.tipo_geometria,
+                requiere_track = EXCLUDED.requiere_track, orden = EXCLUDED.orden, config = EXCLUDED.config`.execute(
+          trx,
+        );
+      }
     } else {
-      await sql`UPDATE app.configuracion_metodologica SET estado = 'historica'
-                 WHERE proyecto_id = ${proyectoId} AND estado = 'vigente'`.execute(trx);
-      numero = (vigente?.numero ?? 0) + 1;
-      configuracionId = uuid();
-      await sql`
-        INSERT INTO app.configuracion_metodologica (id, proyecto_id, numero, origen, estado, creado_por)
-        VALUES (${configuracionId}, ${proyectoId}, ${numero}, ${origen}, 'vigente', ${usuarioId})`.execute(
-        trx,
-      );
-    }
-
-    // 3. Métodos (config completa en jsonb, validada por core).
-    const metodoId = new Map<string, string>();
-    for (const [orden, m] of d01.metodos.entries()) {
-      const r = await sql<{ id: string }>`
-        INSERT INTO app.metodo (id, configuracion_id, especialidad_id, codigo, nombre, clase,
-                                tipo_geometria, requiere_track, orden, config, creado_por)
-        VALUES (${uuid()}, ${configuracionId}, ${especialidadId.get(m.especialidad) ?? null}, ${m.codigo},
-                ${m.nombre}, ${m.clase}, ${m.geometria.tipo}, ${m.track}, ${orden},
-                ${JSON.stringify(m)}::jsonb, ${usuarioId})
-        ON CONFLICT (configuracion_id, codigo) DO UPDATE
-          SET especialidad_id = EXCLUDED.especialidad_id, nombre = EXCLUDED.nombre,
-              clase = EXCLUDED.clase, tipo_geometria = EXCLUDED.tipo_geometria,
-              requiere_track = EXCLUDED.requiere_track, orden = EXCLUDED.orden, config = EXCLUDED.config
-        RETURNING id`.execute(trx);
-      metodoId.set(m.codigo, r.rows[0]?.id ?? '');
+      // 3. Versión nueva: la anterior queda histórica; las decisiones nominales y las reservas
+      //    pasan a los métodos de la nueva (mismo código).
+      numero = (
+        await crearVersionConfiguracion(trx, {
+          proyectoId,
+          origen,
+          notas: null,
+          usuarioId,
+          metodos: d01.metodos,
+          especialidadIds: especialidadId,
+        })
+      ).numero;
     }
 
     const cuenta = async (q: Promise<Fila<{ n: string }>>): Promise<number> =>

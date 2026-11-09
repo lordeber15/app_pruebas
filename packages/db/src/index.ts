@@ -30,3 +30,8 @@ export {
   versionVigenteDe,
   type ResultadoMatriz,
 } from './estaciones.ts';
+export {
+  crearVersionConfiguracion,
+  type NuevaVersionConfiguracion,
+  type VersionCreada,
+} from './configuracion.ts';
