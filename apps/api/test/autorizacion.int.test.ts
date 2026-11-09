@@ -110,6 +110,9 @@ const CASOS: Partial<Record<Accion, Caso>> = {
     pedir(e, t, 'PATCH', `/proyectos/${o.esc.proyectoId}`, { dias_bloqueo: 15 }),
   administrar_usuarios: (t) => pedir(e, t, 'GET', '/admin/usuarios'),
   consultar_seguimiento: async (t) => pedir(e, t, 'GET', `/archivos/${await fotoVerificada()}/url`),
+  // RF-W09: el Supervisor de campo (brigada A) descarga la plantilla de sus brigadas.
+  sugerir_programacion: (t) =>
+    pedir(e, t, 'GET', `/proyectos/${o.esc.proyectoId}/programacion/plantilla?con_datos=0`),
   resolver_revisiones: async (t) =>
     pedir(e, t, 'POST', `/revisiones/${await eventoEnRevision()}/resolver`, {
       decision: 'descartado',

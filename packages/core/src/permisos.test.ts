@@ -36,6 +36,9 @@ const ERS_2_3: Readonly<Record<Accion, readonly [Celda, Celda, Celda, Celda, Cel
   sistematizar: ['✖', '✖', '✖', '✖', '✖', '✖'],
   // [DTP] No está en la ERS: Coordinación y JdP, que revisan la QA post-sincronización.
   resolver_revisiones: ['✖', '✖', '✖', '✔', '✔', '✖'],
+  // Decisión provisional del usuario (2026-11-08, RF-W09): el Supervisor de campo solo sugiere la
+  // programación de sus brigadas; Coordinación y JdP la aplican.
+  sugerir_programacion: ['✖', '◐', '✖', '✔', '✔', '✖'],
 };
 
 const SIMBOLO = { '✔': 'total', '◐': 'alcance', '✖': 'no' } as const;

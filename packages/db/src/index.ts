@@ -17,14 +17,21 @@ export {
   crearCronogramaBase,
   elegirItemParaMetodo,
   METODOS_POR_ACTIVIDAD_ESPECIAL,
+  metodosDeActividadEspecial,
   reubicarReservas,
   type FilaCronogramaBase,
   type ItemParaReserva,
 } from './cronograma.ts';
 export {
+  aplicarActividadesEspeciales,
   derivarAplicabilidad,
   geomDesdeUtm,
   sincronizarReservas,
   versionVigenteDe,
   type ResultadoMatriz,
 } from './estaciones.ts';
+export {
+  crearVersionConfiguracion,
+  type NuevaVersionConfiguracion,
+  type VersionCreada,
+} from './configuracion.ts';

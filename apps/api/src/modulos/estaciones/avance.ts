@@ -139,6 +139,9 @@ export const verAvanceEstaciones = async (
 
   let qEjec = db
     .selectFrom('ejecucion as x')
+    // Código del método: una ejecución abierta con una versión anterior de D01 cuenta para el
+    // mismo método de la vigente (RF-W09).
+    .innerJoin('metodo as mx', 'mx.id', 'x.metodo_id')
     .leftJoin(
       (eb) =>
         eb
@@ -152,6 +155,7 @@ export const verAvanceEstaciones = async (
     .select([
       'x.estacion_id',
       'x.metodo_id',
+      'mx.codigo as metodo_codigo',
       'x.estado',
       'x.datos',
       sql<number | null>`x.objetivo_campo::float8`.as('objetivo_campo'),
@@ -215,7 +219,9 @@ export const verAvanceEstaciones = async (
           (a, b) => (a.especialidad_orden ?? 0) - (b.especialidad_orden ?? 0) || a.orden - b.orden,
         );
       const evaluados: { m: MetodoEnEstacion; fila: MetodoAvance }[] = metodos.map((r) => {
-        const xs = ejecuciones.filter((x) => x.estacion_id === e.id && x.metodo_id === r.metodo_id);
+        const xs = ejecuciones.filter(
+          (x) => x.estacion_id === e.id && x.metodo_codigo === r.codigo,
+        );
         const { avance } = avanceDeMetodo(configDe(r.metodo_id, r.config), e, xs);
         const m: MetodoEnEstacion = {
           metodo: r.codigo,

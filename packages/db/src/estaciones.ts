@@ -9,7 +9,7 @@ import {
 } from '@campo/core';
 import { sql, type Kysely, type RawBuilder } from 'kysely';
 import { z } from 'zod';
-import { asignarReservasSinFila } from './cronograma.ts';
+import { asignarReservasSinFila, metodosDeActividadEspecial } from './cronograma.ts';
 
 /**
  * Estaciones, matriz estación–método y reservas: lo comparten la carga de A01 (`cargarToce`) y
@@ -188,4 +188,44 @@ export const sincronizarReservas = async (
           ...(opciones.estacionIds === undefined ? {} : { estacionIds: opciones.estacionIds }),
         });
   return { creadas, ubicadas, reactivadas: Number(reactivadas.numAffectedRows ?? 0n) };
+};
+
+/**
+ * Actividades especiales de una versión del cronograma (epífitas, cámaras trampa) como decisión
+ * nominal de la matriz estación–método, igual que la carga de A01 (RN-28, «Matriz estación–método»
+ * en CLAUDE.md), y reservas faltantes de esas estaciones. Lo usan la publicación del borrador y la
+ * aprobación de un cambio que agrega una actividad especial. Sin `estacionIds`, todas las de la
+ * versión. Devuelve cuántas estaciones tocó.
+ */
+export const aplicarActividadesEspeciales = async (
+  db: Kysely<unknown>,
+  opciones: {
+    readonly proyectoId: string;
+    readonly versionId: string;
+    readonly usuarioId: string | null;
+    readonly estacionIds?: readonly string[];
+  },
+): Promise<number> => {
+  const { proyectoId, versionId, usuarioId } = opciones;
+  if (opciones.estacionIds?.length === 0) return 0;
+  const especiales = (
+    await sql<{ estacion_id: string; actividad_especial: string }>`
+      SELECT DISTINCT estacion_id, actividad_especial
+        FROM app.cronograma_item
+       WHERE version_id = ${versionId} AND estacion_id IS NOT NULL AND actividad_especial IS NOT NULL
+         ${opciones.estacionIds === undefined ? sql`` : sql`AND estacion_id = ANY(${[...opciones.estacionIds]}::uuid[])`}`.execute(
+      db,
+    )
+  ).rows;
+  const nominales = new Set<string>();
+  for (const i of especiales) {
+    for (const codigo of metodosDeActividadEspecial(i.actividad_especial)) {
+      nominales.add(`${i.estacion_id}|${codigo}`);
+    }
+  }
+  const estacionIds = [...new Set(especiales.map((i) => i.estacion_id))];
+  if (estacionIds.length === 0) return 0;
+  await derivarAplicabilidad(db, { proyectoId, estacionIds, nominales, usuarioId });
+  await sincronizarReservas(db, { proyectoId, estacionIds, usuarioId });
+  return estacionIds.length;
 };

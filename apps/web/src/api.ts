@@ -42,7 +42,66 @@ const pedir = async <T>(metodo: string, ruta: string, cuerpo?: unknown): Promise
   return datos as T;
 };
 
+const errorDe = async (r: Response): Promise<ErrorApi> => {
+  const p = (await r.json().catch(() => ({}))) as { detail?: string; codigo?: string };
+  return new ErrorApi(
+    r.status,
+    p.codigo ?? 'ERROR',
+    p.detail ?? 'La solicitud no se pudo completar.',
+  );
+};
+
+const sinConexion = (): ErrorApi =>
+  new ErrorApi(
+    0,
+    'SIN_CONEXION',
+    'No hay conexión con el servidor. Revise su red e intente de nuevo.',
+  );
+
+/** Descarga un archivo de la API (p. ej. la plantilla .xlsx) y lo guarda en el equipo. */
+const descargar = async (ruta: string, nombrePorDefecto: string): Promise<void> => {
+  let r: Response;
+  try {
+    r = await fetch(`/api/v1${ruta}`, { credentials: 'include' });
+  } catch {
+    throw sinConexion();
+  }
+  if (!r.ok) throw await errorDe(r);
+  const nombre =
+    /filename="([^"]+)"/.exec(r.headers.get('content-disposition') ?? '')?.[1] ?? nombrePorDefecto;
+  const url = URL.createObjectURL(await r.blob());
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nombre;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+};
+
+/** Sube un .xlsx como cuerpo crudo; el nombre va en la cabecera `x-nombre-archivo`. */
+const subir = async <T>(ruta: string, archivo: File): Promise<T> => {
+  let r: Response;
+  try {
+    r = await fetch(`/api/v1${ruta}`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'content-type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'x-nombre-archivo': encodeURIComponent(archivo.name),
+      },
+      body: archivo,
+    });
+  } catch {
+    throw sinConexion();
+  }
+  if (!r.ok) throw await errorDe(r);
+  return (await r.json()) as T;
+};
+
 export const api = {
+  descargar,
+  subir,
   get: <T>(ruta: string) => pedir<T>('GET', `/api/v1${ruta}`),
   post: <T>(ruta: string, cuerpo: unknown = {}) => pedir<T>('POST', `/api/v1${ruta}`, cuerpo),
   patch: <T>(ruta: string, cuerpo: unknown) => pedir<T>('PATCH', `/api/v1${ruta}`, cuerpo),
@@ -383,6 +442,7 @@ export type CambioCronograma =
         estacion_id: string | null;
         detalle: string | null;
         actividad_especial: string | null;
+        estado_fila?: EstadoFilaCronograma;
       };
     };
 
@@ -397,11 +457,71 @@ export interface FilaBorrador {
   estacion_id: string | null;
   estacion_codigo: string | null;
   detalle: string | null;
+  estado_fila: EstadoFilaCronograma;
+  actividad_especial: string | null;
 }
 
 export interface Borrador {
   publicado: boolean;
   filas: FilaBorrador[];
+}
+
+// ── Carga de la programación A01 (RF-W09) ──
+
+export type AccionCarga = 'nueva' | 'cambio' | 'sin_cambio' | 'error' | 'no_incluida';
+
+export interface VistaCarga {
+  importacion_id: string;
+  estado: 'pendiente' | 'propuesta' | 'aplicada' | 'descartada';
+  origen: 'excel' | 'web';
+  nombre_archivo: string | null;
+  autor: string | null;
+  motivo: string | null;
+  /** Sin cronograma base, al borrador; con base, como solicitud de reprogramación. */
+  destino: 'borrador' | 'solicitud';
+  resumen: {
+    filas: number;
+    nuevas: number;
+    cambios: number;
+    sin_cambio: number;
+    no_incluidas: number;
+    estaciones_nuevas: number;
+    errores: number;
+  };
+  filas: {
+    hoja: 'programacion' | 'actividades_especiales' | null;
+    fila: number | null;
+    accion: AccionCarga;
+    estacion: string | null;
+    estacion_nueva: boolean;
+    brigada: string | null;
+    fecha: string | null;
+    actividad: string | null;
+    detalle: string;
+    errores: string[];
+    avisos: string[];
+  }[];
+}
+
+export interface ImportacionResumen {
+  id: string;
+  estado: VistaCarga['estado'];
+  origen: 'excel' | 'web';
+  nombre_archivo: string | null;
+  resumen: VistaCarga['resumen'];
+  motivo: string | null;
+  creado_en: string;
+  propuesta_en: string | null;
+  autor: string;
+}
+
+export interface ResultadoCarga {
+  destino: 'borrador' | 'solicitud' | 'aplicada_ahora';
+  estaciones_creadas: number;
+  filas_agregadas: number;
+  filas_cambiadas: number;
+  solicitud_id: string | null;
+  version_numero: number | null;
 }
 
 export interface SolicitudCronograma {
@@ -578,4 +698,72 @@ export interface PuntosGaleria {
   puntos: PuntoGaleria[];
   truncado: boolean;
   sin_coordenada: number;
+}
+
+// ── Configuración por método D01 por plantilla Excel (RF-W09) ──
+
+export interface ConfiguracionD01 {
+  vigente: {
+    numero: number;
+    origen: string;
+    notas: string | null;
+    creado_en: string;
+    creado_por_nombre: string | null;
+    metodos: number;
+  } | null;
+  importaciones: {
+    id: string;
+    estado: 'vista_previa' | 'aplicada';
+    archivo_nombre: string;
+    con_errores: boolean;
+    creado_en: string;
+    creado_por_nombre: string;
+    aplicado_en: string | null;
+    aplicado_por_nombre: string | null;
+    motivo: string | null;
+    version_numero: number | null;
+  }[];
+}
+
+export interface ErrorCeldaD01 {
+  hoja: string;
+  fila: number | null;
+  columna: string | null;
+  mensaje: string;
+}
+
+export interface ImportacionD01 {
+  id: string;
+  estado: 'vista_previa' | 'aplicada';
+  archivo_nombre: string;
+  con_errores: boolean;
+  aplicable: boolean;
+  creado_en: string;
+  version_base: number | null;
+  resumen: {
+    nuevos: number;
+    cambiados: number;
+    sin_cambio: number;
+    no_incluidos: number;
+    errores: number;
+  };
+  metodos: {
+    codigo: string;
+    nombre: string;
+    fila: number;
+    estado: 'nuevo' | 'cambiado' | 'sin_cambio';
+    cambios: { campo: string; antes: string; despues: string }[];
+  }[];
+  no_incluidos: { codigo: string; nombre: string }[];
+  errores: ErrorCeldaD01[];
+}
+
+export interface ResultadoAplicacionD01 {
+  configuracion_numero: number;
+  metodos: number;
+  estacion_metodo: number;
+  estacion_metodo_pendientes: number;
+  nominales_trasladadas: number;
+  reservas_trasladadas: number;
+  reservas_creadas: number;
 }

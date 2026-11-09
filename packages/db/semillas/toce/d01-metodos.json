@@ -204,7 +204,10 @@
       "fuente": {
         "estado": "CERRADO",
         "origen": "Geometría fuente + regla fotográfica funcional Walsh.",
-        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad."
+        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad.",
+        "campos": "Especies registradas, puntos con presencia o ausencia de vegetación, forma de crecimiento y estado fenológico.",
+        "validaciones": "Validar número de transectos, separación mínima, inicio/fin, 100 lecturas, fotos requeridas.",
+        "asignacion": "Habilitar provisionalmente en todas las estaciones de la especialidad correspondiente."
       }
     },
     {
@@ -342,7 +345,10 @@
       "fuente": {
         "estado": "CERRADO",
         "origen": "Geometría fuente + regla fotográfica funcional Walsh.",
-        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad."
+        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad.",
+        "campos": "Especies registradas, número de individuos por especie, cobertura por especie, cobertura vegetal viva y estado fenológico.",
+        "validaciones": "Validar cantidad y posiciones 12,5; 25; 37,5 m por transecto, centro georreferenciado en la app, foto interior y vínculo al transecto.",
+        "asignacion": "Habilitar provisionalmente en todas las estaciones de la especialidad correspondiente."
       }
     },
     {
@@ -463,7 +469,10 @@
       "fuente": {
         "estado": "CERRADO",
         "origen": "Geometría funcional aprobada por Walsh: vértices georreferenciados en la app para parcela 5 × 5 m + regla fotográfica funcional.",
-        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición."
+        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición.",
+        "campos": "Especies registradas, número de individuos por especie, cobertura por especie y estado fenológico.",
+        "validaciones": "Validar cantidad de parcelas, registro de todos los vértices georreferenciados en la app de cada parcela 5 × 5 m, 2 panorámicas (centro/interior y lateral) y código único.",
+        "asignacion": "Aplicar solo en estaciones donde esté presente el estrato arbustivo."
       }
     },
     {
@@ -584,7 +593,10 @@
       "fuente": {
         "estado": "CERRADO",
         "origen": "Geometría fuente + regla fotográfica funcional Walsh.",
-        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición."
+        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición.",
+        "campos": "Especies registradas, número de individuos por especie, cobertura por especie y estado fenológico.",
+        "validaciones": "Validar cantidad de parcelas, vértices exigidos, 4 panorámicas y código único.",
+        "asignacion": "Aplicar solo en estaciones con componente arbóreo."
       }
     },
     {
@@ -682,7 +694,10 @@
       "fuente": {
         "estado": "CERRADO COMO REGLA APP",
         "origen": "La fuente no exige geometría específica; el track se incorpora como control funcional de la app.",
-        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad."
+        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad.",
+        "campos": "Especies registradas, formas de crecimiento y estados fenológicos observados.",
+        "validaciones": "Registrar inicio/fin del recorrido, track, duración si se captura, especies adicionales y evidencia fotográfica metodológica.",
+        "asignacion": "Habilitar provisionalmente en todas las estaciones de la especialidad correspondiente."
       }
     },
     {
@@ -753,7 +768,10 @@
       "fuente": {
         "estado": "CERRADO COMO ATRIBUTO",
         "origen": "Apartado científico, no unidad operativa independiente.",
-        "pendiente": "No aplica asignación nominal independiente."
+        "pendiente": "No aplica asignación nominal independiente.",
+        "campos": null,
+        "validaciones": "Validar que los campos científicos se asocien al registro de flora correspondiente.",
+        "asignacion": "No asignar como método independiente; hereda la estación y unidad del método donde se registra."
       }
     },
     {
@@ -894,7 +912,10 @@
       "fuente": {
         "estado": "CERRADO",
         "origen": "Geometría fuente + regla fotográfica funcional Walsh.",
-        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición."
+        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición.",
+        "campos": "Especies de epífitas vasculares, número de individuos por especie y sección, estado fenológico observable, especie del árbol hospedero y DAP.",
+        "validaciones": "Validar número de árboles, código de forófito, coordenada base y foto panorámica.",
+        "asignacion": "Aplicar en estaciones con cobertura arbórea y en estaciones ZA/EF conforme a la metodología; si no existen forófitos, registrar esa condición."
       }
     },
     {
@@ -1017,7 +1038,10 @@
       "fuente": {
         "estado": "CERRADO",
         "origen": "Reutilización espacial aprobada + regla fotográfica funcional Walsh.",
-        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición."
+        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición.",
+        "campos": "Especies registradas, número de celdas ocupadas por cada especie, sección del árbol hospedero, especie del árbol hospedero y DAP.",
+        "validaciones": "Validar vínculo al árbol, estratificación/secciones y evidencia de aplicación de grilla.",
+        "asignacion": "Aplicar en las mismas estaciones/forófitos definidos para epífitas vasculares."
       }
     },
     {
@@ -1175,7 +1199,10 @@
       "fuente": {
         "estado": "CERRADO",
         "origen": "Ajuste funcional aprobado por Walsh: 5 subparcelas por categoría (subdivisiones 1–5), 500 m² para latizales y 125 m² para brinzales, con vértices georreferenciados en la app de parcela principal y subparcelas.",
-        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición."
+        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición.",
+        "campos": "Especies registradas, número de individuos, DAP, altura total, altura comercial y categoría de desarrollo (árboles, fustales, latizales y brinzales). Para la regeneración, registrar también la altura y el diámetro del fuste. Registrar el estado fenológico observable según el apartado Formas de crecimiento y estados fenológicos.",
+        "validaciones": "Validar parcela principal 250 × 20 m, 5 subdivisiones de 50 × 20 m, 5 subparcelas de latizales 10 × 10 m y 5 subparcelas de brinzales 5 × 5 m; verificar 500 m² y 125 m² respectivamente, vértices georreferenciados en la app de la parcela principal y de cada subparcela, 6 panorámicas principales, 10 fotos interiores de regeneración y códigos únicos.",
+        "asignacion": "Aplicar solo en estaciones con cobertura arbórea/componente forestal."
       }
     },
     {
@@ -1314,7 +1341,10 @@
       "fuente": {
         "estado": "CERRADO – CRITERIO HUMANO DE CAMPO",
         "origen": "Esfuerzo de referencia de la metodología + decisión funcional aprobada: número final de unidades definido por el especialista en campo; sin redondeo ni bloqueo por cantidad.",
-        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición."
+        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición.",
+        "campos": "Especies, presencia/ausencia de vegetación, número de individuos, cobertura por especie y cobertura vegetal viva.",
+        "validaciones": "Mostrar el esfuerzo de referencia según superficie. Validar la completitud de cada unidad registrada (geometría, lecturas, campos y fotos), pero no bloquear por cantidad ni aplicar redondeos automáticos. Permitir agregar unidades adicionales.",
+        "asignacion": "Aplicar solo en estaciones correspondientes a bofedales."
       }
     },
     {
@@ -1436,7 +1466,10 @@
       "fuente": {
         "estado": "CERRADO – CRITERIO HUMANO DE CAMPO",
         "origen": "Esfuerzo de referencia y reutilización espacial de la metodología + decisión funcional aprobada: número final definido por el especialista, sin redondeo ni bloqueo.",
-        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición."
+        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición.",
+        "campos": "Peso seco de la vegetación; superficie recolectada; código de muestra/bolsa; cuadrante de cobertura asociado y superficie total recolectada.",
+        "validaciones": "Validar vínculo con el cuadrante de cobertura, superficie recolectada, código de muestra/bolsa y fotos. Mostrar el esfuerzo de referencia, sin bloquear por cantidad ni aplicar redondeos; permitir unidades adicionales.",
+        "asignacion": "Aplicar solo en estaciones de bofedal donde se ejecuten los cuadrantes de cobertura asociados."
       }
     },
     {
@@ -1576,7 +1609,10 @@
       "fuente": {
         "estado": "CERRADO – CRITERIO HUMANO DE CAMPO",
         "origen": "Esfuerzo base y temporalidad de la metodología + decisión funcional aprobada: número final de unidades definido en campo; sin extrapolación, redondeo ni bloqueo.",
-        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición."
+        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición.",
+        "campos": "Código del punto/muestra; profundidad de turba; profundidad del nivel de agua; contenido de materia orgánica; densidad aparente; volumen del cilindro cuando corresponda; fecha y parámetro evaluado.",
+        "validaciones": "Mostrar el esfuerzo de referencia por superficie y parámetro. Validar código, coordenada, parámetro, dato/muestra y fotos; no bloquear por cantidad. Para >50 ha, permitir que el especialista ingrese y ejecute el número de unidades definido en campo.",
+        "asignacion": "Aplicar solo en estaciones correspondientes a bofedales."
       }
     },
     {
@@ -1752,7 +1788,10 @@
       "fuente": {
         "estado": "CERRADO COMO REGLA APP",
         "origen": "Esfuerzo fuente + georreferenciación/fotos definidas funcionalmente.",
-        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición."
+        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición.",
+        "campos": "Especies registradas, forma de crecimiento y estado fenológico observado; mantillo, suelo desnudo, roca y evidencias de erosión del suelo; altura de las especies forrajeras indicadoras y su referencia sin pastoreo; tipo de ganado; presencia de especies exóticas o invasoras; presencia cualitativa de invasoras (alta, media, baja o nula); presencia o ausencia de plantas indicadoras de sobrepastoreo y de suelo compactado.",
+        "validaciones": "Validar 100 registros, longitud, inicio/fin app, fotos, especie indicadora y altura de referencia.",
+        "asignacion": "Aplicar solo en estaciones con pastos naturales que constituyan recurso forrajero."
       }
     },
     {
@@ -1950,7 +1989,10 @@
       "fuente": {
         "estado": "CERRADO",
         "origen": "Metodología fuente + regla fotográfica funcional. Playback queda como comentario metodológico opcional, fuera de validación de la app.",
-        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición."
+        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición.",
+        "campos": "Especie, número de individuos, tipo de registro, visual o auditivo, y comportamiento observado: alimentación, reposo, desplazamiento o reproducción. Para aves en vuelo: altura, dirección y tipo de vuelo. Hábitat predominante y otros hábitats presentes alrededor del punto de conteo.",
+        "validaciones": "Validar 10 min, número de puntos, separación de 200 m, coordenada, 4 fotos, hábitat y horario. El uso de playback no forma parte de la validación ni condiciona el cierre.",
+        "asignacion": "Aplicar en estaciones de costa y sierra, excepto las ubicadas en lagos, lagunas y cochas."
       }
     },
     {
@@ -2140,7 +2182,10 @@
       "fuente": {
         "estado": "CERRADO",
         "origen": "Interpretación operativa aprobada: coordenadas de inicio y final.",
-        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición."
+        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición.",
+        "campos": "Especie, número de individuos y comportamiento observado: alimentación, reposo, desplazamiento o reproducción. Para aves en vuelo: altura, dirección y tipo de vuelo. Hábitat predominante y otros hábitats presentes en el recorrido de cada lista.",
+        "validaciones": "Validar inicio/fin y horas, track, separación entre listas, 20 especies o motivo de lista incompleta y fotos.",
+        "asignacion": "Aplicar solo en estaciones de la región selva."
       }
     },
     {
@@ -2304,7 +2349,10 @@
       "fuente": {
         "estado": "CERRADO",
         "origen": "Geometría fuente + regla fotográfica funcional Walsh.",
-        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición."
+        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición.",
+        "campos": "Especie, número de individuos y ubicación de las agrupaciones. Tipo de cuerpo de agua, hábitat predominante en sus orillas y ambientes utilizados por las aves.",
+        "validaciones": "Validar coordenada por posición, tiempo total, sectores no observables, 5 fotos y horario.",
+        "asignacion": "Aplicar solo en estaciones ubicadas en lagos, lagunas y cochas."
       }
     },
     {
@@ -2424,7 +2472,10 @@
       "fuente": {
         "estado": "CERRADO COMO EVENTO",
         "origen": "Regla funcional para evento incidental.",
-        "pendiente": "No requiere matriz estación–método previa; solo mantener disponible el evento."
+        "pendiente": "No requiere matriz estación–método previa; solo mantener disponible el evento.",
+        "campos": "Especie, hábitat y detección visual o auditiva y comportamiento observado. Para aves en vuelo; altura, dirección y tipo de vuelo cuando sean observables.",
+        "validaciones": "Registrar especie, fecha/hora, hábitat, comportamiento, coordenada cuando corresponda y evidencia disponible.",
+        "asignacion": "Habilitar como registro complementario en todas las estaciones/ámbitos de la especialidad; no requiere asignación previa como unidad de muestreo."
       }
     },
     {
@@ -2616,7 +2667,10 @@
       "fuente": {
         "estado": "CERRADO",
         "origen": "Geometría fuente + track/fotos funcionales aprobados.",
-        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad."
+        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad.",
+        "campos": "Especie, número de individuos, hábitat del recorrido y microhábitat de cada detección.",
+        "validaciones": "Validar 30 min, horario, inicio/fin, track, altitud, fotos y sector diferenciado día/noche. Mostrar advertencia no bloqueante si la separación entre VES es menor de 50 m; no establecer distancia máxima en la app.",
+        "asignacion": "Habilitar provisionalmente en todas las estaciones de la especialidad correspondiente."
       }
     },
     {
@@ -2796,7 +2850,10 @@
       "fuente": {
         "estado": "CERRADO",
         "origen": "Geometría fuente + regla de reutilización aprobada.",
-        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición."
+        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición.",
+        "campos": "Especie, número de individuos, hábitat del transecto y microhábitat de cada detección.",
+        "validaciones": "Validar 100 × 2 m, 30 min, mismo código físico día/noche, inicio/fin, track y fotos sin duplicación. Mostrar advertencia no bloqueante si la separación entre TBF es menor de 50 m.",
+        "asignacion": "Aplicar solo en estaciones de anfibios y reptiles de la región selva."
       }
     },
     {
@@ -2898,7 +2955,10 @@
       "fuente": {
         "estado": "CERRADO COMO EVENTO",
         "origen": "Regla funcional para evento incidental.",
-        "pendiente": "No requiere matriz estación–método previa; solo mantener disponible el evento."
+        "pendiente": "No requiere matriz estación–método previa; solo mantener disponible el evento.",
+        "campos": "Especie, estación de muestreo o localidad, hábitat, microhábitat, fecha, hora y detección visual o auditiva.",
+        "validaciones": "Registrar especie, estación/localidad, hábitat, microhábitat, fecha/hora, tipo detección, coordenada disponible.",
+        "asignacion": "Habilitar como registro complementario en todas las estaciones/ámbitos de la especialidad; no requiere asignación previa como unidad de muestreo."
       }
     },
     {
@@ -3042,7 +3102,10 @@
       "fuente": {
         "estado": "CERRADO",
         "origen": "Geometría fuente + regla fotográfica funcional Walsh.",
-        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad."
+        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad.",
+        "campos": "Especie, número de individuos capturados, tipo de cebo y hábitat de instalación.",
+        "validaciones": "Validar 9 trampas, tipos de cebo 3/3/3, exposición, inicio/fin, códigos, fotos y horas de instalación/retiro.",
+        "asignacion": "Habilitar provisionalmente en todas las estaciones de la especialidad correspondiente."
       }
     },
     {
@@ -3185,7 +3248,10 @@
       "fuente": {
         "estado": "CERRADO",
         "origen": "Geometría fuente + regla funcional aprobada para trazado compartido con pan traps.",
-        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad."
+        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad.",
+        "campos": "Especie, número de individuos capturados y hábitat de instalación.",
+        "validaciones": "Validar 9 trampas, inicio/fin, códigos, fotos y horas de instalación/retiro. Mostrar advertencia no bloqueante recordando una separación aproximada de 10 m entre trampas.",
+        "asignacion": "Habilitar provisionalmente en todas las estaciones de la especialidad correspondiente."
       }
     },
     {
@@ -3323,7 +3389,10 @@
       "fuente": {
         "estado": "CERRADO COMO REGLA APP",
         "origen": "La fuente no exige transecto independiente; regla funcional aprobada.",
-        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad."
+        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad.",
+        "campos": "Especie, número de individuos capturados y hábitat de instalación.",
+        "validaciones": "Validar 5 bandejas, exposición a la luz, códigos, esfuerzo, horas y vínculo espacial al transecto. Mostrar advertencia no bloqueante recordando una separación aproximada de 10 m entre bandejas.",
+        "asignacion": "Habilitar provisionalmente en todas las estaciones de la especialidad correspondiente."
       }
     },
     {
@@ -3453,7 +3522,10 @@
       "fuente": {
         "estado": "CERRADO",
         "origen": "Geometría fuente + track/fotos funcionales.",
-        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad."
+        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad.",
+        "campos": "Especies registradas y hábitats evaluados.",
+        "validaciones": "Validar horario, 1 h/2 h ZA-EF, inicio/fin, track, fotos y hábitats recorridos.",
+        "asignacion": "Habilitar provisionalmente en todas las estaciones de la especialidad correspondiente."
       }
     },
     {
@@ -3612,7 +3684,10 @@
       "fuente": {
         "estado": "CERRADO",
         "origen": "Geometría fuente + regla fotográfica funcional Walsh.",
-        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición."
+        "pendiente": "Identificar nominalmente qué estaciones cumplen esta condición.",
+        "campos": "Especie, número de individuos capturados y hábitat de instalación.",
+        "validaciones": "Validar ubicación, horario 09:00–15:00, exposición por día(s), fotos, instalación/retiro y fallas.",
+        "asignacion": "Aplicar solo en estaciones de artrópodos de la región selva."
       }
     },
     {
@@ -3791,7 +3866,10 @@
       "fuente": {
         "estado": "CERRADO",
         "origen": "Geometría fuente + regla fotográfica funcional Walsh.",
-        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad."
+        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad.",
+        "campos": "Especies registradas, número de capturas, sexo, edad y condición reproductiva cuando puedan determinarse; medidas corporales necesarias para la identificación y hábitat de captura.",
+        "validaciones": "Validar 60 trampas/30 puntos, inicio/fin, cebo, horas, interrupciones y fotos. Mostrar advertencia no bloqueante recordando una separación de 10–15 m entre puntos de colocación.",
+        "asignacion": "Habilitar provisionalmente en todas las estaciones de la especialidad correspondiente."
       }
     },
     {
@@ -3958,7 +4036,10 @@
       "fuente": {
         "estado": "CERRADO",
         "origen": "Reutilización espacial fuente + regla fotográfica funcional Walsh.",
-        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad."
+        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad.",
+        "campos": "Especies registradas, número de capturas, sexo, edad y condición reproductiva cuando puedan determinarse; medidas corporales necesarias para la identificación y hábitat de captura.",
+        "validaciones": "Validar 10 trampas, cebo, horas, interrupciones y fotos. En coberturas arbóreas, mostrar un mensaje informativo recordando que pueden incluirse posiciones elevadas; no exigir ni bloquear por esta condición.",
+        "asignacion": "Habilitar provisionalmente en todas las estaciones de la especialidad correspondiente."
       }
     },
     {
@@ -4132,7 +4213,10 @@
       "fuente": {
         "estado": "CERRADO",
         "origen": "Configuración técnica literal de la metodología + fotos funcionales.",
-        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad."
+        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad.",
+        "campos": "Señales de ecolocación registradas, especies identificadas y hábitat de registro.",
+        "validaciones": "Validar punto, 10–80 kHz, WAV, 384 kHz, 1 min cada 5 min, 18:00–06:00, fechas/horas, archivos y fallas.",
+        "asignacion": "Habilitar provisionalmente en todas las estaciones de la especialidad correspondiente."
       }
     },
     {
@@ -4328,7 +4412,10 @@
       "fuente": {
         "estado": "CERRADO",
         "origen": "Esfuerzo y distribución fuente + decisión funcional aprobada: obligación de 10 redes y foto individual por red; distanciamiento tratado como advertencia no bloqueante.",
-        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad."
+        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad.",
+        "campos": "Especies registradas, número de capturas, sexo, condición reproductiva, medidas corporales para identificación y hábitat y estrato de captura.",
+        "validaciones": "Validar la instalación de 10 redes, una foto por red, horario, estrato, horas de apertura/cierre e interrupciones. Mostrar advertencia no bloqueante recordando el distanciamiento aproximado de 20 m entre redes; no bloquear por distancia.",
+        "asignacion": "Habilitar provisionalmente en todas las estaciones de la especialidad correspondiente."
       }
     },
     {
@@ -4515,7 +4602,10 @@
       "fuente": {
         "estado": "CERRADO",
         "origen": "Geometría fuente + track/fotos funcionales.",
-        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad."
+        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad.",
+        "campos": "Especies registradas, número de individuos observados, tipo y número de evidencias y hábitat. Sexo y edad cuando puedan determinarse.",
+        "validaciones": "Validar 2 km, horario, inicio/fin, track, distancia, evidencia, ubicación de detecciones y fotos.",
+        "asignacion": "Habilitar provisionalmente en todas las estaciones de la especialidad correspondiente."
       }
     },
     {
@@ -4706,7 +4796,10 @@
       "fuente": {
         "estado": "CERRADO",
         "origen": "Metodología fuente + decisión funcional aprobada: la app no restringe cantidades mayores a 6; 6 cámaras en ZA/EF requieren confirmación de permanencia por 144 h.",
-        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad."
+        "pendiente": "Confirmar listado nominal definitivo de estaciones de la especialidad.",
+        "campos": "Código de cámara; fecha/hora de instalación y retiro; duración prevista/ejecutada; hábitat y orientación; funcionamiento, archivos y fallas; especies registradas, número de individuos observables y comportamiento.",
+        "validaciones": "Alertar si se registran menos de 6 cámaras. En ZA/EF, si el total es exactamente 6, exigir confirmación del mensaje «las 6 cámaras permanecerán 6 días (144 h)». Si el total es mayor de 6, no bloquear por cantidad; registrar número instalado y duración de cada cámara.",
+        "asignacion": "Habilitar provisionalmente en todas las estaciones de la especialidad correspondiente."
       }
     },
     {
@@ -4801,7 +4894,10 @@
       "fuente": {
         "estado": "CERRADO COMO EVENTO",
         "origen": "Regla funcional para evento incidental.",
-        "pendiente": "No requiere matriz estación–método previa; solo mantener disponible el evento."
+        "pendiente": "No requiere matriz estación–método previa; solo mantener disponible el evento.",
+        "campos": "Especies registradas, tipo de evidencia, hábitat y comportamiento cuando sea observable.",
+        "validaciones": "Registrar fecha/hora, tipo de evidencia, hábitat, localidad/coordenada disponible y fotografía cuando exista.",
+        "asignacion": "Habilitar como registro complementario en todas las estaciones/ámbitos de la especialidad; no requiere asignación previa como unidad de muestreo."
       }
     },
     {
@@ -4994,7 +5090,10 @@
       "fuente": {
         "estado": "CERRADO",
         "origen": "Metodología fuente de ABS + reglas funcionales y fotográficas aprobadas por Walsh.",
-        "pendiente": "Confirmar nominalmente las estaciones correspondientes a cada grupo de fauna; la transversalidad, el track y el esfuerzo complementario quedan definidos."
+        "pendiente": "Confirmar nominalmente las estaciones correspondientes a cada grupo de fauna; la transversalidad, el track y el esfuerzo complementario quedan definidos.",
+        "campos": "Grupo de fauna; tipo de sitio; función; especie/evidencia; ambiente; recurso utilizado; fecha; coordenadas; fotografías; tipo de sustento (directo, indirecto, información local o potencial sustentado); hora inicio/fin; track.",
+        "validaciones": "Validar track, horas, campos obligatorios y coordenada/fotos de cada ABS. Para reducir de 2 h a 1 h, exigir registro de cobertura amplia de sectores/ambientes + ABS identificadas + sectores/sitios que sustentan la reducción. No contabilizar tiempo de otros métodos ni aceptar un sitio aislado como sustento suficiente.",
+        "asignacion": "Habilitar en todas las estaciones de fauna y para cada grupo de fauna evaluado."
       }
     }
   ]

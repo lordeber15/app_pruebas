@@ -45,6 +45,12 @@ export const ACCIONES = [
   'sistematizar',
   /** [DTP] Decidir qué se conserva de un evento en revisión o duplicado (RN-08, RN-13). */
   'resolver_revisiones',
+  /**
+   * Descargar la plantilla de programación (A01) y subir una carga (RF-W09). Decisión provisional
+   * del usuario (2026-11-08): el Supervisor de campo «solo sugiere» para sus brigadas (queda como
+   * propuesta); aplicarla es de Coordinación y JdP (`configurar_proyecto`).
+   */
+  'sugerir_programacion',
 ] as const;
 export type Accion = (typeof ACCIONES)[number];
 
@@ -83,6 +89,7 @@ export const MATRIZ_PERMISOS: Readonly<Record<Accion, Fila>> = {
   exportar: fila(N, N, N, T, T, N),
   sistematizar: fila(N, N, N, N, N, N),
   resolver_revisiones: fila(N, N, N, T, T, N),
+  sugerir_programacion: fila(N, A, N, T, T, N),
 };
 
 export const nivelPermiso = (rol: Rol, accion: Accion): NivelPermiso =>

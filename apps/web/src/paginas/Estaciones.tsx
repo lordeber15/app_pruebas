@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { api, ErrorApi, type AvanceEstaciones, type Estacion } from '../api.ts';
 import { CeldaAvance, MapaAvance } from '../componentes/AvanceEstaciones.tsx';
+import { ConfiguracionD01 } from '../componentes/ConfiguracionD01.tsx';
 import { MetodosEstacion } from '../componentes/MetodosEstacion.tsx';
 import {
   AvisoError,
@@ -433,6 +434,7 @@ export const Estaciones = () => {
         especialista. El avance de cada estación es la cantidad de métodos completos sobre los
         métodos que le aplican.
       </p>
+      {gestionar ? <ConfiguracionD01 proyectoId={proyectoId} /> : null}
       {est.isPending ? <Cargando que="las estaciones" /> : null}
       <AvisoError error={est.error ?? avance.error} />
       {conPendientes.length > 0 ? (
