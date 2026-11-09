@@ -322,3 +322,109 @@ describe('GET /ejecuciones/:id (E-02, E-04, E-05)', () => {
     ).toBe(400);
   });
 });
+
+describe('RF-T05 / T-10 esfuerzo planificado vs. ejecutado', () => {
+  let ejT: string;
+  beforeAll(async () => {
+    ejT = generarId();
+    const unidadId = generarId();
+    const archivoId = generarId();
+    const res = await lote(e, campoA1.token, [
+      abrir(ejT, o.esc),
+      unidad(ejT, unidadId),
+      foto(ejT, unidadId, archivoId),
+      cerrar(ejT, [archivoId], undefined, [
+        {
+          id: generarId(),
+          tipo: 'falla',
+          motivo: 'Batería del detector agotada',
+          inicio: '2026-12-02T19:20:00.000-05:00',
+          fin: '2026-12-02T19:35:00.000-05:00',
+          unidad_id: unidadId,
+        },
+      ]),
+    ]);
+    if (res.some((x) => x.estado !== 'aplicado')) throw new Error(JSON.stringify(res));
+  });
+
+  it('T-10: el detalle trae inicio/fin, cantidad, duración efectiva e interrupciones con motivo', async () => {
+    const r = await pedir(e, o.coordinacion.token, 'GET', `/ejecuciones/${ejT}`);
+    expect(r.statusCode).toBe(200);
+    const d = r.json<{
+      esfuerzo: {
+        ejecutado: {
+          cantidad: number;
+          inicio: string;
+          fin: string | null;
+          duracion_min: number | null;
+          interrumpido_min: number;
+          efectivo_min: number | null;
+          fallas: number;
+        };
+      };
+      interrupciones: { motivo: string; tipo: string }[];
+    }>();
+    expect(d.esfuerzo.ejecutado).toMatchObject({
+      cantidad: 1,
+      inicio: '2026-12-03T00:00:00.000Z',
+      fin: '2026-12-03T01:00:00.000Z',
+      duracion_min: 60,
+      interrumpido_min: 15,
+      efectivo_min: 45,
+      fallas: 1,
+    });
+    expect(d.interrupciones).toEqual([
+      expect.objectContaining({ tipo: 'falla', motivo: 'Batería del detector agotada' }),
+    ]);
+  });
+
+  it('RN-19: seguimiento muestra una fila de esfuerzo por ejecución de cada usuario', async () => {
+    const r = await pedir(
+      e,
+      o.coordinacion.token,
+      'GET',
+      `/proyectos/${o.esc.proyectoId}/seguimiento`,
+    );
+    expect(r.statusCode).toBe(200);
+    const filas = r
+      .json<{
+        brigadas: {
+          id: string;
+          filas: {
+            metodo_id: string;
+            avance: { ejecutado: number } | null;
+            esfuerzo_por_usuario: {
+              ejecucion_id: string;
+              esfuerzo: { ejecutado: { cantidad: number } };
+            }[];
+          }[];
+        }[];
+      }>()
+      .brigadas.find((b) => b.id === o.esc.brigadaId)?.filas;
+    const fila = filas?.find((f) => f.esfuerzo_por_usuario.some((x) => x.ejecucion_id === ejT));
+    expect(fila).toBeDefined();
+    const suma = fila?.esfuerzo_por_usuario.reduce((s, x) => s + x.esfuerzo.ejecutado.cantidad, 0);
+    expect(suma).toBe(fila?.avance?.ejecutado);
+    expect(fila?.esfuerzo_por_usuario.map((x) => x.ejecucion_id)).toEqual(
+      expect.arrayContaining([ejA1, ejA2, ejT]),
+    );
+  });
+
+  it('T-10: una interrupción sin motivo invalida el cierre (no_aplicado), sin perder el evento', async () => {
+    const id = generarId();
+    const res = await lote(e, campoA2.token, [
+      abrir(id, o.esc),
+      cerrar(id, [], undefined, [
+        {
+          id: generarId(),
+          tipo: 'interrupcion',
+          motivo: '',
+          inicio: '2026-12-02T19:20:00.000-05:00',
+          fin: null,
+          unidad_id: null,
+        },
+      ]),
+    ]);
+    expect(res.map((x) => x.estado)).toEqual(['aplicado', 'no_aplicado']);
+  });
+});

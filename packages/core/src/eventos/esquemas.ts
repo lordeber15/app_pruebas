@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { TIPOS_UNIDAD } from '../configuracion/metodo.ts';
+import { interrupcionSchema } from '../reglas/esfuerzo.ts';
 import {
   CATEGORIAS_ALERTA_LOGISTICA,
   ESTADOS_UNIDAD,
@@ -203,6 +204,11 @@ const ejecucionCerrada = z
     objetivo_campo: z.number().positive().nullable(),
     /** Fotos anunciadas de la ejecución, para verificar sus hashes (RN-05). */
     archivo_ids: z.array(id).max(2000),
+    /**
+     * Interrupciones o fallas con motivo (T-10, RF-T05). Opcional: un celular N−1 no las envía.
+     * No bloquean ni generan incumplimiento; descuentan tiempo de la duración efectiva.
+     */
+    interrupciones: z.array(interrupcionSchema).max(200).default([]),
   })
   .refine(
     (p) =>

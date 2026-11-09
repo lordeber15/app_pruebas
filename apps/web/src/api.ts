@@ -1,3 +1,5 @@
+import type { EsfuerzoEjecucion, Interrupcion } from '@campo/core';
+
 /**
  * Cliente de la API. Mismo origen que la web (el nginx de la imagen reenvía /api), con la cookie
  * de sesión de Better Auth. Los errores llegan en RFC 9457 y se muestran tal cual a la persona.
@@ -294,6 +296,9 @@ export interface EjecucionDetalle extends Omit<
   proyecto_id: string;
   datos: Record<string, unknown>;
   objetivo_campo: number | null;
+  /** RF-T05 (T-10): planificado vs. ejecutado e interrupciones o fallas. */
+  esfuerzo: EsfuerzoEjecucion;
+  interrupciones: Interrupcion[];
   estacion_za_ef: string | null;
   estacion_lat: number;
   estacion_lon: number;
@@ -580,6 +585,13 @@ export interface FilaSeguimiento {
   ejecuciones: number;
   por_estado: Record<string, number>;
   ultima_actividad: string | null;
+  /** RF-T05 / RN-19: una fila por ejecución (por usuario); el ejecutado es la suma. */
+  esfuerzo_por_usuario: {
+    ejecucion_id: string;
+    usuario_nombre: string;
+    estado: string;
+    esfuerzo: EsfuerzoEjecucion;
+  }[];
 }
 
 export interface BrigadaSeguimiento {

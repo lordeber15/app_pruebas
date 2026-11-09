@@ -334,6 +334,9 @@ export const ejecucionCerrada = async (
         desviacion_explicacion: p.desviacion.tipo === 'ninguna' ? null : p.desviacion.explicacion,
         confirmaciones: JSON.stringify(p.confirmaciones),
         objetivo_campo: p.objetivo_campo === null ? null : String(p.objetivo_campo),
+        // T-10 (RF-T05): las interrupciones y fallas con motivo; el resto del esfuerzo
+        // (inicio/fin, cantidad, duración) se calcula con core a partir de las unidades.
+        esfuerzo_ejecutado: JSON.stringify({ interrupciones: p.interrupciones }),
         version: eb('version', '+', 1),
         actualizado_por: actor.usuarioId,
       }))

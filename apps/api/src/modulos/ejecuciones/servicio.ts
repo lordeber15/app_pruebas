@@ -1,4 +1,4 @@
-import { puedeIntentar } from '@campo/core';
+import { configuracionMetodoSchema, puedeIntentar } from '@campo/core';
 import type { Db } from '@campo/db';
 import type { Actor } from '../../plataforma/sesion.ts';
 import {
@@ -8,6 +8,7 @@ import {
   soloLoSuyo,
   veTodosLosProyectos,
 } from '../alcance/autorizacion.ts';
+import { esfuerzoDeEjecucion, interrupcionesDe } from '../seguimiento/avance.ts';
 import * as repo from './repositorio.ts';
 
 /**
@@ -59,7 +60,14 @@ export const verEjecucion = async (db: Db, actor: Actor, ejecucionId: string) =>
   if (rol === null || !puedeIntentar(rol, 'consultar_seguimiento')) {
     throw noEncontrado('La ejecución');
   }
-  const { usuario_id: duenoId, ...cabecera } = e;
+  const {
+    usuario_id: duenoId,
+    esfuerzo_ejecutado: esfuerzoGuardado,
+    metodo_config: metodoConfig,
+    estacion_region: region,
+    estacion_uv: uv,
+    ...cabecera
+  } = e;
   if (soloLoSuyo(rol) && duenoId !== actor.usuarioId) throw noEncontrado('La ejecución');
 
   const [unidades, tracks, fotos] = await Promise.all([
@@ -67,9 +75,25 @@ export const verEjecucion = async (db: Db, actor: Actor, ejecucionId: string) =>
     repo.tracks(db, ejecucionId),
     repo.fotos(db, ejecucionId),
   ]);
+  const config = configuracionMetodoSchema.safeParse(metodoConfig);
+  const objetivoCampo = e.objetivo_campo === null ? null : Number(e.objetivo_campo);
   return {
     ...cabecera,
-    objetivo_campo: e.objetivo_campo === null ? null : Number(e.objetivo_campo),
+    objetivo_campo: objetivoCampo,
+    // RF-T05 (T-10): planificado vs. ejecutado, con inicio/fin e interrupciones o fallas.
+    esfuerzo: esfuerzoDeEjecucion(
+      config.success ? config.data : null,
+      { region, uv, za_ef: e.estacion_za_ef },
+      {
+        datos: e.datos,
+        objetivo_campo: objetivoCampo,
+        abierta_en: e.abierta_en,
+        cerrada_en: e.cerrada_en,
+        esfuerzo_ejecutado: esfuerzoGuardado,
+      },
+      { cerradas: unidades.filter((u) => u.estado === 'cerrada').length, rangos: unidades },
+    ),
+    interrupciones: interrupcionesDe(esfuerzoGuardado),
     unidades,
     tracks,
     fotos,

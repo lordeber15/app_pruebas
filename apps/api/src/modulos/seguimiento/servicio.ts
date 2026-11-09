@@ -1,4 +1,10 @@
-import { configuracionMetodoSchema, puedeIntentar, type Avance, type Objetivo } from '@campo/core';
+import {
+  configuracionMetodoSchema,
+  puedeIntentar,
+  type Avance,
+  type EsfuerzoEjecucion,
+  type Objetivo,
+} from '@campo/core';
 import type { Db } from '@campo/db';
 import { sql } from 'kysely';
 import type { Actor } from '../../plataforma/sesion.ts';
@@ -8,7 +14,7 @@ import {
   soloLoSuyo,
   veTodosLosProyectos,
 } from '../alcance/autorizacion.ts';
-import { avanceDeMetodo } from './avance.ts';
+import { avanceDeMetodo, esfuerzoDeEjecucion } from './avance.ts';
 
 /**
  * Dashboard de seguimiento (D02 §12, RF-W01, RN-37, RN-38, E-09).
@@ -42,6 +48,16 @@ export interface FilaSeguimiento {
   readonly ejecuciones: number;
   readonly por_estado: Readonly<Record<string, number>>;
   readonly ultima_actividad: string | null;
+  /**
+   * RF-T05 / RN-19: una fila por ejecución (por usuario) con su planificado vs. ejecutado, inicio,
+   * fin e interrupciones o fallas. El ejecutado del método es la suma de estas filas.
+   */
+  readonly esfuerzo_por_usuario: readonly {
+    readonly ejecucion_id: string;
+    readonly usuario_nombre: string;
+    readonly estado: string;
+    readonly esfuerzo: EsfuerzoEjecucion;
+  }[];
 }
 
 export const verSeguimiento = async (
@@ -95,12 +111,17 @@ export const verSeguimiento = async (
       (eb) =>
         eb
           .selectFrom('unidad')
-          .select(['ejecucion_id', sql<number>`count(*)::int`.as('n')])
-          .where('estado', '=', 'cerrada')
+          .select([
+            'ejecucion_id',
+            sql<number>`(count(*) filter (where estado = 'cerrada'))::int`.as('n'),
+            sql<Date | null>`min(inicio)`.as('inicio'),
+            sql<Date | null>`max(fin)`.as('fin'),
+          ])
           .groupBy('ejecucion_id')
           .as('u'),
       (j) => j.onRef('u.ejecucion_id', '=', 'x.id'),
     )
+    .innerJoin('usuario as us', 'us.id', 'x.usuario_id')
     .select([
       'x.id',
       'x.brigada_id',
@@ -111,6 +132,11 @@ export const verSeguimiento = async (
       'x.datos',
       sql<number | null>`x.objetivo_campo::float8`.as('objetivo_campo'),
       'x.abierta_en',
+      'x.cerrada_en',
+      'x.esfuerzo_ejecutado',
+      'us.nombre as usuario_nombre',
+      'u.inicio as unidad_inicio',
+      'u.fin as unidad_fin',
       'x.actualizado_en',
       sql<number>`coalesce(u.n, 0)`.as('unidades_cerradas'),
     ])
@@ -261,6 +287,15 @@ export const verSeguimiento = async (
             ejecuciones: propiasFila.length,
             por_estado: porEstado,
             ultima_actividad: ultima?.toISOString() ?? null,
+            esfuerzo_por_usuario: propiasFila.map((x) => ({
+              ejecucion_id: x.id,
+              usuario_nombre: x.usuario_nombre,
+              estado: x.estado,
+              esfuerzo: esfuerzoDeEjecucion(m.config, e, x, {
+                cerradas: x.unidades_cerradas,
+                rangos: [{ inicio: x.unidad_inicio, fin: x.unidad_fin }],
+              }),
+            })),
           },
           orden: [`${c.fecha ?? '9999'}|${e.codigo}`, m.especialidad_orden, m.orden],
         });

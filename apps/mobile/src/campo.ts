@@ -3,7 +3,10 @@ import {
   eventoSchema,
   evaluarEjecucion,
   geometriaCapturadaSchema,
+  interrupcionSchema,
   type ConfiguracionMetodo,
+  type Interrupcion,
+  type TipoInterrupcion,
   type EvaluacionEjecucion,
   type GeometriaCapturada,
   type Region,
@@ -273,6 +276,8 @@ export interface EjecucionLocal {
   objetivo_campo: number | null;
   incumplimientos: number | null;
   advertencias: number | null;
+  /** JSON de `Interrupcion[]` (T-10). */
+  interrupciones: string;
 }
 
 export interface UnidadLocal {
@@ -317,6 +322,60 @@ export const resumenPorEstacion = () =>
 
 export const ejecucion = async (id: string) =>
   (await consultar<EjecucionLocal>('SELECT * FROM ejecucion_local WHERE id = ?', [id]))[0] ?? null;
+
+/** Interrupciones o fallas registradas (T-10); lo ilegible se ignora, nunca bloquea. */
+export const interrupcionesDe = (ej: Pick<EjecucionLocal, 'interrupciones'>): Interrupcion[] => {
+  try {
+    const r = interrupcionSchema.array().safeParse(JSON.parse(ej.interrupciones));
+    return r.success ? r.data : [];
+  } catch {
+    return [];
+  }
+};
+
+/**
+ * Registra el inicio de una interrupción o falla con su motivo (T-10, RF-T05). No bloquea nada:
+ * solo descuenta su tiempo de la duración efectiva. Se envía con el cierre de la ejecución.
+ */
+export const iniciarInterrupcion = (
+  ejecucionId: string,
+  tipo: TipoInterrupcion,
+  motivo: string,
+  unidadId: string | null = null,
+) =>
+  enCola(`ejecucion:${ejecucionId}`, async () => {
+    const ej = await ejecucion(ejecucionId);
+    if (ej === null || ej.estado_local !== 'en_curso') return;
+    const lista = interrupcionesDe(ej);
+    if (lista.some((i) => i.fin === null)) return;
+    lista.push({
+      id: generarId(),
+      tipo,
+      motivo: motivo.trim(),
+      inicio: new Date().toISOString(),
+      fin: null,
+      unidad_id: unidadId,
+    });
+    await ejecutar('UPDATE ejecucion_local SET interrupciones = ? WHERE id = ?', [
+      JSON.stringify(lista),
+      ejecucionId,
+    ]);
+    avisarCambio();
+  });
+
+/** Reanuda la ejecución: cierra la interrupción abierta con la hora actual. */
+export const reanudarEjecucion = (ejecucionId: string) =>
+  enCola(`ejecucion:${ejecucionId}`, async () => {
+    const ej = await ejecucion(ejecucionId);
+    if (ej === null) return;
+    const ahora = new Date().toISOString();
+    const lista = interrupcionesDe(ej).map((i) => (i.fin === null ? { ...i, fin: ahora } : i));
+    await ejecutar('UPDATE ejecucion_local SET interrupciones = ? WHERE id = ?', [
+      JSON.stringify(lista),
+      ejecucionId,
+    ]);
+    avisarCambio();
+  });
 
 export const unidadesDe = (ejecucionId: string) =>
   consultar<UnidadLocal>('SELECT * FROM unidad_local WHERE ejecucion_id = ? ORDER BY orden', [
@@ -776,6 +835,11 @@ export const cerrarEjecucion = async (
   }
   const fotos = await fotosDeEjecucion(ejecucionId);
   const cerradaEn = new Date().toISOString();
+  // Una interrupción sin reanudar termina con el cierre (T-10).
+  const actual = await ejecucion(ejecucionId);
+  const interrupciones = (actual === null ? [] : interrupcionesDe(actual)).map((i) =>
+    i.fin === null ? { ...i, fin: cerradaEn } : i,
+  );
   await registrarEvento({
     tipo: 'ejecucion_cerrada',
     entidad: { tipo: 'ejecucion', id: ejecucionId },
@@ -790,15 +854,17 @@ export const cerrarEjecucion = async (
       confirmaciones: c.confirmaciones,
       objetivo_campo: c.objetivo_campo,
       archivo_ids: fotos.map((f) => f.id),
+      interrupciones,
     },
   });
   const final = await evaluarLocal(p, ejecucionId, c);
   await ejecutar(
-    "UPDATE ejecucion_local SET estado_local = 'cerrada', cerrada_en = ?, incumplimientos = ?, advertencias = ? WHERE id = ?",
+    "UPDATE ejecucion_local SET estado_local = 'cerrada', cerrada_en = ?, incumplimientos = ?, advertencias = ?, interrupciones = ? WHERE id = ?",
     [
       cerradaEn,
       final?.evaluacion.incumplimientos_obligatorios ?? null,
       final?.evaluacion.advertencias ?? null,
+      JSON.stringify(interrupciones),
       ejecucionId,
     ],
   );
