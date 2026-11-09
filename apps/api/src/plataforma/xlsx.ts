@@ -194,3 +194,18 @@ export const validarXlsx = (archivo: Buffer): Buffer => {
     ),
   );
 };
+
+/** Nombre del archivo enviado en la cabecera `x-nombre-archivo` (codificado como URI); solo para el historial. */
+export const nombreArchivoDeCabecera = (valor: string | undefined): string | null => {
+  if (valor === undefined || valor === '') return null;
+  let n: string;
+  try {
+    n = decodeURIComponent(valor);
+  } catch {
+    n = valor;
+  }
+  // eslint-disable-next-line no-control-regex -- se quitan caracteres de control del nombre.
+  const sinControl = n.replace(/[\\/\u0000-\u001f]/g, '_');
+  const limpio = sinControl.trim().slice(0, 255);
+  return limpio === '' ? null : limpio;
+};

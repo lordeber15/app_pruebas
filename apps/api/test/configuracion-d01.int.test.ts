@@ -1,9 +1,9 @@
 import { COL, COLUMNAS_D01, COLV, HOJA_METODOS, HOJA_VALIDACIONES } from '@campo/core';
 import ExcelJS from 'exceljs';
 import { sql } from 'kysely';
-import { randomBytes } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { generarId } from '../src/plataforma/ids.ts';
+import { empaquetarSinCompresion, leerEntradasZip } from '../src/plataforma/xlsx.ts';
 import {
   conToken,
   iniciarEntorno,
@@ -41,29 +41,17 @@ interface Vista {
   errores: { hoja: string; fila: number | null; columna: string | null; mensaje: string }[];
 }
 
-const multipart = (nombre: string, datos: Buffer, tipo = TIPO_XLSX) => {
-  const limite = `limite${randomBytes(8).toString('hex')}`;
-  return {
-    payload: Buffer.concat([
-      Buffer.from(
-        `--${limite}\r\nContent-Disposition: form-data; name="archivo"; filename="${nombre}"\r\nContent-Type: ${tipo}\r\n\r\n`,
-      ),
-      datos,
-      Buffer.from(`\r\n--${limite}--\r\n`),
-    ]),
-    headers: { 'content-type': `multipart/form-data; boundary=${limite}` },
-  };
-};
-
-const subir = (token: string, proyecto: string, datos: Buffer, nombre = 'D01.xlsx') => {
-  const m = multipart(nombre, datos);
-  return e.app.inject({
+const subir = (token: string, proyecto: string, datos: Buffer, nombre = 'D01.xlsx') =>
+  e.app.inject({
     method: 'POST',
     url: `/api/v1/proyectos/${proyecto}/configuracion/d01/importar`,
-    headers: { ...conToken(token), ...m.headers },
-    payload: m.payload,
+    headers: {
+      ...conToken(token),
+      'content-type': TIPO_XLSX,
+      'x-nombre-archivo': encodeURIComponent(nombre),
+    },
+    payload: datos,
   });
-};
 
 const descargar = (token: string, proyecto: string, conDatos: '0' | '1') =>
   e.app.inject({
@@ -478,6 +466,21 @@ describe('carga de D01 por plantilla Excel (RF-W09)', () => {
       'D01.xlsx',
     );
     expect(zip.statusCode).toBe(415);
+    // «Bomba zip»: el directorio central declara 60 MB descomprimidos → 413 antes de ExcelJS.
+    const bomba = empaquetarSinCompresion([{ nombre: 'xl/workbook.xml', datos: Buffer.from('x') }]);
+    const central = bomba.indexOf(Buffer.from([0x50, 0x4b, 0x01, 0x02]));
+    bomba.writeUInt32LE(60 * 1024 * 1024, central + 24);
+    const r413 = await subir(o.coordinacion.token, proyectoId, bomba);
+    expect(r413.statusCode).toBe(413);
+    expect(r413.json<{ codigo: string }>().codigo).toBe('XLSX_DEMASIADO_GRANDE');
+    // Un libro válido con macros (vbaProject.bin) → 415.
+    const conMacros = empaquetarSinCompresion([
+      ...leerEntradasZip(exportado),
+      { nombre: 'xl/vbaProject.bin', datos: Buffer.from('macro') },
+    ]);
+    const r415 = await subir(o.coordinacion.token, proyectoId, conMacros);
+    expect(r415.statusCode).toBe(415);
+    expect(r415.json<{ codigo: string }>().codigo).toBe('ARCHIVO_NO_XLSX');
     const json = await pedir(
       e,
       o.coordinacion.token,

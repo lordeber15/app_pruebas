@@ -28,7 +28,7 @@ import {
 
 export const HOJA_METODOS = '01_Config_Metodos';
 export const HOJA_VALIDACIONES = 'Validaciones_App';
-export const HOJA_INSTRUCCIONES = 'Instrucciones';
+// La hoja de instrucciones se llama igual que en la plantilla A01 (`HOJA_INSTRUCCIONES`, programacion.ts).
 
 /** Encabezados: los de D01 (verbatim) y los de la app. */
 export const COL = {

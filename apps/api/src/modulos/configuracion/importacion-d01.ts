@@ -20,6 +20,7 @@ import { z } from 'zod';
 import { ProblemaHttp } from '../../plataforma/errores.ts';
 import { generarId } from '../../plataforma/ids.ts';
 import type { Actor } from '../../plataforma/sesion.ts';
+import { validarXlsx } from '../../plataforma/xlsx.ts';
 import { exigirGlobal, noEncontrado } from '../alcance/autorizacion.ts';
 import { verProyecto } from '../organizacion/servicio.ts';
 import { escribirPlantillaD01, leerLibroD01 } from './excel-d01.ts';
@@ -233,7 +234,8 @@ export const previsualizarImportacionD01 = async (
   if (archivo.datos.length > TAMANO_MAXIMO) {
     throw new ProblemaHttp(413, 'ARCHIVO_GRANDE', 'El archivo supera los 5 MB permitidos.');
   }
-  const libro = await leerLibroD01(archivo.datos);
+  // Tipo por contenido (firma ZIP + estructura OOXML), anti «bomba zip» y sin prefijos `x:`.
+  const libro = await leerLibroD01(validarXlsx(archivo.datos));
   const especialidades = await especialidadesDe(db, proyectoId);
   const vigente = await vigenteDe(db, proyectoId);
   const porCodigo = new Map((vigente?.metodos ?? []).map((m) => [m.codigo, m]));

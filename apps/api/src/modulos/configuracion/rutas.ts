@@ -4,8 +4,8 @@ import type { FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import type { Auth } from '../../plataforma/auth.ts';
 import { noAutenticado, ProblemaHttp } from '../../plataforma/errores.ts';
-import { leerMultipart, nombreSeguro } from '../../plataforma/multipart.ts';
 import { requiereSesion, type Actor } from '../../plataforma/sesion.ts';
+import { nombreArchivoDeCabecera } from '../../plataforma/xlsx.ts';
 import { TIPO_XLSX } from './excel-d01.ts';
 import {
   aplicarImportacionD01,
@@ -30,15 +30,15 @@ const actor = (request: FastifyRequest): Actor => {
 
 /**
  * Configuración por método D01 desde la web con la plantilla Excel (RF-W09). Solo Coordinación y
- * JdP. El archivo llega como `multipart/form-data` (campo `archivo`) y se lee completo en memoria,
- * con un límite de 5 MB más el margen de las cabeceras multipart.
+ * JdP. El .xlsx llega como cuerpo crudo (igual que la programación A01), con un límite de 5 MB y el
+ * nombre opcional en la cabecera `x-nombre-archivo`; se valida por contenido con `validarXlsx`.
  */
 export const rutasConfiguracion: FastifyPluginAsyncZod<Opciones> = (app, { auth, db }) => {
   app.addHook('preHandler', requiereSesion(auth, db));
-  // Solo en este plugin: el resto de la API no acepta multipart.
+  // El Excel llega como cuerpo crudo (sin multipart), con su límite; solo en este plugin.
   app.addContentTypeParser(
-    'multipart/form-data',
-    { parseAs: 'buffer', bodyLimit: TAMANO_MAXIMO + 64 * 1024 },
+    [TIPO_XLSX, 'application/octet-stream'],
+    { parseAs: 'buffer', bodyLimit: TAMANO_MAXIMO },
     (_request, cuerpo, hecho) => {
       hecho(null, cuerpo);
     },
@@ -73,24 +73,27 @@ export const rutasConfiguracion: FastifyPluginAsyncZod<Opciones> = (app, { auth,
 
   app.post(
     '/proyectos/:id/configuracion/d01/importar',
-    { schema: { params: conId }, bodyLimit: TAMANO_MAXIMO + 64 * 1024 },
+    {
+      schema: {
+        params: conId,
+        // Nombre del archivo, opcional, para el historial de la carga.
+        headers: z.object({ 'x-nombre-archivo': z.string().max(1_000).optional() }),
+      },
+      bodyLimit: TAMANO_MAXIMO,
+    },
     async (request, reply) => {
       const a = actor(request);
-      const tipo = request.headers['content-type'] ?? '';
-      if (!/^multipart\/form-data/i.test(tipo) || !Buffer.isBuffer(request.body)) {
+      if (!Buffer.isBuffer(request.body)) {
         throw new ProblemaHttp(
           415,
           'TIPO_NO_ADMITIDO',
-          'Envíe el archivo como multipart/form-data en el campo «archivo».',
+          `Envíe el archivo .xlsx como cuerpo de la solicitud (Content-Type: ${TIPO_XLSX}).`,
         );
       }
-      const parte = leerMultipart(request.body, tipo).find((p) => p.campo === 'archivo');
-      if (parte === undefined) {
-        throw new ProblemaHttp(400, 'ARCHIVO_VACIO', 'Adjunte el archivo de la plantilla D01.');
-      }
       const vista = await previsualizarImportacionD01(db, a, request.params.id, {
-        nombre: nombreSeguro(parte.nombreArchivo, 'plantilla-d01.xlsx'),
-        datos: parte.datos,
+        nombre:
+          nombreArchivoDeCabecera(request.headers['x-nombre-archivo']) ?? 'plantilla-d01.xlsx',
+        datos: request.body,
       });
       return reply.status(201).send(vista);
     },

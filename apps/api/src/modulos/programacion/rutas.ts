@@ -8,7 +8,7 @@ import { noAutenticado, ProblemaHttp } from '../../plataforma/errores.ts';
 import { requiereSesion, type Actor } from '../../plataforma/sesion.ts';
 import type { AlCambiarCronograma } from '../mapas/servicio.ts';
 import { leerProgramacionXlsx } from './excel.ts';
-import { validarXlsx } from '../../plataforma/xlsx.ts';
+import { nombreArchivoDeCabecera, validarXlsx } from '../../plataforma/xlsx.ts';
 import * as programacion from './servicio.ts';
 
 interface Opciones {
@@ -23,19 +23,6 @@ export const LIMITE_XLSX_BYTES = 5 * 1024 * 1024;
 const conId = z.object({ id: z.uuid() });
 const motivo = z.string().trim().min(1).max(2000);
 const TIPO_XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-
-/** Nombre del archivo enviado en la cabecera (codificado como URI); solo para el historial. */
-const nombreArchivo = (valor: string | undefined): string | null => {
-  if (valor === undefined || valor === '') return null;
-  let n: string;
-  try {
-    n = decodeURIComponent(valor);
-  } catch {
-    n = valor;
-  }
-  // eslint-disable-next-line no-control-regex -- se quitan caracteres de control del nombre.
-  return n.replace(/[\\/\u0000-\u001f]/g, '_').slice(0, 255);
-};
 
 const actor = (request: FastifyRequest): Actor => {
   if (request.actor === null) throw noAutenticado();
@@ -109,7 +96,10 @@ export const rutasProgramacion: FastifyPluginAsyncZod<Opciones> = (
       if (datos.length === 0) {
         throw new ProblemaHttp(400, 'ARCHIVO_VACIO', 'El archivo está vacío.');
       }
-      const archivo = { nombre: nombreArchivo(request.headers['x-nombre-archivo']), datos };
+      const archivo = {
+        nombre: nombreArchivoDeCabecera(request.headers['x-nombre-archivo']),
+        datos,
+      };
       // Tipo por contenido (firma ZIP + estructura OOXML) y anti «bomba zip», nunca por la extensión.
       const libro = validarXlsx(datos);
       const filas = await leerProgramacionXlsx(libro);
